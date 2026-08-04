@@ -26,6 +26,9 @@ class SampledGenerator<T> extends Generator<T> {
         outIndex,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate sampled index: ${result.value}');
       }
@@ -49,7 +52,7 @@ class OneOfGenerator<T> extends Generator<T> {
   @override
   T generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
       try {
         final outIndex = arena<ffi.Int64>();
         final result = tc.lib.hegel_generate_integer(
@@ -60,13 +63,16 @@ class OneOfGenerator<T> extends Generator<T> {
           outIndex,
         );
 
-        if (result != hegel_result_t.HEGEL_OK) {
+        if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
+      if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate oneOf index: ${result.value}');
         }
 
         return gens[outIndex.value].generate(tc);
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   }
@@ -83,7 +89,7 @@ class NullableGenerator<T> extends Generator<T?> {
   @override
   T? generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_OPTIONAL.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_OPTIONAL.value);
       try {
         final outBool = arena<ffi.Bool>();
         final result = tc.lib.hegel_generate_boolean(
@@ -95,7 +101,10 @@ class NullableGenerator<T> extends Generator<T?> {
           outBool,
         );
 
-        if (result != hegel_result_t.HEGEL_OK) {
+        if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
+      if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate boolean for nullable: ${result.value}');
         }
 
@@ -105,7 +114,7 @@ class NullableGenerator<T> extends Generator<T?> {
           return gen.generate(tc);
         }
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   }
@@ -116,11 +125,11 @@ Generator<T?> nullable<T>(Generator<T> gen, {double nullProbability = 0.5}) => N
 Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
   return Generator.composite((tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
       try {
         return (a.generate(tc), b.generate(tc));
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   });
@@ -129,11 +138,11 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
 Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<C> c) {
   return Generator.composite((tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
       try {
         return (a.generate(tc), b.generate(tc), c.generate(tc));
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   });
@@ -142,11 +151,11 @@ Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<
 Generator<(A, B, C, D)> tuples4<A, B, C, D>(Generator<A> a, Generator<B> b, Generator<C> c, Generator<D> d) {
   return Generator.composite((tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
       try {
         return (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   });
@@ -161,6 +170,11 @@ class FrequencyGenerator<T> extends Generator<T> {
     if (weighted.isEmpty) {
       throw ArgumentError('FrequencyGenerator requires a non-empty list of weighted generators.');
     }
+    for (final item in weighted) {
+      if (item.$1 < 0) {
+        throw ArgumentError('FrequencyGenerator weights must be non-negative, got ${item.$1}.');
+      }
+    }
     if (totalWeight <= 0) {
       throw ArgumentError('FrequencyGenerator requires at least one generator with weight > 0.');
     }
@@ -169,7 +183,7 @@ class FrequencyGenerator<T> extends Generator<T> {
   @override
   T generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
       try {
         final outIndex = arena<ffi.Int64>();
         final result = tc.lib.hegel_generate_integer(
@@ -180,7 +194,10 @@ class FrequencyGenerator<T> extends Generator<T> {
           outIndex,
         );
 
-        if (result != hegel_result_t.HEGEL_OK) {
+        if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
+      if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate frequency index: ${result.value}');
         }
 
@@ -195,7 +212,7 @@ class FrequencyGenerator<T> extends Generator<T> {
         // Fallback in case of rounding/logic issues, though shouldn't happen.
         return weighted.last.$2.generate(tc);
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.stopSpan();
       }
     });
   }

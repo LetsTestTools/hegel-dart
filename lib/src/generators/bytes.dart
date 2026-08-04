@@ -24,6 +24,9 @@ class BytesGenerator extends Generator<Uint8List> {
         outResult,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate bytes: ${result.value}');
       }

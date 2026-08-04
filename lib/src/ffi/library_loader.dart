@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'hegel_bindings.g.dart';
 
+LibHegel? _cachedLib;
+
 /// Loads the libhegel native library and returns [LibHegel] bindings.
 ///
 /// Resolution order:
@@ -10,6 +12,7 @@ import 'hegel_bindings.g.dart';
 /// 2. Bundled binary in `native/<platform>/` relative to package root
 /// 3. System library path fallback
 LibHegel loadHegelLibrary() {
+  if (_cachedLib != null) return _cachedLib!;
   final envPath = Platform.environment['HEGEL_LIBHEGEL_PATH'];
 
   // 1. Check env override
@@ -27,7 +30,7 @@ LibHegel loadHegelLibrary() {
       );
     }
     stderr.writeln('[hegeltest] Using custom libhegel: $envPath');
-    return LibHegel(DynamicLibrary.open(envPath));
+    return _cachedLib = LibHegel(DynamicLibrary.open(envPath));
   }
 
   // 2. Try platform-specific bundled binary
@@ -46,13 +49,13 @@ LibHegel loadHegelLibrary() {
     if (candidate.endsWith('.json')) continue;
     final file = File(candidate);
     if (file.existsSync()) {
-      return LibHegel(DynamicLibrary.open(file.absolute.path));
+      return _cachedLib = LibHegel(DynamicLibrary.open(file.absolute.path));
     }
   }
 
   // 3. System library path fallback
   try {
-    return LibHegel(DynamicLibrary.open(libName));
+    return _cachedLib = LibHegel(DynamicLibrary.open(libName));
   } catch (_) {
     throw StateError(
       'Could not find libhegel. Set HEGEL_LIBHEGEL_PATH or run:\n'

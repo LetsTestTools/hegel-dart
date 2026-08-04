@@ -37,10 +37,10 @@ void main() {
     try {
       await runner2.run(body, reproduceBlob: reproduceBlob);
       fail('Replay should also fail');
-    } on HegelTestFailure catch (e) {
-      // Replay should produce a property failure with origin
-      expect(e.message, contains('Property failed'));
-      expect(e.message, contains('Origin'));
+    } on StateError catch (e) {
+      // With blob replay rethrow fix, the original exception is
+      // thrown directly so users can debug the actual error.
+      expect(e.message, contains('Value too large'));
     }
   });
 }

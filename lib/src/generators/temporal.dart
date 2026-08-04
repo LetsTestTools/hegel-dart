@@ -34,6 +34,9 @@ class DateGenerator extends Generator<DateTime> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate date: ${result.value}');
       }
@@ -83,6 +86,9 @@ class TimeGenerator extends Generator<TimeRecord> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate time: ${result.value}');
       }
@@ -141,6 +147,9 @@ class DateTimeGenerator extends Generator<DateTime> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate datetime: ${result.value}');
       }

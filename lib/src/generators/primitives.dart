@@ -9,7 +9,11 @@ class IntegerGenerator extends Generator<int> {
   final int min;
   final int max;
 
-  const IntegerGenerator(this.min, this.max);
+  IntegerGenerator(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError('integers: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   int generate(TestCase tc) {
@@ -23,6 +27,9 @@ class IntegerGenerator extends Generator<int> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate integer: ${result.value}');
       }
@@ -45,14 +52,22 @@ class DoubleGenerator extends Generator<double> {
   final bool excludeMax;
   final double smallestNonzeroMagnitude;
 
-  const DoubleGenerator(
-      this.min,
-      this.max,
-      this.allowNan,
-      this.allowInfinity,
-      this.excludeMin,
-      this.excludeMax,
-      this.smallestNonzeroMagnitude);
+  DoubleGenerator(
+    this.min,
+    this.max,
+    this.allowNan,
+    this.allowInfinity,
+    this.excludeMin,
+    this.excludeMax,
+    this.smallestNonzeroMagnitude,
+  ) {
+    if (min.isNaN || max.isNaN) {
+      throw ArgumentError('doubles: min and max must not be NaN');
+    }
+    if (min > max) {
+      throw ArgumentError('doubles: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   double generate(TestCase tc) {
@@ -72,6 +87,9 @@ class DoubleGenerator extends Generator<double> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate double: ${result.value}');
       }
@@ -111,6 +129,9 @@ class BooleanGenerator extends Generator<bool> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate boolean: ${result.value}');
       }
@@ -128,7 +149,11 @@ class BigIntGenerator extends Generator<BigInt> {
   final BigInt min;
   final BigInt max;
 
-  const BigIntGenerator(this.min, this.max);
+  BigIntGenerator(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError('bigIntegers: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   BigInt generate(TestCase tc) {
@@ -163,6 +188,9 @@ class BigIntGenerator extends Generator<BigInt> {
         outLen,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate big integer: ${result.value}');
       }
@@ -214,10 +242,11 @@ class BigIntGenerator extends Generator<BigInt> {
     // Check sign bit (highest bit of the most significant byte)
     final isNegative = (beBytes[0] & 0x80) != 0;
     
-    var hex = '';
+    final hexBuf = StringBuffer();
     for (var b in beBytes) {
-      hex += b.toRadixString(16).padLeft(2, '0');
+      hexBuf.write(b.toRadixString(16).padLeft(2, '0'));
     }
+    final hex = hexBuf.toString();
     
     var result = BigInt.parse(hex, radix: 16);
     if (isNegative) {

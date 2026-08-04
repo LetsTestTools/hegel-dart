@@ -1,6 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../ffi/hegel_bindings.g.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
@@ -15,11 +16,14 @@ class Ipv4Generator extends Generator<InternetAddress> {
       final outBytes = arena<ffi.Uint8>(4);
       final result = tc.lib.hegel_generate_ipv4(tc.ctx, tc.handle, outBytes);
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate IPv4: ${result.value}');
       }
 
-      final list = outBytes.asTypedList(4);
+      final list = Uint8List.fromList(outBytes.asTypedList(4));
       return InternetAddress.fromRawAddress(list, type: InternetAddressType.IPv4);
     });
   }
@@ -36,11 +40,14 @@ class Ipv6Generator extends Generator<InternetAddress> {
       final outBytes = arena<ffi.Uint8>(16);
       final result = tc.lib.hegel_generate_ipv6(tc.ctx, tc.handle, outBytes);
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate IPv6: ${result.value}');
       }
 
-      final list = outBytes.asTypedList(16);
+      final list = Uint8List.fromList(outBytes.asTypedList(16));
       return InternetAddress.fromRawAddress(list, type: InternetAddressType.IPv6);
     });
   }

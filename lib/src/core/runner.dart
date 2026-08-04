@@ -37,6 +37,7 @@ class HegelRunner {
     Set<HealthCheck>? suppressHealthChecks,
     bool? reportMultipleFailures,
     String? databaseKey,
+    String? database,
   }) async {
     final ctx = lib.hegel_context_new();
     Pointer<hegel_settings_t> settings = nullptr;
@@ -68,6 +69,7 @@ class HegelRunner {
         suppressHealthChecks: suppressHealthChecks,
         reportMultipleFailures: reportMultipleFailures,
         databaseKey: databaseKey,
+        database: database,
       );
 
       callback = NativeCallable<hegel_output_callback_tFunction>.isolateLocal(
@@ -98,6 +100,8 @@ class HegelRunner {
         final tc = TestCase(ctx, tcHandle, lib);
         var status = hegel_status_t.HEGEL_STATUS_VALID.value;
         String? originStr;
+        Object? caughtError;
+        StackTrace? caughtStack;
 
         try {
           await body(tc);
@@ -108,6 +112,8 @@ class HegelRunner {
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
+          caughtError = e;
+          caughtStack = st;
         }
 
         using((Arena arena) {
@@ -125,6 +131,11 @@ class HegelRunner {
         });
 
         if (status == hegel_status_t.HEGEL_STATUS_INTERESTING.value) {
+          // Rethrow the original exception so the user can debug.
+          // Include origin info but preserve the real error.
+          if (caughtError != null && caughtStack != null) {
+            Error.throwWithStackTrace(caughtError, caughtStack);
+          }
           throw HegelTestFailure(
               'Property failed during blob replay. Origin: $originStr');
         }
@@ -176,6 +187,10 @@ class HegelRunner {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
         }
+
+        // Invalidate the test case so captured references can't
+        // use freed native pointers.
+        tc.invalidate();
 
         // Complete the test case
         using((Arena arena) {
@@ -349,6 +364,11 @@ class HegelRunner {
 void hegelTest(
   String description,
   FutureOr<void> Function(TestCase tc) body, {
+  Timeout? timeout,
+  dynamic tags,
+  dynamic skip,
+  Map<String, dynamic>? onPlatform,
+  int? retry,
   int? testCases,
   int? seed,
   bool? derandomize,
@@ -358,6 +378,7 @@ void hegelTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
+  String? database,
 }) {
   test(description, () async {
     final lib = loadHegelLibrary();
@@ -373,6 +394,7 @@ void hegelTest(
       suppressHealthChecks: suppressHealthChecks,
       reportMultipleFailures: reportMultipleFailures,
       databaseKey: databaseKey,
+      database: database,
     );
-  });
+  }, timeout: timeout, tags: tags, skip: skip, onPlatform: onPlatform, retry: retry);
 }
