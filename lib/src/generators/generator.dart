@@ -1,3 +1,4 @@
+import '../core/exceptions.dart';
 import '../core/test_case.dart';
 
 abstract class Generator<T> {
@@ -42,16 +43,20 @@ class FilteredGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    while (true) {
-      final value = _generator.generate(tc);
-      if (_predicate(value)) {
-        return value;
+    // Try up to a reasonable number of times before giving up.
+    // If the engine exhausts its choice budget (HegelStopTest), treat
+    // this like an assumption violation so the test case is discarded.
+    for (var attempt = 0; attempt < 100; attempt++) {
+      try {
+        final value = _generator.generate(tc);
+        if (_predicate(value)) {
+          return value;
+        }
+      } on HegelStopTest {
+        throw const HegelAssumptionViolated();
       }
-      // If we need to explicitly reject, we would do it here, but this is a simple filter
-      // (Normally a Filter generator might call a reject API if it keeps looping, 
-      // but without specific API for simple values we just loop. 
-      // The user asked for it to be implemented.)
     }
+    throw const HegelAssumptionViolated();
   }
 }
 
