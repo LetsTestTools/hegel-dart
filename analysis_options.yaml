@@ -1,0 +1,15 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  errors:
+    # FFI code uses many casts that trigger these
+    unnecessary_cast: ignore
+  exclude:
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - sort_constructors_first
+    - unawaited_futures
+    - prefer_final_locals

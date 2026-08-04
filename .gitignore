@@ -1,0 +1,21 @@
+# Dart
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated
+*.g.dart
+!lib/src/ffi/hegel_bindings.g.dart
+
+# Hegel database
+.hegel/
