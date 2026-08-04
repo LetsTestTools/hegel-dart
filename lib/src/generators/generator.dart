@@ -1,5 +1,6 @@
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
+import '../ffi/hegel_bindings.g.dart';
 
 abstract class Generator<T> {
   const Generator();
@@ -47,10 +48,21 @@ class FilteredGenerator<T> extends Generator<T> {
     // HegelStopTest (budget exhaustion) is NOT caught — it must
     // propagate to the runner so the engine correctly distinguishes
     // "budget exhausted" from "invalid assumption".
+    //
+    // Each attempt is wrapped in a span so that rejected draws
+    // don't shift the fuzzer tape during shrinking. Rejected
+    // spans are discarded, keeping tape positions stable.
     for (var attempt = 0; attempt < 100; attempt++) {
-      final value = _generator.generate(tc);
-      if (_predicate(value)) {
-        return value;
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_FILTER.value);
+      bool accepted = false;
+      try {
+        final value = _generator.generate(tc);
+        if (_predicate(value)) {
+          accepted = true;
+          return value;
+        }
+      } finally {
+        tc.stopSpan(discard: !accepted);
       }
     }
     // Exhausted filter attempts — discard this test case.

@@ -51,7 +51,7 @@ class HegelRunner {
       try {
         final res = lib.hegel_settings_new(ctx, outSettings);
         if (res != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to create settings', res.value);
+          throw hegelExceptionWithDetail(lib, ctx, 'Failed to create settings', res.value);
         }
         settings = outSettings.value;
       } finally {
@@ -72,6 +72,9 @@ class HegelRunner {
         database: database,
       );
 
+      // Per the C API docs, the callback is invoked synchronously on
+      // whichever thread calls hegel_next_test_case — which is our
+      // isolate's thread. So isolateLocal is safe and correct here.
       callback = NativeCallable<hegel_output_callback_tFunction>.isolateLocal(
         _outputCallback,
       );
@@ -91,8 +94,8 @@ class HegelRunner {
             outTestCase,
           );
           if (res != hegel_result_t.HEGEL_OK) {
-            throw HegelException(
-                'Failed to load test case from blob', res.value);
+            throw hegelExceptionWithDetail(
+                lib, ctx, 'Failed to load test case from blob', res.value);
           }
           tcHandle = outTestCase.value;
         });
@@ -126,7 +129,7 @@ class HegelRunner {
               lib.hegel_mark_complete(ctx, tcHandle, status, originPtr);
           if (compRes != hegel_result_t.HEGEL_OK &&
               compRes != hegel_result_t.HEGEL_E_ALREADY_COMPLETE) {
-            throw HegelException('Failed to mark complete', compRes.value);
+            throw hegelExceptionWithDetail(lib, ctx, 'Failed to mark complete', compRes.value);
           }
         });
 
@@ -149,7 +152,7 @@ class HegelRunner {
         final res = lib.hegel_run_start(
             ctx, settings, callback.nativeFunction, nullptr, outRun);
         if (res != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to start run', res.value);
+          throw hegelExceptionWithDetail(lib, ctx, 'Failed to start run', res.value);
         }
         runHandle = outRun.value;
       } finally {
@@ -162,7 +165,7 @@ class HegelRunner {
         try {
           final res = lib.hegel_next_test_case(ctx, runHandle, outTestCase);
           if (res != hegel_result_t.HEGEL_OK) {
-            throw HegelException('Failed to get next test case', res.value);
+            throw hegelExceptionWithDetail(lib, ctx, 'Failed to get next test case', res.value);
           }
           tcHandle = outTestCase.value;
         } finally {
@@ -203,7 +206,7 @@ class HegelRunner {
               lib.hegel_mark_complete(ctx, tcHandle, status, originPtr);
           if (compRes != hegel_result_t.HEGEL_OK &&
               compRes != hegel_result_t.HEGEL_E_ALREADY_COMPLETE) {
-            throw HegelException('Failed to mark complete', compRes.value);
+            throw hegelExceptionWithDetail(lib, ctx, 'Failed to mark complete', compRes.value);
           }
         });
 
@@ -216,7 +219,7 @@ class HegelRunner {
       try {
         final res = lib.hegel_run_result(ctx, runHandle, outResult);
         if (res != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to get run result', res.value);
+          throw hegelExceptionWithDetail(lib, ctx, 'Failed to get run result', res.value);
         }
         final resultHandle = outResult.value;
         if (resultHandle != nullptr) {
@@ -246,7 +249,7 @@ class HegelRunner {
     try {
       final statusRes = lib.hegel_run_result_status(ctx, resultHandle, outStatus);
       if (statusRes != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to get run status', statusRes.value);
+        throw hegelExceptionWithDetail(lib, ctx, 'Failed to get run status', statusRes.value);
       }
       final statusValue = outStatus.value;
 
@@ -269,7 +272,7 @@ class HegelRunner {
     try {
       final countRes = lib.hegel_run_result_failure_count(ctx, resultHandle, countPtr);
       if (countRes != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to get failure count', countRes.value);
+        throw hegelExceptionWithDetail(lib, ctx, 'Failed to get failure count', countRes.value);
       }
       final failCount = countPtr.value;
       if (failCount == 0) return;
@@ -280,7 +283,7 @@ class HegelRunner {
         try {
           final failRes = lib.hegel_run_result_failure(ctx, resultHandle, i, failOut);
           if (failRes != hegel_result_t.HEGEL_OK) {
-            throw HegelException('Failed to get failure $i', failRes.value);
+            throw hegelExceptionWithDetail(lib, ctx, 'Failed to get failure $i', failRes.value);
           }
           final failure = failOut.value;
           if (failure != nullptr) {

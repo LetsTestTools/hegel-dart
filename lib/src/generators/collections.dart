@@ -36,10 +36,12 @@ class ListGenerator<T> extends Generator<List<T>> {
           if (!outMore.value) break;
 
           tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
+          bool elementAdded = false;
           try {
             list.add(elements.generate(tc));
+            elementAdded = true;
           } finally {
-            tc.stopSpan();
+            tc.stopSpan(discard: !elementAdded);
           }
         }
         return list;

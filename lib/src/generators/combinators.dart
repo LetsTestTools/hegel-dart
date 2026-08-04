@@ -64,9 +64,9 @@ class OneOfGenerator<T> extends Generator<T> {
         );
 
         if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
+          throw const HegelStopTest();
+        }
+        if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate oneOf index: ${result.value}');
         }
 
@@ -102,9 +102,9 @@ class NullableGenerator<T> extends Generator<T?> {
         );
 
         if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
+          throw const HegelStopTest();
+        }
+        if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate boolean for nullable: ${result.value}');
         }
 
@@ -195,9 +195,9 @@ class FrequencyGenerator<T> extends Generator<T> {
         );
 
         if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
+          throw const HegelStopTest();
+        }
+        if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate frequency index: ${result.value}');
         }
 

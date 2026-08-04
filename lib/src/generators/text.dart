@@ -114,7 +114,14 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   final String pattern;
   final bool fullmatch;
 
-  const RegexGenerator(this.pattern, this.fullmatch);
+  RegexGenerator(this.pattern, this.fullmatch) {
+    if (pattern.contains('\x00')) {
+      throw ArgumentError.value(
+        pattern, 'pattern',
+        'must not contain null bytes — they cause silent truncation at the FFI boundary',
+      );
+    }
+  }
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
