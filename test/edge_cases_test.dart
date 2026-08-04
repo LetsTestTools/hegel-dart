@@ -1,6 +1,9 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
 import 'package:hegeltest/generators.dart';
+import 'package:hegeltest/src/core/runner.dart';
+import 'package:hegeltest/src/core/exceptions.dart';
+import 'package:hegeltest/src/ffi/library_loader.dart';
 
 void main() {
   group('boundary values', () {
@@ -101,6 +104,38 @@ void main() {
             .map((s) => 'item_$s'),
       );
       expect(v, startsWith('item_'));
+    });
+  });
+
+  group('dynamic branches', () {
+    hegelTest('conditional draw', (tc) {
+      final flag = tc.draw(booleans());
+      if (flag) {
+        final v = tc.draw(integers(min: 0, max: 10));
+        expect(v, greaterThanOrEqualTo(0));
+      } else {
+        final s = tc.draw(text(minSize: 1, maxSize: 5));
+        expect(s, isNotEmpty);
+      }
+    });
+
+    test('async exception fails test', () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
+      await expectLater(
+        runner.run((tc) async {
+          tc.draw(integers());
+          await Future.delayed(const Duration(milliseconds: 1));
+          throw StateError('boom');
+        }),
+        throwsA(
+          isA<HegelTestFailure>().having(
+            (e) => e.message,
+            'message',
+            contains('Property failed'),
+          ),
+        ),
+      );
     });
   });
 }

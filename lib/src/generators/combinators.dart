@@ -161,6 +161,9 @@ class FrequencyGenerator<T> extends Generator<T> {
     if (weighted.isEmpty) {
       throw ArgumentError('FrequencyGenerator requires a non-empty list of weighted generators.');
     }
+    if (totalWeight <= 0) {
+      throw ArgumentError('FrequencyGenerator requires at least one generator with weight > 0.');
+    }
   }
 
   @override

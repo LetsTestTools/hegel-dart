@@ -70,7 +70,7 @@ class HegelRunner {
         databaseKey: databaseKey,
       );
 
-      callback = NativeCallable<hegel_output_callback_tFunction>.listener(
+      callback = NativeCallable<hegel_output_callback_tFunction>.isolateLocal(
         _outputCallback,
       );
 
@@ -229,7 +229,10 @@ class HegelRunner {
   ) {
     final outStatus = calloc<UnsignedInt>();
     try {
-      lib.hegel_run_result_status(ctx, resultHandle, outStatus);
+      final statusRes = lib.hegel_run_result_status(ctx, resultHandle, outStatus);
+      if (statusRes != hegel_result_t.HEGEL_OK) {
+        throw HegelException('Failed to get run status', statusRes.value);
+      }
       final statusValue = outStatus.value;
 
       if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
@@ -249,7 +252,10 @@ class HegelRunner {
   ) {
     final countPtr = calloc<Size>();
     try {
-      lib.hegel_run_result_failure_count(ctx, resultHandle, countPtr);
+      final countRes = lib.hegel_run_result_failure_count(ctx, resultHandle, countPtr);
+      if (countRes != hegel_result_t.HEGEL_OK) {
+        throw HegelException('Failed to get failure count', countRes.value);
+      }
       final failCount = countPtr.value;
       if (failCount == 0) return;
 
@@ -257,7 +263,10 @@ class HegelRunner {
       for (var i = 0; i < failCount; i++) {
         final failOut = calloc<Pointer<hegel_failure_t>>();
         try {
-          lib.hegel_run_result_failure(ctx, resultHandle, i, failOut);
+          final failRes = lib.hegel_run_result_failure(ctx, resultHandle, i, failOut);
+          if (failRes != hegel_result_t.HEGEL_OK) {
+            throw HegelException('Failed to get failure $i', failRes.value);
+          }
           final failure = failOut.value;
           if (failure != nullptr) {
             try {

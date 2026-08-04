@@ -44,18 +44,16 @@ class FilteredGenerator<T> extends Generator<T> {
   @override
   T generate(TestCase tc) {
     // Try up to a reasonable number of times before giving up.
-    // If the engine exhausts its choice budget (HegelStopTest), treat
-    // this like an assumption violation so the test case is discarded.
+    // HegelStopTest (budget exhaustion) is NOT caught — it must
+    // propagate to the runner so the engine correctly distinguishes
+    // "budget exhausted" from "invalid assumption".
     for (var attempt = 0; attempt < 100; attempt++) {
-      try {
-        final value = _generator.generate(tc);
-        if (_predicate(value)) {
-          return value;
-        }
-      } on HegelStopTest {
-        throw const HegelAssumptionViolated();
+      final value = _generator.generate(tc);
+      if (_predicate(value)) {
+        return value;
       }
     }
+    // Exhausted filter attempts — discard this test case.
     throw const HegelAssumptionViolated();
   }
 }

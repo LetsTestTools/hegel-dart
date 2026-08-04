@@ -40,30 +40,51 @@ void main() {
     test('detects failure and provides origin + reproduce', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      try {
-        await runner.run((tc) {
+      await expectLater(
+        runner.run((tc) {
           final v = tc.draw(integers());
           if (v < 0) throw StateError('negative!');
-        });
-        fail('Should have thrown');
-      } on HegelTestFailure catch (e) {
-        expect(e.message, contains('Origin'));
-        expect(e.message, contains('Reproduce'));
-      }
+        }),
+        throwsA(
+          isA<HegelTestFailure>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('Origin'), contains('Reproduce')),
+          ),
+        ),
+      );
     });
 
     test('detects assertion failure', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      try {
-        await runner.run((tc) {
+      await expectLater(
+        runner.run((tc) {
           final v = tc.draw(integers(min: -100, max: 100));
           expect(v, greaterThan(50)); // Will fail for v <= 50
-        });
-        fail('Should have thrown');
-      } on HegelTestFailure catch (e) {
-        expect(e.message, contains('Property failed'));
-      }
+        }),
+        throwsA(
+          isA<HegelTestFailure>().having(
+            (e) => e.message,
+            'message',
+            contains('Property failed'),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('TestCase API', () {
+    hegelTest('target API does not throw', (tc) {
+      final v = tc.draw(integers(min: 0, max: 100));
+      tc.target(v.toDouble(), label: 'test_value');
+    });
+
+    hegelTest('span API does not throw', (tc) {
+      tc.startSpan(12345);
+      final v = tc.draw(integers());
+      expect(v, isA<int>());
+      tc.stopSpan();
     });
   });
 

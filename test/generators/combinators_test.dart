@@ -1,6 +1,8 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
 import 'package:hegeltest/generators.dart';
+import 'package:hegeltest/src/core/runner.dart';
+import 'package:hegeltest/src/ffi/library_loader.dart';
 
 void main() {
   group('map combinator', () {
@@ -76,20 +78,15 @@ void main() {
   });
 
   group('nullable', () {
-    hegelTest('produces valid type', (tc) {
-      final v = tc.draw(nullable(integers(min: 0, max: 100)));
-      if (v != null) {
-        expect(v, greaterThanOrEqualTo(0));
-        expect(v, lessThanOrEqualTo(100));
-      }
-    });
-
-    hegelTest('type is correct', (tc) {
-      final v = tc.draw(nullable(integers(min: 0, max: 100)));
-      if (v != null) {
-        expect(v, greaterThanOrEqualTo(0));
-        expect(v, lessThanOrEqualTo(100));
-      }
+    test('nullable produces both null and non-null', () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
+      final values = <int?>[];
+      await runner.run((tc) {
+        values.add(tc.draw(nullable(integers(min: 0, max: 10))));
+      }, testCases: 200);
+      expect(values.where((v) => v == null), isNotEmpty);
+      expect(values.where((v) => v != null), isNotEmpty);
     });
   });
 

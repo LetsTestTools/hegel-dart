@@ -145,6 +145,7 @@ class DateTimeGenerator extends Generator<DateTime> {
         throw HegelException('Failed to generate datetime: ${result.value}');
       }
 
+      final totalMicroseconds = outValue.ref.time.microsecond;
       return DateTime.utc(
         outValue.ref.date.year,
         outValue.ref.date.month,
@@ -152,8 +153,8 @@ class DateTimeGenerator extends Generator<DateTime> {
         outValue.ref.time.hour,
         outValue.ref.time.minute,
         outValue.ref.time.second,
-        0, // millisecond
-        outValue.ref.time.microsecond,
+        totalMicroseconds ~/ 1000, // millisecond
+        totalMicroseconds % 1000, // microsecond remainder
       );
     });
   }

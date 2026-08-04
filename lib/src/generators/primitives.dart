@@ -172,24 +172,29 @@ class BigIntGenerator extends Generator<BigInt> {
   }
 
   List<int> _toTwosComplementLittleEndian(BigInt value) {
-    // Crude implementation for generating the required buffer
     if (value == BigInt.zero) return [0];
-    
-    // We get the hex representation
-    var hex = value.toRadixString(16);
+
     final isNegative = value.isNegative;
+    var hex = value.toRadixString(16);
     if (isNegative) {
-      // Very crude, properly we should do actual two's complement
+      // Two's complement for negative: mask to byte-aligned width
       final bitLength = value.bitLength + 1;
       final mask = (BigInt.one << ((bitLength + 7) ~/ 8 * 8)) - BigInt.one;
       hex = (value & mask).toRadixString(16);
     }
-    
+
     if (hex.length % 2 != 0) hex = '0$hex';
     final bytes = <int>[];
     for (var i = 0; i < hex.length; i += 2) {
       bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
     }
+
+    // For positive values, if MSB is set (e.g., 255 = 0xFF), prepend 0x00
+    // to prevent misinterpretation as negative in two's complement.
+    if (!isNegative && bytes.isNotEmpty && (bytes[0] & 0x80) != 0) {
+      bytes.insert(0, 0);
+    }
+
     // Reverse for little endian
     return bytes.reversed.toList();
   }

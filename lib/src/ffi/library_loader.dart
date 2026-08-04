@@ -70,8 +70,21 @@ String _platformLibName() {
 }
 
 String _platformDirName() {
-  if (Platform.isMacOS) return 'macos_arm64';
-  if (Platform.isLinux) return 'linux_x64';
-  if (Platform.isWindows) return 'windows_x64';
-  throw UnsupportedError('Unsupported platform: ${Platform.operatingSystem}');
+  final abi = Abi.current();
+  switch (abi) {
+    case Abi.macosArm64:
+      return 'macos_arm64';
+    case Abi.macosX64:
+      return 'macos_x64';
+    case Abi.linuxX64:
+      return 'linux_x64';
+    case Abi.linuxArm64:
+      return 'linux_arm64';
+    case Abi.windowsX64:
+      return 'windows_x64';
+    case Abi.windowsArm64:
+      return 'windows_arm64';
+    default:
+      throw UnsupportedError('Unsupported ABI: $abi');
+  }
 }
