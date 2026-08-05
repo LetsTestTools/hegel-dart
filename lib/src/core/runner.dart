@@ -124,6 +124,8 @@ class HegelRunner {
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
         } on HegelAssumptionViolated {
           status = hegel_status_t.HEGEL_STATUS_INVALID.value;
+        } on HegelException {
+          rethrow;
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
@@ -453,5 +455,12 @@ void hegelTest(
 int? _envSeed() {
   final envSeed = Platform.environment['HEGEL_SEED'];
   if (envSeed == null || envSeed.isEmpty) return null;
-  return int.tryParse(envSeed);
+  final parsed = int.tryParse(envSeed);
+  if (parsed == null) {
+    throw ArgumentError(
+      'HEGEL_SEED environment variable must be a valid integer, '
+      'got: "$envSeed"',
+    );
+  }
+  return parsed;
 }

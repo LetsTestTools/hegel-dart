@@ -147,13 +147,14 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
           bool threw = true;
           try {
             final k = keys.generate(tc);
-            threw = false;
             if (map.containsKey(k)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
+              threw = false;
             } else {
               final v = values.generate(tc);
               map[k] = v;
               elementAdded = true;
+              threw = false;
             }
           } finally {
             tc.safeStopSpan(discard: !elementAdded, hadError: threw);
