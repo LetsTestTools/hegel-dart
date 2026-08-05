@@ -96,7 +96,7 @@ class TestCase {
   }
 
   /// Draw a value from the given generator.
-  T draw<T>(Generator<T> gen, {String? name}) {
+  T draw<T>(Generator<T> gen) {
     _checkNotDisposed();
     return gen.generate(this);
   }

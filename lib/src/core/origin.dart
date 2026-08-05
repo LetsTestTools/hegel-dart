@@ -13,6 +13,7 @@ String extractOrigin(StackTrace stackTrace) {
     'package:test/',
     'package:test_core/',
     'package:test_api/',
+    'package:matcher/',
     'package:hegeltest/',
     'dart:async',
     'dart:core',

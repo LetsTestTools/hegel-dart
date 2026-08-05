@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:test/test.dart';
@@ -13,12 +14,19 @@ import 'settings.dart';
 import 'test_case.dart';
 
 /// Callback for engine output.
+///
+/// SAFETY: This runs inside a NativeCallable — any unhandled exception
+/// will crash the VM. We use allowMalformed to tolerate bad UTF-8.
 void _outputCallback(Pointer<Void> userData, Pointer<Char> line, int len) {
   if (line == nullptr || len <= 0) return;
-  final bytes = line.cast<Uint8>().asTypedList(len);
-  final str = utf8.decode(bytes);
-  // ignore: avoid_print
-  print(str);
+  try {
+    final bytes = line.cast<Uint8>().asTypedList(len);
+    final str = utf8.decode(bytes, allowMalformed: true);
+    // ignore: avoid_print
+    print(str);
+  } catch (_) {
+    // Swallow ALL exceptions — we must never throw across the FFI boundary.
+  }
 }
 
 class HegelRunner {
@@ -164,17 +172,16 @@ class HegelRunner {
       }
 
       // 3. Test case loop
-      while (true) {
-        final outTestCase = calloc<Pointer<hegel_test_case_t>>();
-        try {
-          final res = lib.hegel_next_test_case(ctx, runHandle, outTestCase);
-          if (res != hegel_result_t.HEGEL_OK) {
-            throw hegelExceptionWithDetail(lib, ctx, 'Failed to get next test case', res.value);
-          }
-          tcHandle = outTestCase.value;
-        } finally {
-          calloc.free(outTestCase);
+      // Hoist the out-parameter allocation outside the loop to avoid
+      // per-iteration alloc/free overhead (significant at 100K+ iterations).
+      final outTestCase = calloc<Pointer<hegel_test_case_t>>();
+      try {
+       while (true) {
+        final res = lib.hegel_next_test_case(ctx, runHandle, outTestCase);
+        if (res != hegel_result_t.HEGEL_OK) {
+          throw hegelExceptionWithDetail(lib, ctx, 'Failed to get next test case', res.value);
         }
+        tcHandle = outTestCase.value;
 
         if (tcHandle == nullptr) {
           break; // Run finished
@@ -190,6 +197,10 @@ class HegelRunner {
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
         } on HegelAssumptionViolated {
           status = hegel_status_t.HEGEL_STATUS_INVALID.value;
+        } on HegelException {
+          // Framework/engine errors must not be treated as property failures.
+          // Rethrow so the runner's outer try/finally handles cleanup.
+          rethrow;
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
@@ -218,6 +229,9 @@ class HegelRunner {
 
         lib.hegel_test_case_free(ctx, tcHandle);
         tcHandle = nullptr;
+      }
+      } finally {
+        calloc.free(outTestCase);
       }
 
       // 4. Report Results
@@ -413,7 +427,7 @@ void hegelTest(
       body,
       reproduceBlob: reproduce,
       testCases: testCases,
-      seed: seed,
+      seed: seed ?? _envSeed(),
       derandomize: derandomize,
       phases: phases,
       verbosity: verbosity,
@@ -430,4 +444,14 @@ void hegelTest(
       skip: skip,
       onPlatform: onPlatform,
       retry: retry);
+}
+
+/// Parse the `HEGEL_SEED` environment variable for CI reproducibility.
+///
+/// When set, all `hegelTest` calls use this seed unless explicitly
+/// overridden via the `seed:` parameter.
+int? _envSeed() {
+  final envSeed = Platform.environment['HEGEL_SEED'];
+  if (envSeed == null || envSeed.isEmpty) return null;
+  return int.tryParse(envSeed);
 }

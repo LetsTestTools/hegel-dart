@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'hegel_bindings.g.dart';
 
@@ -10,7 +11,8 @@ LibHegel? _cachedLib;
 /// Resolution order:
 /// 1. `HEGEL_LIBHEGEL_PATH` environment variable (validated)
 /// 2. Bundled binary in `native/<platform>/` relative to package root
-/// 3. System library path fallback
+/// 3. Bundled binary resolved via `Isolate.resolvePackageUri` (pub cache)
+/// 4. System library path fallback
 LibHegel loadHegelLibrary() {
   if (_cachedLib != null) return _cachedLib!;
   final envPath = Platform.environment['HEGEL_LIBHEGEL_PATH'];
@@ -33,27 +35,23 @@ LibHegel loadHegelLibrary() {
     return _cachedLib = LibHegel(DynamicLibrary.open(envPath));
   }
 
-  // 2. Try platform-specific bundled binary
+  // 2. Try platform-specific bundled binary relative to CWD
   final libName = _platformLibName();
   final platformDir = _platformDirName();
+  final cwdCandidate = 'native/$platformDir/$libName';
 
-  // Walk up from the script location to find the package root
-  final candidates = <String>[
-    // Relative to CWD (common in dart test)
-    'native/$platformDir/$libName',
-    // Relative to package root via pub cache
-    '.dart_tool/package_config.json', // marker
-  ];
-
-  for (final candidate in candidates) {
-    if (candidate.endsWith('.json')) continue;
-    final file = File(candidate);
-    if (file.existsSync()) {
-      return _cachedLib = LibHegel(DynamicLibrary.open(file.absolute.path));
-    }
+  final cwdFile = File(cwdCandidate);
+  if (cwdFile.existsSync()) {
+    return _cachedLib = LibHegel(DynamicLibrary.open(cwdFile.absolute.path));
   }
 
-  // 3. System library path fallback
+  // 3. Resolve via package URI (works when installed from pub cache)
+  final packageLib = _resolveFromPackageUri(platformDir, libName);
+  if (packageLib != null) {
+    return _cachedLib = packageLib;
+  }
+
+  // 4. System library path fallback
   try {
     return _cachedLib = LibHegel(DynamicLibrary.open(libName));
   } catch (_) {
@@ -63,6 +61,33 @@ LibHegel loadHegelLibrary() {
       '  export HEGEL_LIBHEGEL_PATH=<hegel-rust>/target/release/$libName',
     );
   }
+}
+
+/// Resolves the native library path using Dart's package resolution.
+///
+/// This correctly locates the native binary when the package is
+/// installed from pub cache (not just when running from the repo root).
+LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
+  try {
+    final packageUri = Uri.parse('package:hegeltest/hegeltest.dart');
+    final resolvedUri = Isolate.resolvePackageUriSync(packageUri);
+    if (resolvedUri == null) return null;
+
+    // resolvedUri points to lib/hegeltest.dart
+    // Navigate up to package root: lib/ -> package root
+    final libDir = File.fromUri(resolvedUri).parent; // lib/
+    final packageRoot = libDir.parent; // package root
+    final nativePath =
+        '${packageRoot.path}/native/$platformDir/$libName';
+
+    final nativeFile = File(nativePath);
+    if (nativeFile.existsSync()) {
+      return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
+    }
+  } catch (_) {
+    // Package resolution failed — fall through to system path
+  }
+  return null;
 }
 
 String _platformLibName() {

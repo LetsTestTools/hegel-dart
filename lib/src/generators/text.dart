@@ -30,6 +30,9 @@ abstract class _BaseNativeStringGenerator extends Generator<String> {
         if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
           throw const HegelStopTest();
         }
+        if (result == hegel_result_t.HEGEL_E_ASSUME) {
+          throw const HegelAssumptionViolated();
+        }
         if (result != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate string: ${result.value}');
         }

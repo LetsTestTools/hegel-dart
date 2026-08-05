@@ -87,8 +87,10 @@ class SetGenerator<T> extends Generator<Set<T>> {
 
           tc.startSpan(hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
           bool elementAdded = false;
+          bool threw = true;
           try {
             final e = elements.generate(tc);
+            threw = false;
             if (set.contains(e)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
             } else {
@@ -96,7 +98,7 @@ class SetGenerator<T> extends Generator<Set<T>> {
               elementAdded = true;
             }
           } finally {
-            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
           }
         }
         success = true;
@@ -142,8 +144,10 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
 
           tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
           bool elementAdded = false;
+          bool threw = true;
           try {
             final k = keys.generate(tc);
+            threw = false;
             if (map.containsKey(k)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
             } else {
@@ -152,7 +156,7 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
               elementAdded = true;
             }
           } finally {
-            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
           }
         }
         success = true;
