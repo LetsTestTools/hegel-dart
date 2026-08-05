@@ -72,7 +72,7 @@ class OneOfGenerator<T> extends Generator<T> {
 
         return gens[outIndex.value].generate(tc);
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }
@@ -84,7 +84,11 @@ class NullableGenerator<T> extends Generator<T?> {
   final Generator<T> gen;
   final double nullProbability;
 
-  const NullableGenerator(this.gen, this.nullProbability);
+  NullableGenerator(this.gen, this.nullProbability) {
+    if (nullProbability < 0.0 || nullProbability > 1.0) {
+      throw ArgumentError('nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]');
+    }
+  }
 
   @override
   T? generate(TestCase tc) {
@@ -114,7 +118,7 @@ class NullableGenerator<T> extends Generator<T?> {
           return gen.generate(tc);
         }
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }
@@ -129,7 +133,7 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
       try {
         return (a.generate(tc), b.generate(tc));
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   });
@@ -142,7 +146,7 @@ Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<
       try {
         return (a.generate(tc), b.generate(tc), c.generate(tc));
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   });
@@ -155,7 +159,7 @@ Generator<(A, B, C, D)> tuples4<A, B, C, D>(Generator<A> a, Generator<B> b, Gene
       try {
         return (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   });
@@ -212,7 +216,7 @@ class FrequencyGenerator<T> extends Generator<T> {
         // Fallback in case of rounding/logic issues, though shouldn't happen.
         return weighted.last.$2.generate(tc);
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }

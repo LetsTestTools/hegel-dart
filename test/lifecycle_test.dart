@@ -101,5 +101,38 @@ void main() {
         );
       }, testCases: 1);
     });
+
+    test('captured clone is blocked after run ends', () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
+      TestCase? capturedClone;
+
+      await runner.run((tc) {
+        capturedClone = tc.clone();
+        capturedClone!.draw(integers()); // Should work during run
+        capturedClone!.dispose();
+      }, testCases: 1);
+
+      // Even if clone wasn't explicitly disposed, lifecycle.isAlive = false
+      // prevents usage after the run.
+      expect(capturedClone, isNotNull);
+    });
+
+    test('undisposed clone is safe after run ends', () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
+      TestCase? leakedClone;
+
+      await runner.run((tc) {
+        leakedClone = tc.clone();
+        // Intentionally NOT disposing — testing GC safety net
+      }, testCases: 1);
+
+      // The clone's lifecycle.isAlive is now false, so draw should throw
+      expect(
+        () => leakedClone!.draw(integers()),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }

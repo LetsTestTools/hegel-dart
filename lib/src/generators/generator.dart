@@ -62,7 +62,7 @@ class FilteredGenerator<T> extends Generator<T> {
           return value;
         }
       } finally {
-        tc.stopSpan(discard: !accepted);
+        tc.safeStopSpan(discard: !accepted);
       }
     }
     // Exhausted filter attempts — discard this test case.

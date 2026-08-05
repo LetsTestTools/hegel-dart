@@ -78,6 +78,9 @@ void applySettings(
   String? databaseKey,
 }) {
   if (testCases != null) {
+    if (testCases <= 0) {
+      throw ArgumentError('testCases must be positive, got $testCases');
+    }
     final res = lib.hegel_settings_set_test_cases(ctx, settings, testCases);
     _check(res, 'set_test_cases');
   }

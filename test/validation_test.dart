@@ -84,5 +84,22 @@ void main() {
     test('oneOf rejects empty list', () {
       expect(() => oneOf<int>([]), throwsArgumentError);
     });
+    // probability validation
+    test('booleans rejects probability < 0', () {
+      expect(() => booleans(p: -0.1), throwsArgumentError);
+    });
+    test('booleans rejects probability > 1', () {
+      expect(() => booleans(p: 1.1), throwsArgumentError);
+    });
+    test('booleans accepts p=0 and p=1', () {
+      booleans(p: 0.0);
+      booleans(p: 1.0);
+    });
+    test('nullable rejects nullProbability < 0', () {
+      expect(() => nullable(integers(), nullProbability: -0.5), throwsArgumentError);
+    });
+    test('nullable rejects nullProbability > 1', () {
+      expect(() => nullable(integers(), nullProbability: 1.5), throwsArgumentError);
+    });
   });
 }

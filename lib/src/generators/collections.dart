@@ -41,12 +41,12 @@ class ListGenerator<T> extends Generator<List<T>> {
             list.add(elements.generate(tc));
             elementAdded = true;
           } finally {
-            tc.stopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded);
           }
         }
         return list;
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }
@@ -93,12 +93,12 @@ class SetGenerator<T> extends Generator<Set<T>> {
               elementAdded = true;
             }
           } finally {
-            tc.stopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded);
           }
         }
         return set;
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }
@@ -147,12 +147,12 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
               elementAdded = true;
             }
           } finally {
-            tc.stopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded);
           }
         }
         return map;
       } finally {
-        tc.stopSpan();
+        tc.safeStopSpan();
       }
     });
   }

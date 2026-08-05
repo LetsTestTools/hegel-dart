@@ -26,6 +26,9 @@ class HegelRunner {
 
   HegelRunner(this.lib);
 
+  /// Map of origin strings to (exception, stack trace) for reporting.
+  final Map<String, (Object, StackTrace)> _caughtExceptions = {};
+
   Future<void> run(
     FutureOr<void> Function(TestCase) body, {
     String? reproduceBlob,
@@ -40,6 +43,7 @@ class HegelRunner {
     String? database,
   }) async {
     final ctx = lib.hegel_context_new();
+    final lifecycle = RunLifecycle();
     Pointer<hegel_settings_t> settings = nullptr;
     Pointer<hegel_run_t> runHandle = nullptr;
     Pointer<hegel_test_case_t> tcHandle = nullptr;
@@ -100,7 +104,7 @@ class HegelRunner {
           tcHandle = outTestCase.value;
         });
 
-        final tc = TestCase(ctx, tcHandle, lib);
+        final tc = TestCase(ctx, tcHandle, lib, lifecycle);
         var status = hegel_status_t.HEGEL_STATUS_VALID.value;
         String? originStr;
         Object? caughtError;
@@ -176,7 +180,7 @@ class HegelRunner {
           break; // Run finished
         }
 
-        final tc = TestCase(ctx, tcHandle, lib);
+        final tc = TestCase(ctx, tcHandle, lib, lifecycle);
         var status = hegel_status_t.HEGEL_STATUS_VALID.value;
         String? originStr;
 
@@ -189,6 +193,8 @@ class HegelRunner {
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
+          // Store the exception for later reporting
+          _caughtExceptions[originStr] = (e, st);
         }
 
         // Invalidate the test case so captured references can't
@@ -233,6 +239,10 @@ class HegelRunner {
         calloc.free(outResult);
       }
     } finally {
+      // Mark the run as dead BEFORE freeing ctx — this prevents
+      // the GC finalizer and zombie clone usage from touching freed
+      // memory. This is the single point of lifecycle coordination.
+      lifecycle.isAlive = false;
       if (tcHandle != nullptr) lib.hegel_test_case_free(ctx, tcHandle);
       if (runHandle != nullptr) lib.hegel_run_free(ctx, runHandle);
       if (settings != nullptr) lib.hegel_settings_free(ctx, settings);
@@ -310,14 +320,24 @@ class HegelRunner {
   ) {
     final buf = StringBuffer('Property failed.');
 
+    // Extract origin
+    String? originStr;
     final originOut = calloc<Pointer<Char>>();
     try {
       lib.hegel_failure_origin(ctx, failure, originOut);
       if (originOut.value != nullptr) {
-        buf.write(' Origin: ${originOut.value.cast<Utf8>().toDartString()}');
+        originStr = originOut.value.cast<Utf8>().toDartString();
+        buf.write(' Origin: $originStr');
       }
     } finally {
       calloc.free(originOut);
+    }
+
+    // Include the actual Dart exception if we captured one
+    if (originStr != null && _caughtExceptions.containsKey(originStr)) {
+      final (error, stackTrace) = _caughtExceptions[originStr]!;
+      buf.write('\n\nCaused by: $error');
+      buf.write('\n$stackTrace');
     }
 
     final blobOut = calloc<Pointer<Char>>();
@@ -356,6 +376,9 @@ class HegelRunner {
 ///
 /// Integrates with `package:test`. The [body] receives a [TestCase]
 /// to draw values from. Both sync and async bodies are supported.
+///
+/// **Note:** `setUp` / `tearDown` run once per property (i.e. once
+/// before all test cases), not once per individual generated test case.
 ///
 /// ```dart
 /// hegelTest('addition is commutative', (tc) {
@@ -399,5 +422,12 @@ void hegelTest(
       databaseKey: databaseKey,
       database: database,
     );
-  }, timeout: timeout, tags: tags, skip: skip, onPlatform: onPlatform, retry: retry);
+  },
+      // Fuzzing loops can run many iterations; default to 10 minutes
+      // to avoid flaky CI timeouts.
+      timeout: timeout ?? const Timeout(Duration(minutes: 10)),
+      tags: tags,
+      skip: skip,
+      onPlatform: onPlatform,
+      retry: retry);
 }
