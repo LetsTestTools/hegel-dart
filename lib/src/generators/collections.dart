@@ -19,6 +19,7 @@ class ListGenerator<T> extends Generator<List<T>> {
   List<T> generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -41,12 +42,13 @@ class ListGenerator<T> extends Generator<List<T>> {
             list.add(elements.generate(tc));
             elementAdded = true;
           } finally {
-            tc.safeStopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
           }
         }
+        success = true;
         return list;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -66,6 +68,7 @@ class SetGenerator<T> extends Generator<Set<T>> {
   Set<T> generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_SET.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -93,12 +96,13 @@ class SetGenerator<T> extends Generator<Set<T>> {
               elementAdded = true;
             }
           } finally {
-            tc.safeStopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
           }
         }
+        success = true;
         return set;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -119,6 +123,7 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   Map<K, V> generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -147,12 +152,13 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
               elementAdded = true;
             }
           } finally {
-            tc.safeStopSpan(discard: !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
           }
         }
+        success = true;
         return map;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }

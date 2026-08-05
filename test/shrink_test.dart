@@ -14,8 +14,8 @@ void main() {
     try {
       await runner.run((tc) {
         final v = tc.draw(integers(min: 0, max: 10000));
-        lastFailingValue = v;
         if (v > 100) {
+          lastFailingValue = v;
           throw StateError('Value too large: $v');
         }
       }, testCases: 1000);

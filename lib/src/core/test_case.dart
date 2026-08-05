@@ -12,6 +12,7 @@ import 'exceptions.dart';
 /// The runner sets [isAlive] to `false` before freeing the native
 /// context, which prevents both zombie usage AND the GC finalizer
 /// from touching freed memory.
+@internal
 class RunLifecycle {
   bool isAlive = true;
 }
@@ -53,6 +54,11 @@ class TestCase {
   final RunLifecycle _lifecycle;
   bool _isDisposed = false;
 
+  /// Creates a test case wrapper.
+  ///
+  /// This constructor is internal — only [HegelRunner] should
+  /// instantiate test cases.
+  @internal
   TestCase(
     this._ctx,
     this._handle,
@@ -189,15 +195,20 @@ class TestCase {
 
   /// Close a span safely in a `finally` block.
   ///
-  /// If the engine is already in an error state (e.g. from
-  /// [HegelStopTest]), this swallows the [StateError] from
-  /// [stopSpan] to avoid masking the original exception.
+  /// Only swallows [StateError] when [hadError] is `true`,
+  /// meaning an exception is already propagating. On the happy
+  /// path ([hadError] = `false`), errors bubble up normally so
+  /// span mismatches and engine corruption are never hidden.
   @internal
-  void safeStopSpan({bool discard = false}) {
-    try {
+  void safeStopSpan({bool discard = false, bool hadError = true}) {
+    if (hadError) {
+      try {
+        stopSpan(discard: discard);
+      } on StateError {
+        // Engine in terminal state — swallow to avoid masking.
+      }
+    } else {
       stopSpan(discard: discard);
-    } on StateError {
-      // Engine in terminal state — swallow to avoid masking.
     }
   }
 }

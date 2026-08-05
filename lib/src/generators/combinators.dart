@@ -53,6 +53,7 @@ class OneOfGenerator<T> extends Generator<T> {
   T generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+      bool success = false;
       try {
         final outIndex = arena<ffi.Int64>();
         final result = tc.lib.hegel_generate_integer(
@@ -70,9 +71,11 @@ class OneOfGenerator<T> extends Generator<T> {
           throw HegelException('Failed to generate oneOf index: ${result.value}');
         }
 
-        return gens[outIndex.value].generate(tc);
+        final value = gens[outIndex.value].generate(tc);
+        success = true;
+        return value;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -94,6 +97,7 @@ class NullableGenerator<T> extends Generator<T?> {
   T? generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_OPTIONAL.value);
+      bool success = false;
       try {
         final outBool = arena<ffi.Bool>();
         final result = tc.lib.hegel_generate_boolean(
@@ -112,13 +116,16 @@ class NullableGenerator<T> extends Generator<T?> {
           throw HegelException('Failed to generate boolean for nullable: ${result.value}');
         }
 
+        T? value;
         if (outBool.value) {
-          return null;
+          value = null;
         } else {
-          return gen.generate(tc);
+          value = gen.generate(tc);
         }
+        success = true;
+        return value;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -130,10 +137,13 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
   return Generator.composite((tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      bool success = false;
       try {
-        return (a.generate(tc), b.generate(tc));
+        final result = (a.generate(tc), b.generate(tc));
+        success = true;
+        return result;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   });
@@ -143,10 +153,13 @@ Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<
   return Generator.composite((tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      bool success = false;
       try {
-        return (a.generate(tc), b.generate(tc), c.generate(tc));
+        final result = (a.generate(tc), b.generate(tc), c.generate(tc));
+        success = true;
+        return result;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   });
@@ -156,10 +169,13 @@ Generator<(A, B, C, D)> tuples4<A, B, C, D>(Generator<A> a, Generator<B> b, Gene
   return Generator.composite((tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+      bool success = false;
       try {
-        return (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
+        final result = (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
+        success = true;
+        return result;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   });
@@ -188,6 +204,7 @@ class FrequencyGenerator<T> extends Generator<T> {
   T generate(TestCase tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+      bool success = false;
       try {
         final outIndex = arena<ffi.Int64>();
         final result = tc.lib.hegel_generate_integer(
@@ -209,14 +226,18 @@ class FrequencyGenerator<T> extends Generator<T> {
         for (final item in weighted) {
           target -= item.$1;
           if (target <= 0) {
-            return item.$2.generate(tc);
+            final value = item.$2.generate(tc);
+            success = true;
+            return value;
           }
         }
         
         // Fallback in case of rounding/logic issues, though shouldn't happen.
-        return weighted.last.$2.generate(tc);
+        final value = weighted.last.$2.generate(tc);
+        success = true;
+        return value;
       } finally {
-        tc.safeStopSpan();
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
