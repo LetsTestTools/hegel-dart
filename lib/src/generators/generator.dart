@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
 import '../ffi/hegel_bindings.g.dart';
@@ -65,7 +67,12 @@ class FilteredGenerator<T> extends Generator<T> {
         tc.safeStopSpan(discard: !accepted, hadError: !accepted);
       }
     }
-    // Exhausted filter attempts — discard this test case.
+    // Exhausted filter attempts — warn and discard this test case.
+    // ignore: avoid_print
+    stderr.writeln(
+      '[hegeltest] Warning: FilteredGenerator rejected 100 consecutive '
+      'values. Is your predicate too strict? Discarding test case.',
+    );
     throw const HegelAssumptionViolated();
   }
 }
@@ -78,8 +85,16 @@ class FlatMappedGenerator<T, U> extends Generator<U> {
 
   @override
   U generate(TestCase tc) {
-    final value = _generator.generate(tc);
-    return _mapper(value).generate(tc);
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_FLAT_MAP.value);
+    bool success = false;
+    try {
+      final value = _generator.generate(tc);
+      final result = _mapper(value).generate(tc);
+      success = true;
+      return result;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
 
@@ -90,6 +105,14 @@ class CompositeGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    return _generateFn(tc);
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_FIXED_DICT.value);
+    bool success = false;
+    try {
+      final result = _generateFn(tc);
+      success = true;
+      return result;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }

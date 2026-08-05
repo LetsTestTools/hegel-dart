@@ -214,20 +214,29 @@ class HegelRunner {
         // use freed native pointers.
         tc.invalidate();
 
-        // Complete the test case
-        using((Arena arena) {
-          Pointer<Char> originPtr = nullptr;
-          if (originStr != null) {
-            originPtr =
-                originStr.toNativeUtf8(allocator: arena).cast<Char>();
-          }
+        // Complete the test case.
+        // Fast-path: skip Arena allocation when no origin string needed
+        // (the ~99% passing case).
+        if (originStr == null) {
           final compRes =
-              lib.hegel_mark_complete(ctx, tcHandle, status, originPtr);
+              lib.hegel_mark_complete(ctx, tcHandle, status, nullptr);
           if (compRes != hegel_result_t.HEGEL_OK &&
               compRes != hegel_result_t.HEGEL_E_ALREADY_COMPLETE) {
             throw hegelExceptionWithDetail(lib, ctx, 'Failed to mark complete', compRes.value);
           }
-        });
+        } else {
+          final origin = originStr!;
+          using((Arena arena) {
+            final originPtr =
+                origin.toNativeUtf8(allocator: arena).cast<Char>();
+            final compRes =
+                lib.hegel_mark_complete(ctx, tcHandle, status, originPtr);
+            if (compRes != hegel_result_t.HEGEL_OK &&
+                compRes != hegel_result_t.HEGEL_E_ALREADY_COMPLETE) {
+              throw hegelExceptionWithDetail(lib, ctx, 'Failed to mark complete', compRes.value);
+            }
+          });
+        }
 
         lib.hegel_test_case_free(ctx, tcHandle);
         tcHandle = nullptr;
