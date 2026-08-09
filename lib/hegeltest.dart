@@ -17,6 +17,7 @@ export 'src/core/exceptions.dart'
     show HegelException, HegelStopTest, HegelAssumptionViolated, HegelTestFailure;
 export 'src/core/result.dart' show RunStatus, RunResult, Failure;
 export 'src/core/runner.dart' show hegelTest;
+export 'src/core/hegel_settings.dart' show HegelConfig;
 export 'src/core/settings.dart'
     show Phase, Verbosity, Backend, HealthCheck, RunMode;
 export 'src/core/test_case.dart' show TestCase;

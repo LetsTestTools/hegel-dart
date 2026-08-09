@@ -34,6 +34,9 @@ class DateGenerator extends Generator<DateTime> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate date: ${result.value}');
       }
@@ -83,6 +86,9 @@ class TimeGenerator extends Generator<TimeRecord> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate time: ${result.value}');
       }
@@ -141,10 +147,14 @@ class DateTimeGenerator extends Generator<DateTime> {
         outValue,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate datetime: ${result.value}');
       }
 
+      final totalMicroseconds = outValue.ref.time.microsecond;
       return DateTime.utc(
         outValue.ref.date.year,
         outValue.ref.date.month,
@@ -152,8 +162,8 @@ class DateTimeGenerator extends Generator<DateTime> {
         outValue.ref.time.hour,
         outValue.ref.time.minute,
         outValue.ref.time.second,
-        0, // millisecond
-        outValue.ref.time.microsecond,
+        totalMicroseconds ~/ 1000, // millisecond
+        totalMicroseconds % 1000, // microsecond remainder
       );
     });
   }

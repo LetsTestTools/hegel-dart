@@ -10,12 +10,16 @@ class ListGenerator<T> extends Generator<List<T>> {
   final int minSize;
   final int maxSize;
 
-  const ListGenerator(this.elements, this.minSize, this.maxSize);
+  ListGenerator(this.elements, this.minSize, this.maxSize) {
+    if (minSize < 0) throw ArgumentError('lists: minSize ($minSize) must be >= 0');
+    if (minSize > maxSize) throw ArgumentError('lists: minSize ($minSize) must be <= maxSize ($maxSize)');
+  }
 
   @override
   List<T> generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_LIST.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -28,19 +32,23 @@ class ListGenerator<T> extends Generator<List<T>> {
         
         while (true) {
           final moreRes = tc.lib.hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) throw const HegelStopTest();
           if (moreRes != hegel_result_t.HEGEL_OK) throw HegelException('Failed to generate collection more');
           if (!outMore.value) break;
 
-          tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
+          tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
+          bool elementAdded = false;
           try {
             list.add(elements.generate(tc));
+            elementAdded = true;
           } finally {
-            tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
           }
         }
+        success = true;
         return list;
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -51,12 +59,16 @@ class SetGenerator<T> extends Generator<Set<T>> {
   final int minSize;
   final int maxSize;
 
-  const SetGenerator(this.elements, this.minSize, this.maxSize);
+  SetGenerator(this.elements, this.minSize, this.maxSize) {
+    if (minSize < 0) throw ArgumentError('sets: minSize ($minSize) must be >= 0');
+    if (minSize > maxSize) throw ArgumentError('sets: minSize ($minSize) must be <= maxSize ($maxSize)');
+  }
 
   @override
   Set<T> generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_SET.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_SET.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -69,13 +81,16 @@ class SetGenerator<T> extends Generator<Set<T>> {
         
         while (true) {
           final moreRes = tc.lib.hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) throw const HegelStopTest();
           if (moreRes != hegel_result_t.HEGEL_OK) throw HegelException('Failed to generate collection more');
           if (!outMore.value) break;
 
-          tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
+          tc.startSpan(hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
           bool elementAdded = false;
+          bool threw = true;
           try {
             final e = elements.generate(tc);
+            threw = false;
             if (set.contains(e)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
             } else {
@@ -83,12 +98,13 @@ class SetGenerator<T> extends Generator<Set<T>> {
               elementAdded = true;
             }
           } finally {
-            tc.lib.hegel_stop_span(tc.ctx, tc.handle, !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
           }
         }
+        success = true;
         return set;
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }
@@ -100,12 +116,16 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   final int minSize;
   final int maxSize;
 
-  const MapGenerator(this.keys, this.values, this.minSize, this.maxSize);
+  MapGenerator(this.keys, this.values, this.minSize, this.maxSize) {
+    if (minSize < 0) throw ArgumentError('maps: minSize ($minSize) must be >= 0');
+    if (minSize > maxSize) throw ArgumentError('maps: minSize ($minSize) must be <= maxSize ($maxSize)');
+  }
 
   @override
   Map<K, V> generate(TestCase tc) {
     return using((Arena arena) {
-      tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_MAP.value);
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP.value);
+      bool success = false;
 
       try {
         final outCollectionId = arena<ffi.Int64>();
@@ -118,27 +138,32 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
         
         while (true) {
           final moreRes = tc.lib.hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) throw const HegelStopTest();
           if (moreRes != hegel_result_t.HEGEL_OK) throw HegelException('Failed to generate collection more');
           if (!outMore.value) break;
 
-          tc.lib.hegel_start_span(tc.ctx, tc.handle, hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
+          tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
           bool elementAdded = false;
+          bool threw = true;
           try {
             final k = keys.generate(tc);
             if (map.containsKey(k)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
+              threw = false;
             } else {
               final v = values.generate(tc);
               map[k] = v;
               elementAdded = true;
+              threw = false;
             }
           } finally {
-            tc.lib.hegel_stop_span(tc.ctx, tc.handle, !elementAdded);
+            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
           }
         }
+        success = true;
         return map;
       } finally {
-        tc.lib.hegel_stop_span(tc.ctx, tc.handle, false);
+        tc.safeStopSpan(hadError: !success);
       }
     });
   }

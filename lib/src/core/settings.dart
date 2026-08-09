@@ -78,6 +78,9 @@ void applySettings(
   String? databaseKey,
 }) {
   if (testCases != null) {
+    if (testCases <= 0) {
+      throw ArgumentError('testCases must be positive, got $testCases');
+    }
     final res = lib.hegel_settings_set_test_cases(ctx, settings, testCases);
     _check(res, 'set_test_cases');
   }
@@ -136,6 +139,7 @@ void applySettings(
   }
 
   if (database != null) {
+    _checkNoNullBytes(database, 'database');
     using((Arena arena) {
       final dbPtr = database.toNativeUtf8(allocator: arena).cast<Char>();
       final res = lib.hegel_settings_set_database(ctx, settings, dbPtr);
@@ -144,6 +148,7 @@ void applySettings(
   }
 
   if (databaseKey != null) {
+    _checkNoNullBytes(databaseKey, 'databaseKey');
     using((Arena arena) {
       final keyPtr = databaseKey.toNativeUtf8(allocator: arena).cast<Char>();
       final res =
@@ -156,5 +161,18 @@ void applySettings(
 void _check(hegel_result_t result, String operation) {
   if (result != hegel_result_t.HEGEL_OK) {
     throw StateError('Failed to $operation: ${result.value}');
+  }
+}
+
+/// Validate that a string does not contain null bytes, which would
+/// silently truncate it at the FFI boundary.
+void _checkNoNullBytes(String value, String paramName) {
+  if (value.contains('\x00')) {
+    throw ArgumentError.value(
+      value,
+      paramName,
+      'must not contain null bytes (\\x00) — they cause silent '
+          'truncation at the FFI boundary',
+    );
   }
 }

@@ -1,5 +1,9 @@
 /// Exceptions for the Hegel property-based testing framework.
 
+import 'dart:ffi';
+import 'package:ffi/ffi.dart';
+import '../ffi/hegel_bindings.g.dart';
+
 /// Thrown when the engine's choice budget is exhausted.
 ///
 /// The test body should stop drawing and return. This is an internal
@@ -46,4 +50,30 @@ class HegelTestFailure implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Extract the last error message from the native engine context.
+///
+/// Returns `null` if the pointer is null or the string is empty.
+/// The returned pointer borrows `ctx`'s internal buffer and is
+/// invalidated by the next libhegel call — we copy to a Dart string
+/// immediately.
+String? nativeErrorDetail(LibHegel lib, Pointer<hegel_context_t> ctx) {
+  final errPtr = lib.hegel_context_last_error(ctx);
+  if (errPtr == nullptr) return null;
+  final msg = errPtr.cast<Utf8>().toDartString();
+  return msg.isEmpty ? null : msg;
+}
+
+/// Create a [HegelException] enriched with the native engine's
+/// last error diagnostic when available.
+HegelException hegelExceptionWithDetail(
+  LibHegel lib,
+  Pointer<hegel_context_t> ctx,
+  String message,
+  int resultCode,
+) {
+  final detail = nativeErrorDetail(lib, ctx);
+  final fullMessage = detail != null ? '$message ($detail)' : message;
+  return HegelException(fullMessage, resultCode);
 }

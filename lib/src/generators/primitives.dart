@@ -9,26 +9,31 @@ class IntegerGenerator extends Generator<int> {
   final int min;
   final int max;
 
-  const IntegerGenerator(this.min, this.max);
+  IntegerGenerator(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError('integers: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   int generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Int64>();
-      final result = tc.lib.hegel_generate_integer(
-        tc.ctx,
-        tc.handle,
-        min,
-        max,
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Int64>('int64', () => calloc<ffi.Int64>());
+    final result = tc.lib.hegel_generate_integer(
+      tc.ctx,
+      tc.handle,
+      min,
+      max,
+      outValue,
+    );
 
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate integer: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate integer: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 
@@ -45,39 +50,48 @@ class DoubleGenerator extends Generator<double> {
   final bool excludeMax;
   final double smallestNonzeroMagnitude;
 
-  const DoubleGenerator(
-      this.min,
-      this.max,
-      this.allowNan,
-      this.allowInfinity,
-      this.excludeMin,
-      this.excludeMax,
-      this.smallestNonzeroMagnitude);
+  DoubleGenerator(
+    this.min,
+    this.max,
+    this.allowNan,
+    this.allowInfinity,
+    this.excludeMin,
+    this.excludeMax,
+    this.smallestNonzeroMagnitude,
+  ) {
+    if (min.isNaN || max.isNaN) {
+      throw ArgumentError('doubles: min and max must not be NaN');
+    }
+    if (min > max) {
+      throw ArgumentError('doubles: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   double generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Double>();
-      final result = tc.lib.hegel_generate_float(
-        tc.ctx,
-        tc.handle,
-        64,
-        min,
-        max,
-        allowNan,
-        allowInfinity,
-        excludeMin,
-        excludeMax,
-        smallestNonzeroMagnitude,
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Double>('double', () => calloc<ffi.Double>());
+    final result = tc.lib.hegel_generate_float(
+      tc.ctx,
+      tc.handle,
+      64,
+      min,
+      max,
+      allowNan,
+      allowInfinity,
+      excludeMin,
+      excludeMax,
+      smallestNonzeroMagnitude,
+      outValue,
+    );
 
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate double: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate double: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 
@@ -96,27 +110,32 @@ Generator<double> doubles({
 class BooleanGenerator extends Generator<bool> {
   final double p;
 
-  const BooleanGenerator(this.p);
+  BooleanGenerator(this.p) {
+    if (p < 0.0 || p > 1.0) {
+      throw ArgumentError('booleans: probability p ($p) must be in [0.0, 1.0]');
+    }
+  }
 
   @override
   bool generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Bool>();
-      final result = tc.lib.hegel_generate_boolean(
-        tc.ctx,
-        tc.handle,
-        p,
-        false, // forced
-        false, // has_forced
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Bool>('bool', () => calloc<ffi.Bool>());
+    final result = tc.lib.hegel_generate_boolean(
+      tc.ctx,
+      tc.handle,
+      p,
+      false, // forced
+      false, // has_forced
+      outValue,
+    );
 
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate boolean: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate boolean: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 
@@ -128,7 +147,11 @@ class BigIntGenerator extends Generator<BigInt> {
   final BigInt min;
   final BigInt max;
 
-  const BigIntGenerator(this.min, this.max);
+  BigIntGenerator(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError('bigIntegers: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   BigInt generate(TestCase tc) {
@@ -163,6 +186,9 @@ class BigIntGenerator extends Generator<BigInt> {
         outLen,
       );
 
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to generate big integer: ${result.value}');
       }
@@ -172,24 +198,29 @@ class BigIntGenerator extends Generator<BigInt> {
   }
 
   List<int> _toTwosComplementLittleEndian(BigInt value) {
-    // Crude implementation for generating the required buffer
     if (value == BigInt.zero) return [0];
-    
-    // We get the hex representation
-    var hex = value.toRadixString(16);
+
     final isNegative = value.isNegative;
+    var hex = value.toRadixString(16);
     if (isNegative) {
-      // Very crude, properly we should do actual two's complement
+      // Two's complement for negative: mask to byte-aligned width
       final bitLength = value.bitLength + 1;
       final mask = (BigInt.one << ((bitLength + 7) ~/ 8 * 8)) - BigInt.one;
       hex = (value & mask).toRadixString(16);
     }
-    
+
     if (hex.length % 2 != 0) hex = '0$hex';
     final bytes = <int>[];
     for (var i = 0; i < hex.length; i += 2) {
       bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
     }
+
+    // For positive values, if MSB is set (e.g., 255 = 0xFF), prepend 0x00
+    // to prevent misinterpretation as negative in two's complement.
+    if (!isNegative && bytes.isNotEmpty && (bytes[0] & 0x80) != 0) {
+      bytes.insert(0, 0);
+    }
+
     // Reverse for little endian
     return bytes.reversed.toList();
   }
@@ -209,10 +240,11 @@ class BigIntGenerator extends Generator<BigInt> {
     // Check sign bit (highest bit of the most significant byte)
     final isNegative = (beBytes[0] & 0x80) != 0;
     
-    var hex = '';
+    final hexBuf = StringBuffer();
     for (var b in beBytes) {
-      hex += b.toRadixString(16).padLeft(2, '0');
+      hexBuf.write(b.toRadixString(16).padLeft(2, '0'));
     }
+    final hex = hexBuf.toString();
     
     var result = BigInt.parse(hex, radix: 16);
     if (isNegative) {

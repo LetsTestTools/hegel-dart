@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import '../core/exceptions.dart';
 import '../core/test_case.dart';
+import '../ffi/hegel_bindings.g.dart';
 
 abstract class Generator<T> {
   const Generator();
@@ -42,16 +46,34 @@ class FilteredGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    while (true) {
-      final value = _generator.generate(tc);
-      if (_predicate(value)) {
-        return value;
+    // Try up to a reasonable number of times before giving up.
+    // HegelStopTest (budget exhaustion) is NOT caught — it must
+    // propagate to the runner so the engine correctly distinguishes
+    // "budget exhausted" from "invalid assumption".
+    //
+    // Each attempt is wrapped in a span so that rejected draws
+    // don't shift the fuzzer tape during shrinking. Rejected
+    // spans are discarded, keeping tape positions stable.
+    for (var attempt = 0; attempt < 100; attempt++) {
+      tc.startSpan(hegel_label_t.HEGEL_LABEL_FILTER.value);
+      bool accepted = false;
+      try {
+        final value = _generator.generate(tc);
+        if (_predicate(value)) {
+          accepted = true;
+          return value;
+        }
+      } finally {
+        tc.safeStopSpan(discard: !accepted, hadError: !accepted);
       }
-      // If we need to explicitly reject, we would do it here, but this is a simple filter
-      // (Normally a Filter generator might call a reject API if it keeps looping, 
-      // but without specific API for simple values we just loop. 
-      // The user asked for it to be implemented.)
     }
+    // Exhausted filter attempts — warn and discard this test case.
+    // ignore: avoid_print
+    stderr.writeln(
+      '[hegeltest] Warning: FilteredGenerator rejected 100 consecutive '
+      'values. Is your predicate too strict? Discarding test case.',
+    );
+    throw const HegelAssumptionViolated();
   }
 }
 
@@ -63,8 +85,16 @@ class FlatMappedGenerator<T, U> extends Generator<U> {
 
   @override
   U generate(TestCase tc) {
-    final value = _generator.generate(tc);
-    return _mapper(value).generate(tc);
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_FLAT_MAP.value);
+    bool success = false;
+    try {
+      final value = _generator.generate(tc);
+      final result = _mapper(value).generate(tc);
+      success = true;
+      return result;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
 
@@ -75,6 +105,14 @@ class CompositeGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    return _generateFn(tc);
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_FIXED_DICT.value);
+    bool success = false;
+    try {
+      final result = _generateFn(tc);
+      success = true;
+      return result;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
