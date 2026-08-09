@@ -54,6 +54,27 @@ class TestCase {
   final RunLifecycle _lifecycle;
   bool _isDisposed = false;
 
+  /// Cache of reusable native buffers keyed by size, to avoid
+  /// per-draw calloc/free in hot loops.
+  final Map<String, Pointer<Void>> _bufferCache = {};
+
+  /// Get or allocate a reusable native buffer by a string key.
+  ///
+  /// This avoids per-draw calloc/free overhead. Buffers are
+  /// freed when the TestCase is invalidated.
+  @internal
+  Pointer<T> reuseBuffer<T extends NativeType>(String key, Pointer<T> Function() allocate) {
+    _checkNotDisposed();
+    final existing = _bufferCache[key];
+    if (existing != null) return existing.cast<T>();
+    final ptr = allocate();
+    _bufferCache[key] = ptr.cast<Void>();
+    return ptr;
+  }
+
+  /// Log of drawn values for counterexample reporting.
+  final List<(String label, String value)> _drawLog = [];
+
   /// Creates a test case wrapper.
   ///
   /// This constructor is internal — only [HegelRunner] should
@@ -96,9 +117,30 @@ class TestCase {
   }
 
   /// Draw a value from the given generator.
-  T draw<T>(Generator<T> gen) {
+  ///
+  /// Each draw is recorded in the draw log for counterexample reporting.
+  T draw<T>(Generator<T> gen, {String? label}) {
     _checkNotDisposed();
-    return gen.generate(this);
+    final value = gen.generate(this);
+    final drawLabel = label ?? gen.runtimeType.toString();
+    _drawLog.add((drawLabel, _formatValue(value)));
+    return value;
+  }
+
+  /// The recorded draws for this test case iteration.
+  ///
+  /// Used by the runner to include counterexample values in failure messages.
+  @internal
+  List<(String, String)> get drawLog => List.unmodifiable(_drawLog);
+
+  /// Reset the draw log for the next iteration.
+  @internal
+  void resetDrawLog() => _drawLog.clear();
+
+  static String _formatValue(Object? value) {
+    final s = value.toString();
+    // Truncate very long values to keep output readable.
+    return s.length > 200 ? '${s.substring(0, 200)}...' : s;
   }
 
   /// Assume a condition holds. If it doesn't, this test case is discarded.
@@ -172,7 +214,13 @@ class TestCase {
   /// Called by the runner after each test case completes to prevent
   /// zombie usage from captured closures.
   void invalidate() {
+    _drawLog.clear();
     _isDisposed = true;
+    // Free reusable buffers
+    for (final ptr in _bufferCache.values) {
+      calloc.free(ptr);
+    }
+    _bufferCache.clear();
   }
 
   /// Open a labeled span around a group of draws.

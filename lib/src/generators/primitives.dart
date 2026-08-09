@@ -17,25 +17,23 @@ class IntegerGenerator extends Generator<int> {
 
   @override
   int generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Int64>();
-      final result = tc.lib.hegel_generate_integer(
-        tc.ctx,
-        tc.handle,
-        min,
-        max,
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Int64>('int64', () => calloc<ffi.Int64>());
+    final result = tc.lib.hegel_generate_integer(
+      tc.ctx,
+      tc.handle,
+      min,
+      max,
+      outValue,
+    );
 
-      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate integer: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate integer: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 
@@ -71,31 +69,29 @@ class DoubleGenerator extends Generator<double> {
 
   @override
   double generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Double>();
-      final result = tc.lib.hegel_generate_float(
-        tc.ctx,
-        tc.handle,
-        64,
-        min,
-        max,
-        allowNan,
-        allowInfinity,
-        excludeMin,
-        excludeMax,
-        smallestNonzeroMagnitude,
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Double>('double', () => calloc<ffi.Double>());
+    final result = tc.lib.hegel_generate_float(
+      tc.ctx,
+      tc.handle,
+      64,
+      min,
+      max,
+      allowNan,
+      allowInfinity,
+      excludeMin,
+      excludeMax,
+      smallestNonzeroMagnitude,
+      outValue,
+    );
 
-      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate double: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate double: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 
@@ -122,26 +118,24 @@ class BooleanGenerator extends Generator<bool> {
 
   @override
   bool generate(TestCase tc) {
-    return using((Arena arena) {
-      final outValue = arena<ffi.Bool>();
-      final result = tc.lib.hegel_generate_boolean(
-        tc.ctx,
-        tc.handle,
-        p,
-        false, // forced
-        false, // has_forced
-        outValue,
-      );
+    final outValue = tc.reuseBuffer<ffi.Bool>('bool', () => calloc<ffi.Bool>());
+    final result = tc.lib.hegel_generate_boolean(
+      tc.ctx,
+      tc.handle,
+      p,
+      false, // forced
+      false, // has_forced
+      outValue,
+    );
 
-      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-        throw const HegelStopTest();
-      }
-      if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate boolean: ${result.value}');
-      }
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException('Failed to generate boolean: ${result.value}');
+    }
 
-      return outValue.value;
-    });
+    return outValue.value;
   }
 }
 

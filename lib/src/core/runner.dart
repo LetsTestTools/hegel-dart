@@ -11,6 +11,7 @@ import '../ffi/library_loader.dart';
 import 'exceptions.dart';
 import 'origin.dart';
 import 'settings.dart';
+import 'hegel_settings.dart';
 import 'test_case.dart';
 
 /// Callback for engine output.
@@ -34,8 +35,9 @@ class HegelRunner {
 
   HegelRunner(this.lib);
 
-  /// Map of origin strings to (exception, stack trace) for reporting.
-  final Map<String, (Object, StackTrace)> _caughtExceptions = {};
+  /// Map of origin strings to (exception, stack trace, draw log) for reporting.
+  final Map<String, (Object, StackTrace, List<(String, String)>)>
+      _caughtExceptions = {};
 
   Future<void> run(
     FutureOr<void> Function(TestCase) body, {
@@ -49,6 +51,8 @@ class HegelRunner {
     bool? reportMultipleFailures,
     String? databaseKey,
     String? database,
+    FutureOr<void> Function()? setUpEach,
+    FutureOr<void> Function()? tearDownEach,
   }) async {
     final ctx = lib.hegel_context_new();
     final lifecycle = RunLifecycle();
@@ -194,6 +198,7 @@ class HegelRunner {
         String? originStr;
 
         try {
+          if (setUpEach != null) await setUpEach();
           await body(tc);
         } on HegelStopTest {
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
@@ -206,8 +211,17 @@ class HegelRunner {
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
-          // Store the exception for later reporting
-          _caughtExceptions[originStr] = (e, st);
+          // Store the exception with draw log for counterexample reporting
+          _caughtExceptions[originStr] = (e, st, tc.drawLog);
+        } finally {
+          if (tearDownEach != null) {
+            try {
+              await tearDownEach();
+            } catch (e) {
+              // Don't mask the original exception
+              stderr.writeln('[hegeltest] tearDownEach threw: $e');
+            }
+          }
         }
 
         // Invalidate the test case so captured references can't
@@ -360,9 +374,18 @@ class HegelRunner {
 
     // Include the actual Dart exception if we captured one
     if (originStr != null && _caughtExceptions.containsKey(originStr)) {
-      final (error, stackTrace) = _caughtExceptions[originStr]!;
+      final (error, stackTrace, drawLog) = _caughtExceptions[originStr]!;
       buf.write('\n\nCaused by: $error');
       buf.write('\n$stackTrace');
+
+      // Include counterexample values
+      if (drawLog.isNotEmpty) {
+        buf.write('\nCounterexample:');
+        for (var i = 0; i < drawLog.length; i++) {
+          final (label, value) = drawLog[i];
+          buf.write('\n  draw #${i + 1} ($label): $value');
+        }
+      }
     }
 
     final blobOut = calloc<Pointer<Char>>();
@@ -420,6 +443,7 @@ void hegelTest(
   dynamic skip,
   Map<String, dynamic>? onPlatform,
   int? retry,
+  HegelConfig? config,
   int? testCases,
   int? seed,
   bool? derandomize,
@@ -430,22 +454,26 @@ void hegelTest(
   String? reproduce,
   String? databaseKey,
   String? database,
+  FutureOr<void> Function()? setUpEach,
+  FutureOr<void> Function()? tearDownEach,
 }) {
   test(description, () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
     await runner.run(
       body,
-      reproduceBlob: reproduce,
-      testCases: testCases,
-      seed: seed ?? _envSeed(),
-      derandomize: derandomize,
-      phases: phases,
-      verbosity: verbosity,
-      suppressHealthChecks: suppressHealthChecks,
-      reportMultipleFailures: reportMultipleFailures,
-      databaseKey: databaseKey,
-      database: database,
+      reproduceBlob: reproduce ?? config?.reproduce,
+      testCases: testCases ?? config?.testCases,
+      seed: seed ?? config?.seed ?? _envSeed(),
+      derandomize: derandomize ?? config?.derandomize,
+      phases: phases ?? config?.phases,
+      verbosity: verbosity ?? config?.verbosity,
+      suppressHealthChecks: suppressHealthChecks ?? config?.suppressHealthChecks,
+      reportMultipleFailures: reportMultipleFailures ?? config?.reportMultipleFailures,
+      databaseKey: databaseKey ?? config?.databaseKey,
+      database: database ?? config?.database,
+      setUpEach: setUpEach,
+      tearDownEach: tearDownEach,
     );
   },
       // Fuzzing loops can run many iterations; default to 10 minutes
