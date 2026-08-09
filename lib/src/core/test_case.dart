@@ -54,14 +54,15 @@ class TestCase {
   final RunLifecycle _lifecycle;
   bool _isDisposed = false;
 
-  /// Cache of reusable native buffers keyed by size, to avoid
-  /// per-draw calloc/free in hot loops.
-  final Map<String, Pointer<Void>> _bufferCache = {};
+  /// Shared buffer cache — owned by the runner, survives across iterations.
+  /// Cloned test cases get their own private cache.
+  final Map<String, Pointer<Void>> _bufferCache;
 
   /// Get or allocate a reusable native buffer by a string key.
   ///
   /// This avoids per-draw calloc/free overhead. Buffers are
-  /// freed when the TestCase is invalidated.
+  /// freed by the runner at end-of-run (for primary test cases)
+  /// or by dispose() (for clones).
   @internal
   Pointer<T> reuseBuffer<T extends NativeType>(String key, Pointer<T> Function() allocate) {
     _checkNotDisposed();
@@ -73,7 +74,8 @@ class TestCase {
   }
 
   /// Log of drawn values for counterexample reporting.
-  final List<(String label, String value)> _drawLog = [];
+  /// Stores raw objects; formatting is deferred until failure.
+  final List<(String label, Object? value)> _drawLog = [];
 
   /// Creates a test case wrapper.
   ///
@@ -86,7 +88,9 @@ class TestCase {
     this._lib,
     this._lifecycle, {
     bool isOwned = false,
-  }) : _isOwned = isOwned;
+    Map<String, Pointer<Void>>? bufferCache,
+  }) : _isOwned = isOwned,
+       _bufferCache = bufferCache ?? {};
 
   /// Internal accessors used by generators.
   @internal
@@ -119,19 +123,24 @@ class TestCase {
   /// Draw a value from the given generator.
   ///
   /// Each draw is recorded in the draw log for counterexample reporting.
+  /// Value formatting is deferred until a failure actually occurs to
+  /// avoid allocating strings on the ~99.9% passing path.
   T draw<T>(Generator<T> gen, {String? label}) {
     _checkNotDisposed();
     final value = gen.generate(this);
     final drawLabel = label ?? gen.runtimeType.toString();
-    _drawLog.add((drawLabel, _formatValue(value)));
+    _drawLog.add((drawLabel, value));
     return value;
   }
 
-  /// The recorded draws for this test case iteration.
+  /// The recorded draws for this test case iteration, formatted for display.
   ///
   /// Used by the runner to include counterexample values in failure messages.
+  /// Formatting happens here (on failure) instead of in draw() (on every call).
   @internal
-  List<(String, String)> get drawLog => List.unmodifiable(_drawLog);
+  List<(String, String)> get drawLog => _drawLog
+      .map((e) => (e.$1, _formatValue(e.$2)))
+      .toList(growable: false);
 
   /// Reset the draw log for the next iteration.
   @internal
@@ -175,6 +184,7 @@ class TestCase {
   /// The caller is responsible for calling [dispose] on the returned
   /// test case to free native memory. A GC finalizer provides a safety
   /// net, but timely disposal is strongly recommended.
+  @internal
   TestCase clone() {
     _checkNotDisposed();
     return using((Arena arena) {
@@ -200,8 +210,13 @@ class TestCase {
   ///
   /// Only valid for cloned test cases. The runner manages the lifecycle
   /// of primary test cases.
+  @internal
   void dispose() {
     if (_isDisposed) return; // idempotent
+    // Free clone's own buffer cache to prevent FFI memory leaks.
+    if (_isOwned) {
+      _freeBufferCache();
+    }
     if (_isOwned && _lifecycle.isAlive) {
       _testCaseFinalizer.detach(this);
       _lib.hegel_test_case_free(_ctx, _handle);
@@ -216,7 +231,12 @@ class TestCase {
   void invalidate() {
     _drawLog.clear();
     _isDisposed = true;
-    // Free reusable buffers
+    // NOTE: buffer cache is NOT freed here — it's owned by the runner
+    // and shared across iterations for performance.
+  }
+
+  /// Free all native buffers in the cache.
+  void _freeBufferCache() {
     for (final ptr in _bufferCache.values) {
       calloc.free(ptr);
     }
@@ -224,6 +244,7 @@ class TestCase {
   }
 
   /// Open a labeled span around a group of draws.
+  @internal
   void startSpan(int label) {
     _checkNotDisposed();
     final result = _lib.hegel_start_span(_ctx, _handle, label);
@@ -233,6 +254,7 @@ class TestCase {
   }
 
   /// Close the most-recently opened span.
+  @internal
   void stopSpan({bool discard = false}) {
     _checkNotDisposed();
     final result = _lib.hegel_stop_span(_ctx, _handle, discard);

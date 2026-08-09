@@ -152,10 +152,17 @@ class HegelRunner {
         });
 
         if (status == hegel_status_t.HEGEL_STATUS_INTERESTING.value) {
-          // Rethrow the original exception so the user can debug.
-          // Include origin info but preserve the real error.
+          // Include counterexample in the rethrown error.
           if (caughtError != null && caughtStack != null) {
-            Error.throwWithStackTrace(caughtError, caughtStack);
+            final drawLogStr = tc.drawLog.isNotEmpty
+                ? '\nCounterexample:\n${tc.drawLog.indexed.map((e) => '  draw #${e.$1 + 1} (${e.$2.$1}): ${e.$2.$2}').join('\n')}'
+                : '';
+            throw HegelTestFailure(
+              'Property failed during blob replay. Origin: $originStr\n'
+              '\nCaused by: $caughtError'
+              '\n$caughtStack'
+              '$drawLogStr',
+            );
           }
           throw HegelTestFailure(
               'Property failed during blob replay. Origin: $originStr');
@@ -181,6 +188,8 @@ class HegelRunner {
       // Hoist the out-parameter allocation outside the loop to avoid
       // per-iteration alloc/free overhead (significant at 100K+ iterations).
       final outTestCase = calloc<Pointer<hegel_test_case_t>>();
+      // Shared buffer cache survives across iterations — freed at end-of-run.
+      final sharedBufferCache = <String, Pointer<Void>>{};
       try {
        while (true) {
         final res = lib.hegel_next_test_case(ctx, runHandle, outTestCase);
@@ -193,7 +202,8 @@ class HegelRunner {
           break; // Run finished
         }
 
-        final tc = TestCase(ctx, tcHandle, lib, lifecycle);
+        final tc = TestCase(ctx, tcHandle, lib, lifecycle,
+            bufferCache: sharedBufferCache);
         var status = hegel_status_t.HEGEL_STATUS_VALID.value;
         String? originStr;
 
@@ -217,9 +227,16 @@ class HegelRunner {
           if (tearDownEach != null) {
             try {
               await tearDownEach();
-            } catch (e) {
-              // Don't mask the original exception
-              stderr.writeln('[hegeltest] tearDownEach threw: $e');
+            } catch (e, st) {
+              // If the test passed but tearDown failed, treat as a failure.
+              if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+                status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
+                originStr = extractOrigin(st);
+                _caughtExceptions[originStr] = (e, st, tc.drawLog);
+              } else {
+                // Don't mask the original exception
+                stderr.writeln('[hegeltest] tearDownEach threw: $e');
+              }
             }
           }
         }
@@ -257,6 +274,11 @@ class HegelRunner {
       }
       } finally {
         calloc.free(outTestCase);
+        // Free the shared buffer cache at end-of-run.
+        for (final ptr in sharedBufferCache.values) {
+          calloc.free(ptr);
+        }
+        sharedBufferCache.clear();
       }
 
       // 4. Report Results
@@ -392,8 +414,10 @@ class HegelRunner {
     try {
       lib.hegel_failure_reproduction_blob(ctx, failure, blobOut);
       if (blobOut.value != nullptr) {
+        final blob = blobOut.value.cast<Utf8>().toDartString();
         buf.write(
-            '\nReproduce: @reproduce(\'${blobOut.value.cast<Utf8>().toDartString()}\')');
+            '\n\nTo reproduce, add to your hegelTest() call:\n'
+            '  reproduce: \'$blob\'');
       }
     } finally {
       calloc.free(blobOut);
