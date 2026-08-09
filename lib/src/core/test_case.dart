@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:meta/meta.dart';
 
@@ -33,6 +34,11 @@ class _OwnedTestCaseResource {
 final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer =
     Finalizer((res) {
   if (res.lifecycle.isAlive) {
+    stderr.writeln(
+      '[hegeltest] Warning: A cloned TestCase was not disposed. '
+      'Call dispose() explicitly to ensure deterministic cleanup. '
+      'GC-triggered disposal may cause non-deterministic behavior.',
+    );
     res.lib.hegel_test_case_free(res.ctx, res.handle);
   }
   // If the run has ended, ctx is already freed — skip to avoid UAF.

@@ -46,6 +46,11 @@ class DateGenerator extends Generator<DateTime> {
   }
 }
 
+/// Generates DateTime values containing only a date component.
+///
+/// ```dart
+/// tc.draw(dates())
+/// ```
 Generator<DateTime> dates({DateTime? min, DateTime? max}) {
   return DateGenerator(
     min ?? DateTime.utc(1, 1, 1), 
@@ -103,6 +108,11 @@ class TimeGenerator extends Generator<TimeRecord> {
   }
 }
 
+/// Generates TimeRecord values containing only a time component.
+///
+/// ```dart
+/// tc.draw(times())
+/// ```
 Generator<TimeRecord> times({TimeRecord? min, TimeRecord? max}) {
   return TimeGenerator(
     min ?? (hour: 0, minute: 0, second: 0, microsecond: 0),
@@ -169,6 +179,11 @@ class DateTimeGenerator extends Generator<DateTime> {
   }
 }
 
+/// Generates full DateTime values with both date and time.
+///
+/// ```dart
+/// tc.draw(dateTimes())
+/// ```
 Generator<DateTime> dateTimes({DateTime? min, DateTime? max}) {
   return DateTimeGenerator(
     min ?? DateTime.utc(1, 1, 1),

@@ -184,14 +184,35 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   }
 }
 
+/// Generates lists of elements from the provided generator.
+///
+/// Defaults to a maximum size of 2^63 - 1.
+///
+/// ```dart
+/// tc.draw(lists(integers(), maxSize: 10))
+/// ```
 Generator<List<T>> lists<T>(Generator<T> elements, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return ListGenerator(elements, minSize, maxSize);
 }
 
+/// Generates sets of unique elements from the provided generator.
+///
+/// Will reject up to 1000 consecutive duplicates before throwing.
+///
+/// ```dart
+/// tc.draw(sets(integers(), maxSize: 5))
+/// ```
 Generator<Set<T>> sets<T>(Generator<T> elements, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return SetGenerator(elements, minSize, maxSize);
 }
 
+/// Generates maps with unique keys and corresponding values.
+///
+/// Will reject up to 1000 consecutive key duplicates before throwing.
+///
+/// ```dart
+/// tc.draw(maps(text(), integers(), maxSize: 5))
+/// ```
 Generator<Map<K, V>> maps<K, V>(Generator<K> keys, Generator<V> values, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return MapGenerator(keys, values, minSize, maxSize);
 }

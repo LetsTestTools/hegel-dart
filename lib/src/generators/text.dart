@@ -109,6 +109,14 @@ class TextGenerator extends _BaseNativeStringGenerator {
   }
 }
 
+/// Generates random text strings.
+///
+/// Filters by alphabet or code points. Note: In Flutter projects, this may shadow
+/// the `Text` widget. Use `import '...' hide text;` or prefix the import.
+///
+/// ```dart
+/// tc.draw(text(minSize: 10, maxSize: 50))
+/// ```
 Generator<String> text({int minSize = 0, int maxSize = 100, int minCodepoint = 0, int maxCodepoint = 0x10FFFF}) {
   return TextGenerator(minSize, maxSize, minCodepoint, maxCodepoint);
 }
@@ -149,6 +157,11 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   }
 }
 
+/// Generates strings that match a given regular expression pattern.
+///
+/// ```dart
+/// tc.draw(fromRegex(r'^[a-z0-9_]{3,16}$'))
+/// ```
 Generator<String> fromRegex(String pattern, {bool fullmatch = true}) {
   return RegexGenerator(pattern, fullmatch);
 }
@@ -172,6 +185,11 @@ class EmailGenerator extends _BaseNativeStringGenerator {
   }
 }
 
+/// Generates valid-looking email addresses.
+///
+/// ```dart
+/// tc.draw(emails())
+/// ```
 Generator<String> emails() => EmailGenerator();
 
 class UrlGenerator extends _BaseNativeStringGenerator {
@@ -193,6 +211,11 @@ class UrlGenerator extends _BaseNativeStringGenerator {
   }
 }
 
+/// Generates valid-looking URLs.
+///
+/// ```dart
+/// tc.draw(urls())
+/// ```
 Generator<String> urls() => UrlGenerator();
 
 class DomainGenerator extends _BaseNativeStringGenerator {
@@ -215,6 +238,11 @@ class DomainGenerator extends _BaseNativeStringGenerator {
   }
 }
 
+/// Generates domain names.
+///
+/// ```dart
+/// tc.draw(domains())
+/// ```
 Generator<String> domains({int maxLength = 255}) => DomainGenerator(maxLength);
 
 class UuidGenerator extends Generator<String> {
@@ -246,4 +274,9 @@ class UuidGenerator extends Generator<String> {
   }
 }
 
+/// Generates v4 UUIDs.
+///
+/// ```dart
+/// tc.draw(uuids())
+/// ```
 Generator<String> uuids() => UuidGenerator();

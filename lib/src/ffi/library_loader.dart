@@ -78,8 +78,15 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
     if (resolvedUri == null) return null;
 
     // resolvedUri points to lib/hegeltest.dart
+    // Resolve symlinks first (handles Nix flakes, symlinked pub caches,
+    // and monorepo setups where the pub cache path is a symlink).
+    final resolvedFile = File.fromUri(resolvedUri);
+    final realPath = resolvedFile.existsSync()
+        ? File(resolvedFile.resolveSymbolicLinksSync())
+        : resolvedFile;
+
     // Navigate up to package root: lib/ -> package root
-    final libDir = File.fromUri(resolvedUri).parent; // lib/
+    final libDir = realPath.parent; // lib/
     final packageRoot = libDir.parent; // package root
     final nativePath =
         '${packageRoot.path}/native/$platformDir/$libName';

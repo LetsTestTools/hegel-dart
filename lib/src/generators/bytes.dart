@@ -45,6 +45,11 @@ class BytesGenerator extends Generator<Uint8List> {
   }
 }
 
+/// Generates a Uint8List of random bytes.
+///
+/// ```dart
+/// tc.draw(bytes(minSize: 16, maxSize: 16))
+/// ```
 Generator<Uint8List> bytes({int minSize = 0, int maxSize = 100}) {
   return BytesGenerator(minSize, maxSize);
 }

@@ -38,6 +38,11 @@ class SampledGenerator<T> extends Generator<T> {
   }
 }
 
+/// Picks a value randomly from a fixed list of values.
+///
+/// ```dart
+/// tc.draw(sampled(['a', 'b', 'c']))
+/// ```
 Generator<T> sampled<T>(List<T> values) => SampledGenerator(values);
 
 class OneOfGenerator<T> extends Generator<T> {
@@ -81,6 +86,11 @@ class OneOfGenerator<T> extends Generator<T> {
   }
 }
 
+/// Picks one of the provided generators uniformly at random.
+///
+/// ```dart
+/// tc.draw(oneOf([integers(), doubles()]))
+/// ```
 Generator<T> oneOf<T>(List<Generator<T>> gens) => OneOfGenerator(gens);
 
 class NullableGenerator<T> extends Generator<T?> {
@@ -131,8 +141,18 @@ class NullableGenerator<T> extends Generator<T?> {
   }
 }
 
+/// Wraps a generator to occasionally produce null.
+///
+/// ```dart
+/// tc.draw(nullable(integers()))
+/// ```
 Generator<T?> nullable<T>(Generator<T> gen, {double nullProbability = 0.5}) => NullableGenerator(gen, nullProbability);
 
+/// Generates 2-tuples (pairs) of independent values.
+///
+/// ```dart
+/// tc.draw(tuples2(integers(), booleans()))
+/// ```
 Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
   return Generator.composite((tc) {
     return using((Arena arena) {
@@ -149,6 +169,7 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
   });
 }
 
+/// Generates 3-tuples of independent values.
 Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<C> c) {
   return Generator.composite((tc) {
     return using((Arena arena) {
@@ -165,6 +186,7 @@ Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<
   });
 }
 
+/// Generates 4-tuples of independent values.
 Generator<(A, B, C, D)> tuples4<A, B, C, D>(Generator<A> a, Generator<B> b, Generator<C> c, Generator<D> d) {
   return Generator.composite((tc) {
     return using((Arena arena) {
@@ -243,4 +265,9 @@ class FrequencyGenerator<T> extends Generator<T> {
   }
 }
 
+/// Selects a generator based on provided probability weights.
+///
+/// ```dart
+/// tc.draw(frequency([(1, integers()), (9, doubles())]))
+/// ```
 Generator<T> frequency<T>(List<(int, Generator<T>)> weighted) => FrequencyGenerator(weighted);
