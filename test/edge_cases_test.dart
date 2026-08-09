@@ -73,9 +73,11 @@ void main() {
     });
 
     hegelTest('person model via composite', (tc) {
-      final person = tc.draw(Generator.composite<({String name, int age, bool active})>((tc) {
+      final person = tc.draw(
+          Generator.composite<({String name, int age, bool active})>((tc) {
         return (
-          name: tc.draw(text(minSize: 1, maxSize: 20, minCodepoint: 0x41, maxCodepoint: 0x5A)),
+          name: tc.draw(text(
+              minSize: 1, maxSize: 20, minCodepoint: 0x41, maxCodepoint: 0x5A)),
           age: tc.draw(integers(min: 0, max: 120)),
           active: tc.draw(booleans()),
         );
@@ -89,9 +91,7 @@ void main() {
   group('chained combinators', () {
     hegelTest('map then where', (tc) {
       final v = tc.draw(
-        integers(min: 0, max: 100)
-            .map((i) => i * 2)
-            .where((i) => i > 50),
+        integers(min: 0, max: 100).map((i) => i * 2).where((i) => i > 50),
       );
       expect(v, greaterThan(50));
       expect(v % 2, equals(0));

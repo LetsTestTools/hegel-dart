@@ -17,7 +17,8 @@ class IntegerGenerator extends Generator<int> {
 
   @override
   int generate(TestCase tc) {
-    final outValue = tc.reuseBuffer<ffi.Int64>('int64', () => calloc<ffi.Int64>());
+    final outValue =
+        tc.reuseBuffer<ffi.Int64>('int64', () => calloc<ffi.Int64>());
     final result = tc.lib.hegel_generate_integer(
       tc.ctx,
       tc.handle,
@@ -44,7 +45,8 @@ class IntegerGenerator extends Generator<int> {
 /// ```dart
 /// tc.draw(integers(min: 0, max: 100))
 /// ```
-Generator<int> integers({int min = -9223372036854775808, int max = 9223372036854775807}) {
+Generator<int> integers(
+    {int min = -9223372036854775808, int max = 9223372036854775807}) {
   return IntegerGenerator(min, max);
 }
 
@@ -76,7 +78,8 @@ class DoubleGenerator extends Generator<double> {
 
   @override
   double generate(TestCase tc) {
-    final outValue = tc.reuseBuffer<ffi.Double>('double', () => calloc<ffi.Double>());
+    final outValue =
+        tc.reuseBuffer<ffi.Double>('double', () => calloc<ffi.Double>());
     final result = tc.lib.hegel_generate_float(
       tc.ctx,
       tc.handle,
@@ -118,7 +121,8 @@ Generator<double> doubles({
   bool excludeMax = false,
   double smallestNonzeroMagnitude = 5e-324,
 }) {
-  return DoubleGenerator(min, max, allowNan, allowInfinity, excludeMin, excludeMax, smallestNonzeroMagnitude);
+  return DoubleGenerator(min, max, allowNan, allowInfinity, excludeMin,
+      excludeMax, smallestNonzeroMagnitude);
 }
 
 class BooleanGenerator extends Generator<bool> {
@@ -190,7 +194,8 @@ class BigIntGenerator extends Generator<BigInt> {
       final maxBuf = arena<ffi.Uint8>(maxBytes.length);
       for (var i = 0; i < maxBytes.length; i++) maxBuf[i] = maxBytes[i];
 
-      int outCap = minBytes.length > maxBytes.length ? minBytes.length : maxBytes.length;
+      int outCap =
+          minBytes.length > maxBytes.length ? minBytes.length : maxBytes.length;
       outCap += 1; // Extra capacity just in case
       final outBuf = arena<ffi.Uint8>(outCap);
       final outLen = arena<ffi.Size>();
@@ -248,25 +253,25 @@ class BigIntGenerator extends Generator<BigInt> {
 
   BigInt _fromTwosComplementLittleEndian(ffi.Pointer<ffi.Uint8> buf, int len) {
     if (len == 0) return BigInt.zero;
-    
+
     // Read bytes
     final bytes = <int>[];
     for (var i = 0; i < len; i++) {
       bytes.add(buf[i]);
     }
-    
+
     // Reverse to big endian
     final beBytes = bytes.reversed.toList();
-    
+
     // Check sign bit (highest bit of the most significant byte)
     final isNegative = (beBytes[0] & 0x80) != 0;
-    
+
     final hexBuf = StringBuffer();
     for (var b in beBytes) {
       hexBuf.write(b.toRadixString(16).padLeft(2, '0'));
     }
     final hex = hexBuf.toString();
-    
+
     var result = BigInt.parse(hex, radix: 16);
     if (isNegative) {
       final mask = (BigInt.one << (len * 8));

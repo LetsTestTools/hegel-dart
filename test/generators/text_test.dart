@@ -20,7 +20,8 @@ void main() {
     });
 
     hegelTest('ASCII only with codepoint range', (tc) {
-      final v = tc.draw(text(minSize: 1, maxSize: 20, minCodepoint: 0x20, maxCodepoint: 0x7E));
+      final v = tc.draw(text(
+          minSize: 1, maxSize: 20, minCodepoint: 0x20, maxCodepoint: 0x7E));
       for (final rune in v.runes) {
         expect(rune, greaterThanOrEqualTo(0x20));
         expect(rune, lessThanOrEqualTo(0x7E));
@@ -68,8 +69,10 @@ void main() {
 
     hegelTest('matches uuid regex', (tc) {
       final v = tc.draw(uuids());
-      expect(v, matches(RegExp(
-          r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')));
+      expect(
+          v,
+          matches(RegExp(
+              r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')));
     });
   });
 

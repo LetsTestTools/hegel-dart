@@ -31,8 +31,7 @@ class _OwnedTestCaseResource {
 /// GC safety net: if a cloned TestCase is collected without dispose(),
 /// the native handle is freed automatically — but only if the run is
 /// still alive (i.e. the context hasn't been freed yet).
-final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer =
-    Finalizer((res) {
+final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer = Finalizer((res) {
   if (res.lifecycle.isAlive) {
     stderr.writeln(
       '[hegeltest] Warning: A cloned TestCase was not disposed. '
@@ -70,7 +69,8 @@ class TestCase {
   /// freed by the runner at end-of-run (for primary test cases)
   /// or by dispose() (for clones).
   @internal
-  Pointer<T> reuseBuffer<T extends NativeType>(String key, Pointer<T> Function() allocate) {
+  Pointer<T> reuseBuffer<T extends NativeType>(
+      String key, Pointer<T> Function() allocate) {
     _checkNotDisposed();
     final existing = _bufferCache[key];
     if (existing != null) return existing.cast<T>();
@@ -95,8 +95,8 @@ class TestCase {
     this._lifecycle, {
     bool isOwned = false,
     Map<String, Pointer<Void>>? bufferCache,
-  }) : _isOwned = isOwned,
-       _bufferCache = bufferCache ?? {};
+  })  : _isOwned = isOwned,
+        _bufferCache = bufferCache ?? {};
 
   /// Internal accessors used by generators.
   @internal
@@ -144,9 +144,8 @@ class TestCase {
   /// Used by the runner to include counterexample values in failure messages.
   /// Formatting happens here (on failure) instead of in draw() (on every call).
   @internal
-  List<(String, String)> get drawLog => _drawLog
-      .map((e) => (e.$1, _formatValue(e.$2)))
-      .toList(growable: false);
+  List<(String, String)> get drawLog =>
+      _drawLog.map((e) => (e.$1, _formatValue(e.$2))).toList(growable: false);
 
   /// Reset the draw log for the next iteration.
   @internal
@@ -200,12 +199,18 @@ class TestCase {
         throw StateError('Failed to clone test case: ${result.value}');
       }
       final cloned = TestCase(
-        _ctx, outTestCase.value, _lib, _lifecycle,
+        _ctx,
+        outTestCase.value,
+        _lib,
+        _lifecycle,
         isOwned: true,
       );
       // Attach GC finalizer as safety net
       final resource = _OwnedTestCaseResource(
-        _lib, _ctx, outTestCase.value, _lifecycle,
+        _lib,
+        _ctx,
+        outTestCase.value,
+        _lifecycle,
       );
       _testCaseFinalizer.attach(cloned, resource, detach: cloned);
       return cloned;

@@ -25,8 +25,10 @@ void main() {
       fail('Expected test to fail');
     } on HegelTestFailure catch (e) {
       // Extract reproduce blob from new format: reproduce: 'BLOB'
-      final reproduceMatch = RegExp(r"reproduce: '([^']+)'").firstMatch(e.message);
-      expect(reproduceMatch, isNotNull, reason: 'Should contain reproduce blob');
+      final reproduceMatch =
+          RegExp(r"reproduce: '([^']+)'").firstMatch(e.message);
+      expect(reproduceMatch, isNotNull,
+          reason: 'Should contain reproduce blob');
       reproduceBlob = reproduceMatch!.group(1);
       // Verify the original failure is a property failure
       expect(e.message, contains('Property failed'));

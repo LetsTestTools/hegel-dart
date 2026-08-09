@@ -10,12 +10,12 @@ void main() {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
       TestCase? captured;
-      
+
       await runner.run((tc) {
         captured = tc;
         tc.draw(integers()); // should work
       }, testCases: 1);
-      
+
       // tc is now invalidated by the runner
       expect(captured, isNotNull);
       expect(
@@ -27,41 +27,41 @@ void main() {
         )),
       );
     });
-    
+
     test('target after run completes throws StateError', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
       TestCase? captured;
-      
+
       await runner.run((tc) {
         captured = tc;
       }, testCases: 1);
-      
+
       expect(
         () => captured!.target(1.0, label: 'x'),
         throwsA(isA<StateError>()),
       );
     });
-    
+
     test('clone after run completes throws StateError', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
       TestCase? captured;
-      
+
       await runner.run((tc) {
         captured = tc;
       }, testCases: 1);
-      
+
       expect(
         () => captured!.clone(),
         throwsA(isA<StateError>()),
       );
     });
-    
+
     test('clone and dispose lifecycle works', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      
+
       await runner.run((tc) {
         final v1 = tc.draw(integers(min: 0, max: 100));
         final cloned = tc.clone();
@@ -75,11 +75,11 @@ void main() {
         }
       }, testCases: 5);
     });
-    
+
     test('dispose is idempotent', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      
+
       await runner.run((tc) {
         final cloned = tc.clone();
         cloned.dispose();
@@ -87,11 +87,11 @@ void main() {
         cloned.dispose();
       }, testCases: 1);
     });
-    
+
     test('draw on disposed clone throws StateError', () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      
+
       await runner.run((tc) {
         final cloned = tc.clone();
         cloned.dispose();

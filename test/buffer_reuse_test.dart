@@ -7,7 +7,7 @@ void main() {
   test('multiple draws of same type reuse buffers', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     await runner.run((tc) {
       // Draw multiple integers — should reuse the same native buffer
       final a = tc.draw(integers());
@@ -23,7 +23,7 @@ void main() {
   test('mixed type draws work correctly', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     await runner.run((tc) {
       final i = tc.draw(integers(min: 0, max: 100));
       final d = tc.draw(doubles());

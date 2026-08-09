@@ -132,10 +132,12 @@ void main() {
         (3, integers(min: 0, max: 10)),
         (1, integers(min: 1000, max: 2000)),
       ]));
-      expect(v, anyOf(
-        allOf(greaterThanOrEqualTo(0), lessThanOrEqualTo(10)),
-        allOf(greaterThanOrEqualTo(1000), lessThanOrEqualTo(2000)),
-      ));
+      expect(
+          v,
+          anyOf(
+            allOf(greaterThanOrEqualTo(0), lessThanOrEqualTo(10)),
+            allOf(greaterThanOrEqualTo(1000), lessThanOrEqualTo(2000)),
+          ));
     });
   });
 }

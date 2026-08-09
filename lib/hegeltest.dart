@@ -14,7 +14,11 @@
 library hegeltest;
 
 export 'src/core/exceptions.dart'
-    show HegelException, HegelStopTest, HegelAssumptionViolated, HegelTestFailure;
+    show
+        HegelException,
+        HegelStopTest,
+        HegelAssumptionViolated,
+        HegelTestFailure;
 export 'src/core/result.dart' show RunStatus, RunResult, Failure;
 export 'src/core/runner.dart' show hegelTest;
 export 'src/core/hegel_settings.dart' show HegelConfig;

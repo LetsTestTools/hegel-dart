@@ -2,7 +2,7 @@ enum RunStatus {
   passed,
   failed,
   error;
-  
+
   // From hegel_run_status_t
   // 0 => PASSED
   // 1 => FAILED

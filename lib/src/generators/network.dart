@@ -24,7 +24,8 @@ class Ipv4Generator extends Generator<InternetAddress> {
       }
 
       final list = Uint8List.fromList(outBytes.asTypedList(4));
-      return InternetAddress.fromRawAddress(list, type: InternetAddressType.IPv4);
+      return InternetAddress.fromRawAddress(list,
+          type: InternetAddressType.IPv4);
     });
   }
 }
@@ -53,7 +54,8 @@ class Ipv6Generator extends Generator<InternetAddress> {
       }
 
       final list = Uint8List.fromList(outBytes.asTypedList(16));
-      return InternetAddress.fromRawAddress(list, type: InternetAddressType.IPv6);
+      return InternetAddress.fromRawAddress(list,
+          type: InternetAddressType.IPv6);
     });
   }
 }
