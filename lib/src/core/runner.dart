@@ -209,7 +209,25 @@ class HegelRunner {
 
         try {
           if (setUpEach != null) await setUpEach();
-          await body(tc);
+
+          // Run body in an isolated zone to catch unawaited async errors.
+          // Without this, a delayed Future.error from iteration N could
+          // crash iteration N+10, attributing the failure to wrong inputs.
+          final completer = Completer<void>();
+
+          runZonedGuarded(() async {
+            try {
+              await body(tc);
+              if (!completer.isCompleted) completer.complete();
+            } catch (e, st) {
+              if (!completer.isCompleted) completer.completeError(e, st);
+            }
+          }, (e, st) {
+            // Unawaited async error caught by zone
+            if (!completer.isCompleted) completer.completeError(e, st);
+          });
+
+          await completer.future;
         } on HegelStopTest {
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
         } on HegelAssumptionViolated {
@@ -256,7 +274,7 @@ class HegelRunner {
             throw hegelExceptionWithDetail(lib, ctx, 'Failed to mark complete', compRes.value);
           }
         } else {
-          final origin = originStr!;
+          final origin = originStr;
           using((Arena arena) {
             final originPtr =
                 origin.toNativeUtf8(allocator: arena).cast<Char>();

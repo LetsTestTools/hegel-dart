@@ -278,11 +278,16 @@ class BigIntGenerator extends Generator<BigInt> {
 
 /// Generates random BigInt values.
 ///
-/// Requires explicit minimum and maximum bounds.
+/// Defaults to the signed 64-bit integer range (−2⁶³ to 2⁶³−1),
+/// matching [integers]. Specify custom bounds for larger ranges.
 ///
 /// ```dart
+/// tc.draw(bigIntegers()) // full int64 range
 /// tc.draw(bigIntegers(min: BigInt.zero, max: BigInt.from(1000)))
 /// ```
-Generator<BigInt> bigIntegers({required BigInt min, required BigInt max}) {
-  return BigIntGenerator(min, max);
+Generator<BigInt> bigIntegers({BigInt? min, BigInt? max}) {
+  return BigIntGenerator(
+    min ?? BigInt.from(-9223372036854775808),
+    max ?? BigInt.from(9223372036854775807),
+  );
 }

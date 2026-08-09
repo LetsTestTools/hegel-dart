@@ -1,16 +1,12 @@
-# Changelog
-
 ## 0.1.0
 
 - Initial release
-- Property-based testing powered by libhegel native engine
-- Core generators: integers, doubles, booleans, bigIntegers, text, bytes
-- Collection generators: lists, sets, maps
-- Combinators: oneOf, sampled, nullable, tuples, frequency
-- Temporal generators: dates, times, dateTimes
-- Network generators: IPv4, IPv6 addresses
-- String generators: text, regex, emails, URLs, domains, UUIDs
-- Async test body support
-- Automatic shrinking to minimal counterexamples
-- Failure replay via reproduce blobs
-- Integration with package:test
+- Core `hegelTest()` integration with `package:test`
+- 25+ generators: primitives, text, collections, combinators, temporal, network, bytes
+- Generator composition: `map()`, `flatMap()`, `where()`, `Generator.composite()`
+- `HegelConfig` for reusable test configuration
+- Per-iteration isolation via `setUpEach`/`tearDownEach`
+- Counterexample recording with draw log in failure messages
+- Reproduction blobs for deterministic failure replay
+- Buffer reuse optimization for primitive generators
+- Comprehensive dartdocs on all public APIs
