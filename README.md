@@ -1,7 +1,7 @@
 # hegeltest — Property-based testing for Dart, powered by a native fuzzing engine.
 
 [![pub package](https://img.shields.io/pub/v/hegeltest.svg)](https://pub.dev/packages/hegeltest)
-[![build status](https://img.shields.io/github/workflow/status/LetsTestTools/hegel-dart/build)](https://github.com/LetsTestTools/hegel-dart)
+[![CI](https://github.com/brucearctor/hegel-dart/actions/workflows/ci.yml/badge.svg)](https://github.com/brucearctor/hegel-dart/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## What is property-based testing?
@@ -98,6 +98,18 @@ import 'package:hegeltest/hegeltest.dart' hide text;
 // or
 import 'package:hegeltest/hegeltest.dart' as hegel;
 ```
+
+## Platform Support
+
+| Platform | Status |
+|---|---|
+| macOS (Apple Silicon) | ✅ Bundled |
+| macOS (Intel) | 🔜 Coming |
+| Linux (x64) | 🔜 Coming |
+| Linux (arm64) | 🔜 Coming |
+| Windows (x64) | 🔜 Coming |
+
+> **Note:** v0.1.0 ships with macOS arm64 only. Additional platforms will be added in upcoming releases. Set `HEGEL_LIBHEGEL_PATH` to use a locally-built binary on other platforms.
 
 ## License
 
