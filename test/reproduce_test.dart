@@ -24,8 +24,8 @@ void main() {
       await runner1.run(body, testCases: 100);
       fail('Expected test to fail');
     } on HegelTestFailure catch (e) {
-      // Extract reproduce blob
-      final reproduceMatch = RegExp(r"@reproduce\('([^']+)'\)").firstMatch(e.message);
+      // Extract reproduce blob from new format: reproduce: 'BLOB'
+      final reproduceMatch = RegExp(r"reproduce: '([^']+)'").firstMatch(e.message);
       expect(reproduceMatch, isNotNull, reason: 'Should contain reproduce blob');
       reproduceBlob = reproduceMatch!.group(1);
       // Verify the original failure is a property failure
@@ -37,10 +37,10 @@ void main() {
     try {
       await runner2.run(body, reproduceBlob: reproduceBlob);
       fail('Replay should also fail');
-    } on StateError catch (e) {
-      // With blob replay rethrow fix, the original exception is
-      // thrown directly so users can debug the actual error.
+    } on HegelTestFailure catch (e) {
+      // Blob replay now wraps the error with counterexample context.
       expect(e.message, contains('Value too large'));
+      expect(e.message, contains('Counterexample'));
     }
   });
 }

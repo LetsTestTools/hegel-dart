@@ -35,4 +35,35 @@ void main() {
       expect(m.containsKey(key), isTrue);
     }
   });
+
+  // Reusable config — share settings across tests
+  final thorough = HegelConfig(testCases: 10000);
+
+  hegelTest(
+    'concatenation length',
+    (tc) {
+      final a = tc.draw(text(maxSize: 50));
+      final b = tc.draw(text(maxSize: 50));
+      expect((a + b).length, equals(a.length + b.length));
+    },
+    config: thorough,
+  );
+
+  // Per-iteration isolation — use setUpEach/tearDownEach, NOT setUp/tearDown.
+  //
+  // IMPORTANT: package:test's setUp() runs once per *property*, not once per
+  // generated test case. If your property mutates state, use setUpEach to
+  // reset it before each iteration:
+  hegelTest(
+    'stateful counter resets each iteration',
+    (tc) {
+      final n = tc.draw(integers(min: 1, max: 100));
+      _counter += n;
+      expect(_counter, equals(n)); // Only works if reset each time
+    },
+    setUpEach: () => _counter = 0,
+    tearDownEach: () => _counter = 0,
+  );
 }
+
+var _counter = 0;

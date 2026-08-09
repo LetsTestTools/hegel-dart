@@ -37,6 +37,13 @@ class IntegerGenerator extends Generator<int> {
   }
 }
 
+/// Generates random integers.
+///
+/// By default, generates across the full Int64 range.
+///
+/// ```dart
+/// tc.draw(integers(min: 0, max: 100))
+/// ```
 Generator<int> integers({int min = -9223372036854775808, int max = 9223372036854775807}) {
   return IntegerGenerator(min, max);
 }
@@ -95,6 +102,13 @@ class DoubleGenerator extends Generator<double> {
   }
 }
 
+/// Generates random double-precision floating-point numbers.
+///
+/// By default, generates from negative infinity to infinity, allowing NaN.
+///
+/// ```dart
+/// tc.draw(doubles(min: 0.0, max: 1.0))
+/// ```
 Generator<double> doubles({
   double min = double.negativeInfinity,
   double max = double.infinity,
@@ -139,6 +153,13 @@ class BooleanGenerator extends Generator<bool> {
   }
 }
 
+/// Generates random boolean values.
+///
+/// By default, generates true or false with equal probability (p=0.5).
+///
+/// ```dart
+/// tc.draw(booleans())
+/// ```
 Generator<bool> booleans({double p = 0.5}) {
   return BooleanGenerator(p);
 }
@@ -255,6 +276,18 @@ class BigIntGenerator extends Generator<BigInt> {
   }
 }
 
-Generator<BigInt> bigIntegers({required BigInt min, required BigInt max}) {
-  return BigIntGenerator(min, max);
+/// Generates random BigInt values.
+///
+/// Defaults to the signed 64-bit integer range (−2⁶³ to 2⁶³−1),
+/// matching [integers]. Specify custom bounds for larger ranges.
+///
+/// ```dart
+/// tc.draw(bigIntegers()) // full int64 range
+/// tc.draw(bigIntegers(min: BigInt.zero, max: BigInt.from(1000)))
+/// ```
+Generator<BigInt> bigIntegers({BigInt? min, BigInt? max}) {
+  return BigIntGenerator(
+    min ?? BigInt.from(-9223372036854775808),
+    max ?? BigInt.from(9223372036854775807),
+  );
 }

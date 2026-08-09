@@ -1,12 +1,24 @@
-# hegeltest
+# hegeltest — Property-based testing for Dart, powered by a native fuzzing engine.
 
 [![pub package](https://img.shields.io/pub/v/hegeltest.svg)](https://pub.dev/packages/hegeltest)
+[![build status](https://img.shields.io/github/workflow/status/LetsTestTools/hegel-dart/build)](https://github.com/LetsTestTools/hegel-dart)
+[![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-Property-based testing for Dart, powered by [Hegel](https://hegel.dev)'s native engine.
+## What is property-based testing?
 
-Automatically finds edge cases by generating random inputs, then **shrinks** failures to the **smallest possible counterexample**.
+Instead of writing individual test cases, you describe properties that should hold for all inputs. `hegeltest` generates random inputs, finds failures, and automatically shrinks them to the minimal counterexample. This allows you to find edge cases you might never have thought to write tests for.
 
 ## Quick Start
+
+Add `hegeltest` to your `pubspec.yaml` under `dev_dependencies`:
+
+```yaml
+dev_dependencies:
+  hegeltest: ^0.1.0
+  test: ^1.25.0
+```
+
+Then, write your property-based test:
 
 ```dart
 import 'package:hegeltest/hegeltest.dart';
@@ -17,128 +29,76 @@ void main() {
     final xs = tc.draw(lists(integers()));
     expect(xs.reversed.toList().reversed.toList(), equals(xs));
   });
-
-  hegelTest('addition is commutative', (tc) {
-    final a = tc.draw(integers());
-    final b = tc.draw(integers());
-    expect(a + b, equals(b + a));
-  });
 }
 ```
 
-## Features
+## Available Generators
 
-- **Automatic shrinking** — When a test fails, Hegel automatically reduces the failing input to the smallest possible counterexample
-- **Rich generators** — integers, doubles, strings, lists, sets, maps, dates, UUIDs, emails, URLs, regex patterns, IP addresses, and more
-- **Composable** — Build complex generators with `map`, `where`, `flatMap`, and `Generator.composite`
-- **Async support** — Test bodies can be `async`
-- **Deterministic replay** — Failed tests produce a reproduce blob for deterministic replay
-- **Multi-bug detection** — Find multiple distinct bugs in a single test run
-- **Powered by libhegel** — The same battle-tested Hypothesis-derived engine used by hegel-rust and hegel-typescript
-
-## Generators
-
-### Primitives
-
-```dart
-integers(min: 0, max: 100)       // int in [0, 100]
-doubles(min: 0.0, max: 1.0)      // double in [0.0, 1.0]
-booleans(p: 0.7)                 // true with 70% probability
-bigIntegers(min: BigInt.zero, max: BigInt.from(1) << 256)
-```
-
-### Text
-
-```dart
-text(minSize: 1, maxSize: 50)    // Unicode strings
-fromRegex(r'^[a-z]+@[a-z]+\.com$') // Regex-matched strings
-emails()                          // RFC 5321 email addresses
-urls()                            // RFC 3986 HTTP/HTTPS URLs
-domains()                         // RFC 1035 domain names
-uuids(version: 4)                 // UUIDs
-```
-
-### Collections
-
-```dart
-lists(integers(), minSize: 1, maxSize: 10)
-sets(integers())
-maps(text(), integers())
-```
-
-### Combinators
-
-```dart
-oneOf([integers(), doubles().map((d) => d.toInt())])
-sampled(['red', 'green', 'blue'])
-nullable(integers())
-tuples2(integers(), text())       // Dart 3 records: (int, String)
-frequency([(3, integers()), (1, text().map(int.parse))])
-```
-
-### Temporal & Network
-
-```dart
-dateTimes(min: DateTime(2020), max: DateTime(2030))
-ipv4Addresses()
-ipv6Addresses()
-```
+| Category | Generators |
+|----------|------------|
+| Primitives | `integers()`, `doubles()`, `booleans()`, `bigIntegers()` |
+| Text | `text()`, `fromRegex()`, `emails()`, `urls()`, `domains()`, `uuids()` |
+| Collections | `lists()`, `sets()`, `maps()` |
+| Combinators | `oneOf()`, `nullable()`, `sampled()`, `frequency()`, `tuples2/3/4()` |
+| Temporal | `dates()`, `times()`, `dateTimes()` |
+| Network | `ipv4Addresses()`, `ipv6Addresses()` |
+| Bytes | `bytes()` |
 
 ## Composing Generators
 
+You can build complex generators using combinators like `map()`, `flatMap()`, `where()`, and `Generator.composite()`:
+
 ```dart
+final evenIntegers = integers().where((i) => i.isEven);
+final stringLengths = text().map((s) => s.length);
+// Or build entirely new types
 final userGen = Generator.composite<User>((tc) {
   final name = tc.draw(text(minSize: 1, maxSize: 50));
   final age = tc.draw(integers(min: 0, max: 150));
-  final email = tc.draw(emails());
-  return User(name: name, age: age, email: email);
-});
-```
-
-## Async Tests
-
-```dart
-hegelTest('async operations', (tc) async {
-  final input = tc.draw(text());
-  final result = await processAsync(input);
-  expect(result, isNotNull);
+  return User(name: name, age: age);
 });
 ```
 
 ## Configuration
 
+For reusable test configurations, you can use `HegelConfig`:
+
 ```dart
-hegelTest(
-  'custom settings',
-  (tc) { /* ... */ },
-  testCases: 500,           // Run 500 test cases (default: 100)
-  seed: 42,                 // Deterministic seed
-  verbosity: Verbosity.verbose,
-  suppressHealthChecks: {HealthCheck.tooSlow},
+final thorough = HegelConfig(testCases: 100000);
+hegelTest('check', (tc) { ... }, config: thorough);
+```
+
+## Per-Iteration Isolation
+
+If your test mutates state, make sure to isolate iterations properly using `setUpEach` and `tearDownEach` instead of the standard `package:test` setup functions. `package:test`'s `setUp` runs once per property, **not** per iteration.
+
+```dart
+hegelTest('stateful test', (tc) { ... },
+  setUpEach: () => resetState(),
+  tearDownEach: () => cleanupState(),
 );
 ```
 
-## Setup
+## Reproducing Failures
 
-### Prerequisites
+When a test fails, `hegeltest` provides a reproducible blob. You can use it to deterministically replay the exact failing scenario:
 
-You need the `libhegel` native library. Build from source:
-
-```bash
-git clone https://github.com/hegeldev/hegel-rust
-cd hegel-rust
-cargo build --release -p hegeltest-c
-export HEGEL_LIBHEGEL_PATH=$(pwd)/target/release/libhegel_c.dylib  # macOS
-# export HEGEL_LIBHEGEL_PATH=$(pwd)/target/release/libhegel_c.so   # Linux
+```dart
+hegelTest('flaky test', (tc) { ... }, 
+  reproduce: 'ABcdef123...', 
+);
 ```
 
-### Install
+## Flutter Users
 
-```yaml
-dev_dependencies:
-  hegeltest: ^0.1.0
+The `text()` generator name conflicts with Flutter's `Text` widget. When writing tests for Flutter, you should either hide `text` from `hegeltest` or use a library prefix:
+
+```dart
+import 'package:hegeltest/hegeltest.dart' hide text;
+// or
+import 'package:hegeltest/hegeltest.dart' as hegel;
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+This package is licensed under the BSD-3-Clause license.

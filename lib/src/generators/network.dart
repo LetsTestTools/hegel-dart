@@ -29,6 +29,11 @@ class Ipv4Generator extends Generator<InternetAddress> {
   }
 }
 
+/// Generates IPv4 InternetAddress values.
+///
+/// ```dart
+/// tc.draw(ipv4Addresses())
+/// ```
 Generator<InternetAddress> ipv4Addresses() => const Ipv4Generator();
 
 class Ipv6Generator extends Generator<InternetAddress> {
@@ -53,4 +58,9 @@ class Ipv6Generator extends Generator<InternetAddress> {
   }
 }
 
+/// Generates IPv6 InternetAddress values.
+///
+/// ```dart
+/// tc.draw(ipv6Addresses())
+/// ```
 Generator<InternetAddress> ipv6Addresses() => const Ipv6Generator();

@@ -1,4 +1,5 @@
 import 'dart:ffi' as ffi;
+import 'dart:io';
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
 import '../core/test_case.dart';
@@ -78,6 +79,7 @@ class SetGenerator<T> extends Generator<Set<T>> {
         final collectionId = outCollectionId.value;
         final set = <T>{};
         final outMore = arena<ffi.Bool>();
+        var consecutiveRejects = 0;
         
         while (true) {
           final moreRes = tc.lib.hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
@@ -93,9 +95,15 @@ class SetGenerator<T> extends Generator<Set<T>> {
             threw = false;
             if (set.contains(e)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
+              consecutiveRejects++;
+              if (consecutiveRejects >= 1000) {
+                stderr.writeln('[hegeltest] Warning: SetGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+                throw const HegelAssumptionViolated();
+              }
             } else {
               set.add(e);
               elementAdded = true;
+              consecutiveRejects = 0;
             }
           } finally {
             tc.safeStopSpan(discard: !elementAdded, hadError: threw);
@@ -135,6 +143,7 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
         final collectionId = outCollectionId.value;
         final map = <K, V>{};
         final outMore = arena<ffi.Bool>();
+        var consecutiveRejects = 0;
         
         while (true) {
           final moreRes = tc.lib.hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
@@ -150,11 +159,17 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
             if (map.containsKey(k)) {
               tc.lib.hegel_collection_reject(tc.ctx, tc.handle, collectionId, ffi.nullptr);
               threw = false;
+              consecutiveRejects++;
+              if (consecutiveRejects >= 1000) {
+                stderr.writeln('[hegeltest] Warning: MapGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+                throw const HegelAssumptionViolated();
+              }
             } else {
               final v = values.generate(tc);
               map[k] = v;
               elementAdded = true;
               threw = false;
+              consecutiveRejects = 0;
             }
           } finally {
             tc.safeStopSpan(discard: !elementAdded, hadError: threw);
@@ -169,14 +184,35 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   }
 }
 
+/// Generates lists of elements from the provided generator.
+///
+/// Defaults to a maximum size of 2^63 - 1.
+///
+/// ```dart
+/// tc.draw(lists(integers(), maxSize: 10))
+/// ```
 Generator<List<T>> lists<T>(Generator<T> elements, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return ListGenerator(elements, minSize, maxSize);
 }
 
+/// Generates sets of unique elements from the provided generator.
+///
+/// Will reject up to 1000 consecutive duplicates before throwing.
+///
+/// ```dart
+/// tc.draw(sets(integers(), maxSize: 5))
+/// ```
 Generator<Set<T>> sets<T>(Generator<T> elements, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return SetGenerator(elements, minSize, maxSize);
 }
 
+/// Generates maps with unique keys and corresponding values.
+///
+/// Will reject up to 1000 consecutive key duplicates before throwing.
+///
+/// ```dart
+/// tc.draw(maps(text(), integers(), maxSize: 5))
+/// ```
 Generator<Map<K, V>> maps<K, V>(Generator<K> keys, Generator<V> values, {int minSize = 0, int maxSize = 9223372036854775807}) {
   return MapGenerator(keys, values, minSize, maxSize);
 }

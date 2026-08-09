@@ -49,7 +49,7 @@ void main() {
           isA<HegelTestFailure>().having(
             (e) => e.message,
             'message',
-            allOf(contains('Origin'), contains('Reproduce')),
+            allOf(contains('Origin'), contains('reproduce:')),
           ),
         ),
       );

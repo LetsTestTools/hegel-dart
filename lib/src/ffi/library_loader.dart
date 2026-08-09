@@ -56,9 +56,13 @@ LibHegel loadHegelLibrary() {
     return _cachedLib = LibHegel(DynamicLibrary.open(libName));
   } catch (_) {
     throw StateError(
-      'Could not find libhegel. Set HEGEL_LIBHEGEL_PATH or run:\n'
-      '  cd <hegel-rust> && cargo build --release -p hegeltest-c\n'
-      '  export HEGEL_LIBHEGEL_PATH=<hegel-rust>/target/release/$libName',
+      'Could not find the hegeltest native library ($libName).\n'
+      '\n'
+      'If you installed hegeltest from pub.dev, this is a bug — please file an issue.\n'
+      '\n'
+      'If you are developing hegeltest locally:\n'
+      '  1. Build the native library: cd <hegel-rust> && cargo build --release -p hegeltest-c\n'
+      '  2. Set the path: export HEGEL_LIBHEGEL_PATH=<hegel-rust>/target/release/$libName',
     );
   }
 }
@@ -74,8 +78,15 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
     if (resolvedUri == null) return null;
 
     // resolvedUri points to lib/hegeltest.dart
+    // Resolve symlinks first (handles Nix flakes, symlinked pub caches,
+    // and monorepo setups where the pub cache path is a symlink).
+    final resolvedFile = File.fromUri(resolvedUri);
+    final realPath = resolvedFile.existsSync()
+        ? File(resolvedFile.resolveSymbolicLinksSync())
+        : resolvedFile;
+
     // Navigate up to package root: lib/ -> package root
-    final libDir = File.fromUri(resolvedUri).parent; // lib/
+    final libDir = realPath.parent; // lib/
     final packageRoot = libDir.parent; // package root
     final nativePath =
         '${packageRoot.path}/native/$platformDir/$libName';
