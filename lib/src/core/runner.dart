@@ -220,6 +220,7 @@ class HegelRunner {
             // crash iteration N+10, attributing the failure to wrong inputs.
             final completer = Completer<void>();
 
+            // ignore: unawaited_futures
             runZonedGuarded(() async {
               try {
                 await body(tc);
