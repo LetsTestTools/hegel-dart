@@ -91,8 +91,7 @@ void applySettings(
   }
 
   if (derandomize != null) {
-    final res =
-        lib.hegel_settings_set_derandomize(ctx, settings, derandomize);
+    final res = lib.hegel_settings_set_derandomize(ctx, settings, derandomize);
     _check(res, 'set_derandomize');
   }
 
@@ -133,8 +132,7 @@ void applySettings(
   }
 
   if (backend != null) {
-    final res =
-        lib.hegel_settings_set_backend(ctx, settings, backend.value);
+    final res = lib.hegel_settings_set_backend(ctx, settings, backend.value);
     _check(res, 'set_backend');
   }
 
@@ -151,8 +149,7 @@ void applySettings(
     _checkNoNullBytes(databaseKey, 'databaseKey');
     using((Arena arena) {
       final keyPtr = databaseKey.toNativeUtf8(allocator: arena).cast<Char>();
-      final res =
-          lib.hegel_settings_set_database_key(ctx, settings, keyPtr);
+      final res = lib.hegel_settings_set_database_key(ctx, settings, keyPtr);
       _check(res, 'set_database_key');
     });
   }
@@ -172,7 +169,7 @@ void _checkNoNullBytes(String value, String paramName) {
       value,
       paramName,
       'must not contain null bytes (\\x00) — they cause silent '
-          'truncation at the FFI boundary',
+      'truncation at the FFI boundary',
     );
   }
 }

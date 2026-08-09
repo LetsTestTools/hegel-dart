@@ -10,7 +10,8 @@ class SampledGenerator<T> extends Generator<T> {
 
   SampledGenerator(this.values) {
     if (values.isEmpty) {
-      throw ArgumentError('SampledGenerator requires a non-empty list of values.');
+      throw ArgumentError(
+          'SampledGenerator requires a non-empty list of values.');
     }
   }
 
@@ -30,7 +31,8 @@ class SampledGenerator<T> extends Generator<T> {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate sampled index: ${result.value}');
+        throw HegelException(
+            'Failed to generate sampled index: ${result.value}');
       }
 
       return values[outIndex.value];
@@ -50,7 +52,8 @@ class OneOfGenerator<T> extends Generator<T> {
 
   OneOfGenerator(this.gens) {
     if (gens.isEmpty) {
-      throw ArgumentError('OneOfGenerator requires a non-empty list of generators.');
+      throw ArgumentError(
+          'OneOfGenerator requires a non-empty list of generators.');
     }
   }
 
@@ -73,7 +76,8 @@ class OneOfGenerator<T> extends Generator<T> {
           throw const HegelStopTest();
         }
         if (result != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to generate oneOf index: ${result.value}');
+          throw HegelException(
+              'Failed to generate oneOf index: ${result.value}');
         }
 
         final value = gens[outIndex.value].generate(tc);
@@ -99,7 +103,8 @@ class NullableGenerator<T> extends Generator<T?> {
 
   NullableGenerator(this.gen, this.nullProbability) {
     if (nullProbability < 0.0 || nullProbability > 1.0) {
-      throw ArgumentError('nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]');
+      throw ArgumentError(
+          'nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]');
     }
   }
 
@@ -123,7 +128,8 @@ class NullableGenerator<T> extends Generator<T?> {
           throw const HegelStopTest();
         }
         if (result != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to generate boolean for nullable: ${result.value}');
+          throw HegelException(
+              'Failed to generate boolean for nullable: ${result.value}');
         }
 
         T? value;
@@ -146,7 +152,8 @@ class NullableGenerator<T> extends Generator<T?> {
 /// ```dart
 /// tc.draw(nullable(integers()))
 /// ```
-Generator<T?> nullable<T>(Generator<T> gen, {double nullProbability = 0.5}) => NullableGenerator(gen, nullProbability);
+Generator<T?> nullable<T>(Generator<T> gen, {double nullProbability = 0.5}) =>
+    NullableGenerator(gen, nullProbability);
 
 /// Generates 2-tuples (pairs) of independent values.
 ///
@@ -170,7 +177,8 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
 }
 
 /// Generates 3-tuples of independent values.
-Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<C> c) {
+Generator<(A, B, C)> tuples3<A, B, C>(
+    Generator<A> a, Generator<B> b, Generator<C> c) {
   return Generator.composite((tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
@@ -187,13 +195,15 @@ Generator<(A, B, C)> tuples3<A, B, C>(Generator<A> a, Generator<B> b, Generator<
 }
 
 /// Generates 4-tuples of independent values.
-Generator<(A, B, C, D)> tuples4<A, B, C, D>(Generator<A> a, Generator<B> b, Generator<C> c, Generator<D> d) {
+Generator<(A, B, C, D)> tuples4<A, B, C, D>(
+    Generator<A> a, Generator<B> b, Generator<C> c, Generator<D> d) {
   return Generator.composite((tc) {
     return using((Arena arena) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
       bool success = false;
       try {
-        final result = (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
+        final result =
+            (a.generate(tc), b.generate(tc), c.generate(tc), d.generate(tc));
         success = true;
         return result;
       } finally {
@@ -210,15 +220,18 @@ class FrequencyGenerator<T> extends Generator<T> {
   FrequencyGenerator(this.weighted)
       : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
     if (weighted.isEmpty) {
-      throw ArgumentError('FrequencyGenerator requires a non-empty list of weighted generators.');
+      throw ArgumentError(
+          'FrequencyGenerator requires a non-empty list of weighted generators.');
     }
     for (final item in weighted) {
       if (item.$1 < 0) {
-        throw ArgumentError('FrequencyGenerator weights must be non-negative, got ${item.$1}.');
+        throw ArgumentError(
+            'FrequencyGenerator weights must be non-negative, got ${item.$1}.');
       }
     }
     if (totalWeight <= 0) {
-      throw ArgumentError('FrequencyGenerator requires at least one generator with weight > 0.');
+      throw ArgumentError(
+          'FrequencyGenerator requires at least one generator with weight > 0.');
     }
   }
 
@@ -241,7 +254,8 @@ class FrequencyGenerator<T> extends Generator<T> {
           throw const HegelStopTest();
         }
         if (result != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to generate frequency index: ${result.value}');
+          throw HegelException(
+              'Failed to generate frequency index: ${result.value}');
         }
 
         int target = outIndex.value;
@@ -253,7 +267,7 @@ class FrequencyGenerator<T> extends Generator<T> {
             return value;
           }
         }
-        
+
         // Fallback in case of rounding/logic issues, though shouldn't happen.
         final value = weighted.last.$2.generate(tc);
         success = true;
@@ -270,4 +284,5 @@ class FrequencyGenerator<T> extends Generator<T> {
 /// ```dart
 /// tc.draw(frequency([(1, integers()), (9, doubles())]))
 /// ```
-Generator<T> frequency<T>(List<(int, Generator<T>)> weighted) => FrequencyGenerator(weighted);
+Generator<T> frequency<T>(List<(int, Generator<T>)> weighted) =>
+    FrequencyGenerator(weighted);

@@ -20,7 +20,8 @@ void main() {
     });
 
     hegelTest('element bounds respected', (tc) {
-      final v = tc.draw(lists(integers(min: 0, max: 10), minSize: 1, maxSize: 5));
+      final v =
+          tc.draw(lists(integers(min: 0, max: 10), minSize: 1, maxSize: 5));
       for (final e in v) {
         expect(e, greaterThanOrEqualTo(0));
         expect(e, lessThanOrEqualTo(10));
@@ -40,18 +41,21 @@ void main() {
 
   group('sets', () {
     hegelTest('all elements unique', (tc) {
-      final v = tc.draw(sets(integers(min: 0, max: 100), minSize: 1, maxSize: 10));
+      final v =
+          tc.draw(sets(integers(min: 0, max: 100), minSize: 1, maxSize: 10));
       expect(v.length, equals(v.toSet().length));
     });
 
     hegelTest('size bounds respected', (tc) {
-      final v = tc.draw(sets(integers(min: 0, max: 1000), minSize: 2, maxSize: 8));
+      final v =
+          tc.draw(sets(integers(min: 0, max: 1000), minSize: 2, maxSize: 8));
       expect(v.length, greaterThanOrEqualTo(2));
       expect(v.length, lessThanOrEqualTo(8));
     });
 
     hegelTest('element bounds respected', (tc) {
-      final v = tc.draw(sets(integers(min: 0, max: 50), minSize: 1, maxSize: 5));
+      final v =
+          tc.draw(sets(integers(min: 0, max: 50), minSize: 1, maxSize: 5));
       for (final e in v) {
         expect(e, greaterThanOrEqualTo(0));
         expect(e, lessThanOrEqualTo(50));

@@ -7,7 +7,7 @@ void main() {
   test('failure message includes counterexample values', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     await expectLater(
       runner.run((tc) {
         final v = tc.draw(integers(min: -100, max: 100));
@@ -30,7 +30,7 @@ void main() {
   test('failure message includes reproduce blob', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     await expectLater(
       runner.run((tc) {
         final v = tc.draw(integers());

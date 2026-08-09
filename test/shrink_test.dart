@@ -26,7 +26,8 @@ void main() {
       // heuristics, but it should be dramatically smaller than 10000.
       expect(lastFailingValue, greaterThan(100));
       expect(lastFailingValue, lessThan(200),
-          reason: 'Shrunk value should be near boundary, got $lastFailingValue');
+          reason:
+              'Shrunk value should be near boundary, got $lastFailingValue');
     }
   });
 }

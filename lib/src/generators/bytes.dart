@@ -35,7 +35,7 @@ class BytesGenerator extends Generator<Uint8List> {
         final data = outResult.ref.data;
         final len = outResult.ref.len;
         if (len == 0) return Uint8List(0);
-        
+
         final uint8List = data.asTypedList(len);
         return Uint8List.fromList(uint8List);
       } finally {

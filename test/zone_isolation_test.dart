@@ -8,7 +8,7 @@ void main() {
   test('unawaited async errors are caught in zone', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     // This should fail because of the unawaited Future.error,
     // NOT crash the test runner.
     await expectLater(
@@ -26,7 +26,7 @@ void main() {
   test('tearDownEach failure marks test as interesting', () async {
     final lib = loadHegelLibrary();
     final runner = HegelRunner(lib);
-    
+
     await expectLater(
       runner.run(
         (tc) {

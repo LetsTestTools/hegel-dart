@@ -71,8 +71,7 @@ void main() {
 
       // Start run
       final outRun = calloc<Pointer<hegel_run_t>>();
-      final res = lib.hegel_run_start(
-          ctx, settings, nullptr, nullptr, outRun);
+      final res = lib.hegel_run_start(ctx, settings, nullptr, nullptr, outRun);
       expect(res, equals(hegel_result_t.HEGEL_OK));
       final runHandle = outRun.value;
       calloc.free(outRun);
@@ -90,8 +89,7 @@ void main() {
 
         // Draw an integer
         final outInt = calloc<Int64>();
-        final drawRes =
-            lib.hegel_generate_integer(ctx, tc, -100, 100, outInt);
+        final drawRes = lib.hegel_generate_integer(ctx, tc, -100, 100, outInt);
         expect(drawRes, equals(hegel_result_t.HEGEL_OK));
         final value = outInt.value;
         expect(value, greaterThanOrEqualTo(-100));

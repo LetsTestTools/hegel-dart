@@ -15,12 +15,12 @@ class DateGenerator extends Generator<DateTime> {
   DateTime generate(TestCase tc) {
     return using((Arena arena) {
       final outValue = arena<hegel_date_t>();
-      
+
       final minDateStruct = arena<hegel_date_t>()
         ..ref.year = min.year
         ..ref.month = min.month
         ..ref.day = min.day;
-        
+
       final maxDateStruct = arena<hegel_date_t>()
         ..ref.year = max.year
         ..ref.month = max.month
@@ -41,7 +41,8 @@ class DateGenerator extends Generator<DateTime> {
         throw HegelException('Failed to generate date: ${result.value}');
       }
 
-      return DateTime.utc(outValue.ref.year, outValue.ref.month, outValue.ref.day);
+      return DateTime.utc(
+          outValue.ref.year, outValue.ref.month, outValue.ref.day);
     });
   }
 }
@@ -53,9 +54,7 @@ class DateGenerator extends Generator<DateTime> {
 /// ```
 Generator<DateTime> dates({DateTime? min, DateTime? max}) {
   return DateGenerator(
-    min ?? DateTime.utc(1, 1, 1), 
-    max ?? DateTime.utc(9999, 12, 31)
-  );
+      min ?? DateTime.utc(1, 1, 1), max ?? DateTime.utc(9999, 12, 31));
 }
 
 typedef TimeRecord = ({int hour, int minute, int second, int microsecond});
@@ -70,13 +69,13 @@ class TimeGenerator extends Generator<TimeRecord> {
   TimeRecord generate(TestCase tc) {
     return using((Arena arena) {
       final outValue = arena<hegel_time_t>();
-      
+
       final minTimeStruct = arena<hegel_time_t>()
         ..ref.hour = min.hour
         ..ref.minute = min.minute
         ..ref.second = min.second
         ..ref.microsecond = min.microsecond;
-        
+
       final maxTimeStruct = arena<hegel_time_t>()
         ..ref.hour = max.hour
         ..ref.minute = max.minute
@@ -114,10 +113,8 @@ class TimeGenerator extends Generator<TimeRecord> {
 /// tc.draw(times())
 /// ```
 Generator<TimeRecord> times({TimeRecord? min, TimeRecord? max}) {
-  return TimeGenerator(
-    min ?? (hour: 0, minute: 0, second: 0, microsecond: 0),
-    max ?? (hour: 23, minute: 59, second: 59, microsecond: 999999)
-  );
+  return TimeGenerator(min ?? (hour: 0, minute: 0, second: 0, microsecond: 0),
+      max ?? (hour: 23, minute: 59, second: 59, microsecond: 999999));
 }
 
 class DateTimeGenerator extends Generator<DateTime> {
@@ -130,7 +127,7 @@ class DateTimeGenerator extends Generator<DateTime> {
   DateTime generate(TestCase tc) {
     return using((Arena arena) {
       final outValue = arena<hegel_datetime_t>();
-      
+
       final minStruct = arena<hegel_datetime_t>()
         ..ref.date.year = min.year
         ..ref.date.month = min.month
@@ -139,7 +136,7 @@ class DateTimeGenerator extends Generator<DateTime> {
         ..ref.time.minute = min.minute
         ..ref.time.second = min.second
         ..ref.time.microsecond = min.microsecond;
-        
+
       final maxStruct = arena<hegel_datetime_t>()
         ..ref.date.year = max.year
         ..ref.date.month = max.month
@@ -185,8 +182,6 @@ class DateTimeGenerator extends Generator<DateTime> {
 /// tc.draw(dateTimes())
 /// ```
 Generator<DateTime> dateTimes({DateTime? min, DateTime? max}) {
-  return DateTimeGenerator(
-    min ?? DateTime.utc(1, 1, 1),
-    max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 0, 999)
-  );
+  return DateTimeGenerator(min ?? DateTime.utc(1, 1, 1),
+      max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 0, 999));
 }

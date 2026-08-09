@@ -9,8 +9,8 @@ void main() {
   });
 
   hegelTest('doubles respect bounds', (tc) {
-    final v = tc.draw(doubles(
-        min: -1.0, max: 1.0, allowNan: false, allowInfinity: false));
+    final v = tc.draw(
+        doubles(min: -1.0, max: 1.0, allowNan: false, allowInfinity: false));
     expect(v, greaterThanOrEqualTo(-1.0));
     expect(v, lessThanOrEqualTo(1.0));
   });

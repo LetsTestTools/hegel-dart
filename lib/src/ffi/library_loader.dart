@@ -88,8 +88,7 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
     // Navigate up to package root: lib/ -> package root
     final libDir = realPath.parent; // lib/
     final packageRoot = libDir.parent; // package root
-    final nativePath =
-        '${packageRoot.path}/native/$platformDir/$libName';
+    final nativePath = '${packageRoot.path}/native/$platformDir/$libName';
 
     final nativeFile = File(nativePath);
     if (nativeFile.existsSync()) {
