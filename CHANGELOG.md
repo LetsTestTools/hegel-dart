@@ -1,3 +1,9 @@
+## 0.1.2
+
+- **Web compat**: Conditional imports — web projects that import hegeltest compile cleanly (throws `UnsupportedError` at runtime)
+- **DX**: `HegelTestFailure` extends `TestFailure` from `package:test_api` — cleaner test output without framework stack traces
+- **Fix**: Pre-existing type errors in example and reproduce_test
+
 ## 0.1.1
 
 - **Performance**: Cache string generator handles per context (was recompiling regex per draw)
