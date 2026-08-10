@@ -2,6 +2,7 @@
 
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
+import 'package:test_api/test_api.dart' show TestFailure;
 import '../ffi/hegel_bindings.g.dart';
 
 /// Thrown when the engine's choice budget is exhausted.
@@ -42,14 +43,15 @@ class HegelException implements Exception {
 }
 
 /// Thrown when a property-based test finds a counterexample.
-class HegelTestFailure implements Exception {
-  /// Human-readable failure message including origin and reproduce blob.
+///
+/// Extends [TestFailure] from `package:test_api` so that `package:test`
+/// displays the failure message cleanly without framework stack traces.
+class HegelTestFailure extends TestFailure {
+  @override
+  // ignore: overridden_fields
   final String message;
 
-  const HegelTestFailure(this.message);
-
-  @override
-  String toString() => message;
+  HegelTestFailure(this.message) : super(message);
 }
 
 /// Extract the last error message from the native engine context.

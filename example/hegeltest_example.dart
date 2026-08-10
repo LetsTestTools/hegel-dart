@@ -56,7 +56,7 @@ void main() {
   // reset it before each iteration:
   hegelTest(
     'stateful counter resets each iteration',
-    (tc) {
+    (TestCase tc) {
       final n = tc.draw(integers(min: 1, max: 100));
       _counter += n;
       expect(_counter, equals(n)); // Only works if reset each time
@@ -66,4 +66,4 @@ void main() {
   );
 }
 
-var _counter = 0;
+int _counter = 0;
