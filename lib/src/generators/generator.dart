@@ -7,14 +7,19 @@ import '../ffi/hegel_bindings.g.dart';
 abstract class Generator<T> {
   const Generator();
 
+  /// Cached string representation of this generator's runtime type.
+  /// Used by TestCase.draw() to avoid per-draw reflection.
+  String get typeName => runtimeType.toString();
+
   T generate(TestCase tc);
 
   Generator<U> map<U>(U Function(T value) mapper) {
     return MappedGenerator<T, U>(this, mapper);
   }
 
-  Generator<T> where(bool Function(T value) predicate) {
-    return FilteredGenerator<T>(this, predicate);
+  Generator<T> where(bool Function(T value) predicate,
+      {int maxAttempts = 100}) {
+    return FilteredGenerator<T>(this, predicate, maxAttempts: maxAttempts);
   }
 
   Generator<U> flatMap<U>(Generator<U> Function(T value) mapper) {
@@ -41,8 +46,11 @@ class MappedGenerator<T, U> extends Generator<U> {
 class FilteredGenerator<T> extends Generator<T> {
   final Generator<T> _generator;
   final bool Function(T value) _predicate;
+  final int _maxAttempts;
 
-  const FilteredGenerator(this._generator, this._predicate);
+  const FilteredGenerator(this._generator, this._predicate,
+      {int maxAttempts = 100})
+      : _maxAttempts = maxAttempts;
 
   @override
   T generate(TestCase tc) {
@@ -54,23 +62,27 @@ class FilteredGenerator<T> extends Generator<T> {
     // Each attempt is wrapped in a span so that rejected draws
     // don't shift the fuzzer tape during shrinking. Rejected
     // spans are discarded, keeping tape positions stable.
-    for (var attempt = 0; attempt < 100; attempt++) {
+    for (var attempt = 0; attempt < _maxAttempts; attempt++) {
       tc.startSpan(hegel_label_t.HEGEL_LABEL_FILTER.value);
       bool accepted = false;
+      bool threw = false;
       try {
         final value = _generator.generate(tc);
         if (_predicate(value)) {
           accepted = true;
           return value;
         }
+      } catch (e) {
+        threw = true;
+        rethrow;
       } finally {
-        tc.safeStopSpan(discard: !accepted, hadError: !accepted);
+        tc.safeStopSpan(discard: !accepted, hadError: threw);
       }
     }
     // Exhausted filter attempts — warn and discard this test case.
     // ignore: avoid_print
     stderr.writeln(
-      '[hegeltest] Warning: FilteredGenerator rejected 100 consecutive '
+      '[hegeltest] Warning: FilteredGenerator rejected $_maxAttempts consecutive '
       'values. Is your predicate too strict? Discarding test case.',
     );
     throw const HegelAssumptionViolated();

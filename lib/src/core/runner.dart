@@ -99,6 +99,9 @@ class HegelRunner {
       );
 
       if (reproduceBlob != null) {
+        if (reproduceBlob.contains('\x00')) {
+          throw ArgumentError('reproduce blob must not contain NUL bytes');
+        }
         // Replay a single blob
         using((Arena arena) {
           final blobPtr =
@@ -126,7 +129,27 @@ class HegelRunner {
         StackTrace? caughtStack;
 
         try {
-          await body(tc);
+          if (setUpEach != null) await setUpEach();
+
+          final completer = Completer<void>();
+          runZonedGuarded(() async {
+            try {
+              await body(tc);
+              if (!completer.isCompleted) completer.complete();
+            } catch (e, st) {
+              if (!completer.isCompleted) completer.completeError(e, st);
+            }
+          }, (e, st) {
+            if (!completer.isCompleted) {
+              completer.completeError(e, st);
+            } else {
+              stderr.writeln(
+                  '[hegeltest] Late async error (after iteration completed): $e');
+              stderr.writeln(st);
+            }
+          });
+
+          await completer.future;
         } on HegelStopTest {
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
         } on HegelAssumptionViolated {
@@ -138,6 +161,21 @@ class HegelRunner {
           originStr = extractOrigin(st);
           caughtError = e;
           caughtStack = st;
+        } finally {
+          if (tearDownEach != null) {
+            try {
+              await tearDownEach();
+            } catch (e, st) {
+              if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+                status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
+                originStr = extractOrigin(st);
+                caughtError = e;
+                caughtStack = st;
+              } else {
+                stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
+              }
+            }
+          }
         }
 
         using((Arena arena) {
@@ -220,7 +258,6 @@ class HegelRunner {
             // crash iteration N+10, attributing the failure to wrong inputs.
             final completer = Completer<void>();
 
-            // ignore: unawaited_futures
             runZonedGuarded(() async {
               try {
                 await body(tc);
@@ -230,7 +267,14 @@ class HegelRunner {
               }
             }, (e, st) {
               // Unawaited async error caught by zone
-              if (!completer.isCompleted) completer.completeError(e, st);
+              if (!completer.isCompleted) {
+                completer.completeError(e, st);
+              } else {
+                // Late async error — body already completed. Log instead of swallowing.
+                stderr.writeln(
+                    '[hegeltest] Late async error (after iteration completed): $e');
+                stderr.writeln(st);
+              }
             });
 
             await completer.future;
@@ -259,7 +303,7 @@ class HegelRunner {
                   _caughtExceptions[originStr] = (e, st, tc.drawLog);
                 } else {
                   // Don't mask the original exception
-                  stderr.writeln('[hegeltest] tearDownEach threw: $e');
+                  stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
                 }
               }
             }
