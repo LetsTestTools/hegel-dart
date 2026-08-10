@@ -1,4 +1,5 @@
 import 'dart:ffi' as ffi;
+import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
 import '../core/test_case.dart';
@@ -171,31 +172,29 @@ Generator<bool> booleans({double p = 0.5}) {
 class BigIntGenerator extends Generator<BigInt> {
   final BigInt min;
   final BigInt max;
+  late final Uint8List _minBytes;
+  late final Uint8List _maxBytes;
 
   BigIntGenerator(this.min, this.max) {
     if (min > max) {
       throw ArgumentError('bigIntegers: min ($min) must be <= max ($max)');
     }
+    _minBytes = _toTwosComplementLittleEndian(min, (min.bitLength + 8) ~/ 8);
+    _maxBytes = _toTwosComplementLittleEndian(max, (max.bitLength + 8) ~/ 8);
   }
 
   @override
   BigInt generate(TestCase tc) {
     return using((Arena arena) {
-      // BigInt in dart doesn't have an easy two's complement little endian export,
-      // but we need to pass a buffer. For the sake of simplicity, we'll convert
-      // BigInt to a string and then to bytes, but the API expects two's complement little endian.
-      // We will write a helper or assume one exists. For now, we will do a crude conversion.
-      final minBytes = _toTwosComplementLittleEndian(min);
-      final maxBytes = _toTwosComplementLittleEndian(max);
+      final minBuf = arena<ffi.Uint8>(_minBytes.length);
+      for (var i = 0; i < _minBytes.length; i++) minBuf[i] = _minBytes[i];
 
-      final minBuf = arena<ffi.Uint8>(minBytes.length);
-      for (var i = 0; i < minBytes.length; i++) minBuf[i] = minBytes[i];
+      final maxBuf = arena<ffi.Uint8>(_maxBytes.length);
+      for (var i = 0; i < _maxBytes.length; i++) maxBuf[i] = _maxBytes[i];
 
-      final maxBuf = arena<ffi.Uint8>(maxBytes.length);
-      for (var i = 0; i < maxBytes.length; i++) maxBuf[i] = maxBytes[i];
-
-      int outCap =
-          minBytes.length > maxBytes.length ? minBytes.length : maxBytes.length;
+      int outCap = _minBytes.length > _maxBytes.length
+          ? _minBytes.length
+          : _maxBytes.length;
       outCap += 1; // Extra capacity just in case
       final outBuf = arena<ffi.Uint8>(outCap);
       final outLen = arena<ffi.Size>();
@@ -204,9 +203,9 @@ class BigIntGenerator extends Generator<BigInt> {
         tc.ctx,
         tc.handle,
         minBuf,
-        minBytes.length,
+        _minBytes.length,
         maxBuf,
-        maxBytes.length,
+        _maxBytes.length,
         outBuf,
         outCap,
         outLen,
@@ -219,63 +218,40 @@ class BigIntGenerator extends Generator<BigInt> {
         throw HegelException('Failed to generate big integer: ${result.value}');
       }
 
-      return _fromTwosComplementLittleEndian(outBuf, outLen.value);
+      if (outLen.value > outCap) {
+        throw HegelException(
+            'BigInt generation returned length ${outLen.value} exceeding capacity $outCap');
+      }
+
+      final bytes = Uint8List(outLen.value);
+      for (var i = 0; i < outLen.value; i++) {
+        bytes[i] = outBuf[i];
+      }
+      return _fromTwosComplementLittleEndian(bytes);
     });
   }
 
-  List<int> _toTwosComplementLittleEndian(BigInt value) {
-    if (value == BigInt.zero) return [0];
-
-    final isNegative = value.isNegative;
-    var hex = value.toRadixString(16);
-    if (isNegative) {
-      // Two's complement for negative: mask to byte-aligned width
-      final bitLength = value.bitLength + 1;
-      final mask = (BigInt.one << ((bitLength + 7) ~/ 8 * 8)) - BigInt.one;
-      hex = (value & mask).toRadixString(16);
+  static Uint8List _toTwosComplementLittleEndian(BigInt value, int byteCount) {
+    // Convert to unsigned representation for two's complement
+    if (value < BigInt.zero) {
+      value = (BigInt.one << (byteCount * 8)) + value;
     }
-
-    if (hex.length % 2 != 0) hex = '0$hex';
-    final bytes = <int>[];
-    for (var i = 0; i < hex.length; i += 2) {
-      bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
+    final bytes = Uint8List(byteCount);
+    for (var i = 0; i < byteCount; i++) {
+      bytes[i] = (value & BigInt.from(0xFF)).toInt();
+      value = value >> 8;
     }
-
-    // For positive values, if MSB is set (e.g., 255 = 0xFF), prepend 0x00
-    // to prevent misinterpretation as negative in two's complement.
-    if (!isNegative && bytes.isNotEmpty && (bytes[0] & 0x80) != 0) {
-      bytes.insert(0, 0);
-    }
-
-    // Reverse for little endian
-    return bytes.reversed.toList();
+    return bytes;
   }
 
-  BigInt _fromTwosComplementLittleEndian(ffi.Pointer<ffi.Uint8> buf, int len) {
-    if (len == 0) return BigInt.zero;
-
-    // Read bytes
-    final bytes = <int>[];
-    for (var i = 0; i < len; i++) {
-      bytes.add(buf[i]);
+  static BigInt _fromTwosComplementLittleEndian(Uint8List bytes) {
+    var result = BigInt.zero;
+    for (var i = bytes.length - 1; i >= 0; i--) {
+      result = (result << 8) | BigInt.from(bytes[i]);
     }
-
-    // Reverse to big endian
-    final beBytes = bytes.reversed.toList();
-
-    // Check sign bit (highest bit of the most significant byte)
-    final isNegative = (beBytes[0] & 0x80) != 0;
-
-    final hexBuf = StringBuffer();
-    for (var b in beBytes) {
-      hexBuf.write(b.toRadixString(16).padLeft(2, '0'));
-    }
-    final hex = hexBuf.toString();
-
-    var result = BigInt.parse(hex, radix: 16);
-    if (isNegative) {
-      final mask = (BigInt.one << (len * 8));
-      result = result - mask;
+    // Check sign bit for two's complement
+    if (bytes.isNotEmpty && bytes.last & 0x80 != 0) {
+      result -= BigInt.one << (bytes.length * 8);
     }
     return result;
   }

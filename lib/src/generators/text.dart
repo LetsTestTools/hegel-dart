@@ -7,49 +7,57 @@ import '../core/exceptions.dart';
 import 'generator.dart';
 
 abstract class _BaseNativeStringGenerator extends Generator<String> {
-  const _BaseNativeStringGenerator();
+  // Cache: context pointer address -> generator handle
+  // This is safe because the handle is bound to the context lifetime.
+  final Map<int, ffi.Pointer<hegel_string_generator_t>> _handleCache = {};
+
+  _BaseNativeStringGenerator();
 
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc);
 
+  /// Get or create a cached string generator handle for this context.
+  ffi.Pointer<hegel_string_generator_t> _cachedBuild(TestCase tc) {
+    final key = tc.ctx.address;
+    var handle = _handleCache[key];
+    if (handle != null && handle != ffi.nullptr) return handle;
+    handle = _build(tc);
+    _handleCache[key] = handle;
+    return handle;
+  }
+
   @override
   String generate(TestCase tc) {
-    // Build a fresh handle per-generate. Handles are bound to a
-    // hegel_context_t which is freed after each run, so caching
-    // across runs would create dangling pointers.
-    final genHandle = _build(tc);
-    try {
-      return using((Arena arena) {
-        final outResult = arena<hegel_generate_string_result_t>();
-        final result = tc.lib.hegel_generate_string(
-          tc.ctx,
-          tc.handle,
-          genHandle,
-          outResult,
-        );
+    final genHandle = _cachedBuild(tc);
+    // Don't free the handle here — it's cached!
+    return using((Arena arena) {
+      final outResult = arena<hegel_generate_string_result_t>();
+      final result = tc.lib.hegel_generate_string(
+        tc.ctx,
+        tc.handle,
+        genHandle,
+        outResult,
+      );
 
-        if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
-          throw const HegelStopTest();
-        }
-        if (result == hegel_result_t.HEGEL_E_ASSUME) {
-          throw const HegelAssumptionViolated();
-        }
-        if (result != hegel_result_t.HEGEL_OK) {
-          throw HegelException('Failed to generate string: ${result.value}');
-        }
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
+      if (result == hegel_result_t.HEGEL_E_ASSUME) {
+        throw const HegelAssumptionViolated();
+      }
+      if (result != hegel_result_t.HEGEL_OK) {
+        throw HegelException('Failed to generate string: ${result.value}');
+      }
 
-        try {
-          final data = outResult.ref.data;
-          final len = outResult.ref.len;
-          if (len == 0) return '';
-          final uint8List = data.cast<ffi.Uint8>().asTypedList(len);
-          return utf8.decode(uint8List);
-        } finally {
-          tc.lib.hegel_generate_string_result_free(tc.ctx, outResult);
-        }
-      });
-    } finally {
-      tc.lib.hegel_string_generator_free(tc.ctx, genHandle);
-    }
+      try {
+        final data = outResult.ref.data;
+        final len = outResult.ref.len;
+        if (len == 0) return '';
+        final uint8List = data.cast<ffi.Uint8>().asTypedList(len);
+        return utf8.decode(uint8List);
+      } finally {
+        tc.lib.hegel_generate_string_result_free(tc.ctx, outResult);
+      }
+    });
   }
 }
 
@@ -179,7 +187,7 @@ Generator<String> fromRegex(String pattern, {bool fullmatch = true}) {
 }
 
 class EmailGenerator extends _BaseNativeStringGenerator {
-  const EmailGenerator();
+  EmailGenerator();
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
@@ -206,7 +214,7 @@ class EmailGenerator extends _BaseNativeStringGenerator {
 Generator<String> emails() => EmailGenerator();
 
 class UrlGenerator extends _BaseNativeStringGenerator {
-  const UrlGenerator();
+  UrlGenerator();
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
@@ -233,7 +241,7 @@ Generator<String> urls() => UrlGenerator();
 
 class DomainGenerator extends _BaseNativeStringGenerator {
   final int maxLength;
-  const DomainGenerator(this.maxLength);
+  DomainGenerator(this.maxLength);
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {

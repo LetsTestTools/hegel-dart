@@ -24,8 +24,10 @@ class _OwnedTestCaseResource {
   final Pointer<hegel_context_t> ctx;
   final Pointer<hegel_test_case_t> handle;
   final RunLifecycle lifecycle;
+  final Map<String, Pointer<Void>>? bufferCache;
 
-  _OwnedTestCaseResource(this.lib, this.ctx, this.handle, this.lifecycle);
+  _OwnedTestCaseResource(this.lib, this.ctx, this.handle, this.lifecycle,
+      [this.bufferCache]);
 }
 
 /// GC safety net: if a cloned TestCase is collected without dispose(),
@@ -38,6 +40,13 @@ final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer = Finalizer((res) {
       'Call dispose() explicitly to ensure deterministic cleanup. '
       'GC-triggered disposal may cause non-deterministic behavior.',
     );
+    // Free the clone's private buffer cache
+    if (res.bufferCache != null) {
+      for (final ptr in res.bufferCache!.values) {
+        calloc.free(ptr);
+      }
+      res.bufferCache!.clear();
+    }
     res.lib.hegel_test_case_free(res.ctx, res.handle);
   }
   // If the run has ended, ctx is already freed — skip to avoid UAF.
@@ -134,7 +143,7 @@ class TestCase {
   T draw<T>(Generator<T> gen, {String? label}) {
     _checkNotDisposed();
     final value = gen.generate(this);
-    final drawLabel = label ?? gen.runtimeType.toString();
+    final drawLabel = label ?? gen.typeName;
     _drawLog.add((drawLabel, value));
     return value;
   }
@@ -152,9 +161,15 @@ class TestCase {
   void resetDrawLog() => _drawLog.clear();
 
   static String _formatValue(Object? value) {
-    final s = value.toString();
-    // Truncate very long values to keep output readable.
-    return s.length > 200 ? '${s.substring(0, 200)}...' : s;
+    String s;
+    try {
+      s = value.toString();
+    } catch (e) {
+      s = '<toString() threw: ${e.runtimeType}>';
+    }
+    if (s.length <= 200) return s;
+    final truncated = String.fromCharCodes(s.runes.take(200));
+    return '$truncated...';
   }
 
   /// Assume a condition holds. If it doesn't, this test case is discarded.
@@ -211,6 +226,7 @@ class TestCase {
         _ctx,
         outTestCase.value,
         _lifecycle,
+        cloned._bufferCache,
       );
       _testCaseFinalizer.attach(cloned, resource, detach: cloned);
       return cloned;

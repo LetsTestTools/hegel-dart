@@ -21,45 +21,45 @@ class ListGenerator<T> extends Generator<List<T>> {
 
   @override
   List<T> generate(TestCase tc) {
-    return using((Arena arena) {
-      tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST.value);
-      bool success = false;
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST.value);
+    bool success = false;
 
-      try {
-        final outCollectionId = arena<ffi.Int64>();
-        final res = tc.lib.hegel_new_collection(
-            tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
-        if (res != hegel_result_t.HEGEL_OK)
-          throw HegelException('Failed to create list collection');
+    try {
+      final outCollectionId =
+          tc.reuseBuffer<ffi.Int64>('listColId', () => calloc<ffi.Int64>());
+      final res = tc.lib.hegel_new_collection(
+          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+      if (res != hegel_result_t.HEGEL_OK)
+        throw HegelException('Failed to create list collection');
 
-        final collectionId = outCollectionId.value;
-        final list = <T>[];
-        final outMore = arena<ffi.Bool>();
+      final collectionId = outCollectionId.value;
+      final list = <T>[];
+      final outMore =
+          tc.reuseBuffer<ffi.Bool>('listMore', () => calloc<ffi.Bool>());
 
-        while (true) {
-          final moreRes = tc.lib
-              .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
-          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
-            throw const HegelStopTest();
-          if (moreRes != hegel_result_t.HEGEL_OK)
-            throw HegelException('Failed to generate collection more');
-          if (!outMore.value) break;
+      while (true) {
+        final moreRes = tc.lib
+            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+          throw const HegelStopTest();
+        if (moreRes != hegel_result_t.HEGEL_OK)
+          throw HegelException('Failed to generate collection more');
+        if (!outMore.value) break;
 
-          tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
-          bool elementAdded = false;
-          try {
-            list.add(elements.generate(tc));
-            elementAdded = true;
-          } finally {
-            tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
-          }
+        tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
+        bool elementAdded = false;
+        try {
+          list.add(elements.generate(tc));
+          elementAdded = true;
+        } finally {
+          tc.safeStopSpan(discard: !elementAdded, hadError: !elementAdded);
         }
-        success = true;
-        return list;
-      } finally {
-        tc.safeStopSpan(hadError: !success);
       }
-    });
+      success = true;
+      return list;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
 
@@ -78,61 +78,62 @@ class SetGenerator<T> extends Generator<Set<T>> {
 
   @override
   Set<T> generate(TestCase tc) {
-    return using((Arena arena) {
-      tc.startSpan(hegel_label_t.HEGEL_LABEL_SET.value);
-      bool success = false;
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_SET.value);
+    bool success = false;
 
-      try {
-        final outCollectionId = arena<ffi.Int64>();
-        final res = tc.lib.hegel_new_collection(
-            tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
-        if (res != hegel_result_t.HEGEL_OK)
-          throw HegelException('Failed to create set collection');
+    try {
+      final outCollectionId =
+          tc.reuseBuffer<ffi.Int64>('setColId', () => calloc<ffi.Int64>());
+      final res = tc.lib.hegel_new_collection(
+          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+      if (res != hegel_result_t.HEGEL_OK)
+        throw HegelException('Failed to create set collection');
 
-        final collectionId = outCollectionId.value;
-        final set = <T>{};
-        final outMore = arena<ffi.Bool>();
-        var consecutiveRejects = 0;
+      final collectionId = outCollectionId.value;
+      final set = <T>{};
+      final outMore =
+          tc.reuseBuffer<ffi.Bool>('setMore', () => calloc<ffi.Bool>());
+      var consecutiveRejects = 0;
 
-        while (true) {
-          final moreRes = tc.lib
-              .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
-          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
-            throw const HegelStopTest();
-          if (moreRes != hegel_result_t.HEGEL_OK)
-            throw HegelException('Failed to generate collection more');
-          if (!outMore.value) break;
+      while (true) {
+        final moreRes = tc.lib
+            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+          throw const HegelStopTest();
+        if (moreRes != hegel_result_t.HEGEL_OK)
+          throw HegelException('Failed to generate collection more');
+        if (!outMore.value) break;
 
-          tc.startSpan(hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
-          bool elementAdded = false;
-          bool threw = true;
-          try {
-            final e = elements.generate(tc);
-            threw = false;
-            if (set.contains(e)) {
-              tc.lib.hegel_collection_reject(
-                  tc.ctx, tc.handle, collectionId, ffi.nullptr);
-              consecutiveRejects++;
-              if (consecutiveRejects >= 1000) {
-                stderr.writeln(
-                    '[hegeltest] Warning: SetGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
-                throw const HegelAssumptionViolated();
-              }
-            } else {
-              set.add(e);
-              elementAdded = true;
-              consecutiveRejects = 0;
+        tc.startSpan(hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
+        bool elementAdded = false;
+        bool threw = true;
+        try {
+          final e = elements.generate(tc);
+          threw = false;
+          if (set.contains(e)) {
+            tc.lib.hegel_collection_reject(
+                tc.ctx, tc.handle, collectionId, ffi.nullptr);
+            consecutiveRejects++;
+            if (consecutiveRejects >= 1000) {
+              stderr.writeln(
+                  '[hegeltest] Warning: SetGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+              threw = true;
+              throw const HegelAssumptionViolated();
             }
-          } finally {
-            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
+          } else {
+            set.add(e);
+            elementAdded = true;
+            consecutiveRejects = 0;
           }
+        } finally {
+          tc.safeStopSpan(discard: !elementAdded, hadError: threw);
         }
-        success = true;
-        return set;
-      } finally {
-        tc.safeStopSpan(hadError: !success);
       }
-    });
+      success = true;
+      return set;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
 
@@ -152,63 +153,64 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
 
   @override
   Map<K, V> generate(TestCase tc) {
-    return using((Arena arena) {
-      tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP.value);
-      bool success = false;
+    tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP.value);
+    bool success = false;
 
-      try {
-        final outCollectionId = arena<ffi.Int64>();
-        final res = tc.lib.hegel_new_collection(
-            tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
-        if (res != hegel_result_t.HEGEL_OK)
-          throw HegelException('Failed to create map collection');
+    try {
+      final outCollectionId =
+          tc.reuseBuffer<ffi.Int64>('mapColId', () => calloc<ffi.Int64>());
+      final res = tc.lib.hegel_new_collection(
+          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+      if (res != hegel_result_t.HEGEL_OK)
+        throw HegelException('Failed to create map collection');
 
-        final collectionId = outCollectionId.value;
-        final map = <K, V>{};
-        final outMore = arena<ffi.Bool>();
-        var consecutiveRejects = 0;
+      final collectionId = outCollectionId.value;
+      final map = <K, V>{};
+      final outMore =
+          tc.reuseBuffer<ffi.Bool>('mapMore', () => calloc<ffi.Bool>());
+      var consecutiveRejects = 0;
 
-        while (true) {
-          final moreRes = tc.lib
-              .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
-          if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
-            throw const HegelStopTest();
-          if (moreRes != hegel_result_t.HEGEL_OK)
-            throw HegelException('Failed to generate collection more');
-          if (!outMore.value) break;
+      while (true) {
+        final moreRes = tc.lib
+            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+          throw const HegelStopTest();
+        if (moreRes != hegel_result_t.HEGEL_OK)
+          throw HegelException('Failed to generate collection more');
+        if (!outMore.value) break;
 
-          tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
-          bool elementAdded = false;
-          bool threw = true;
-          try {
-            final k = keys.generate(tc);
-            if (map.containsKey(k)) {
-              tc.lib.hegel_collection_reject(
-                  tc.ctx, tc.handle, collectionId, ffi.nullptr);
-              threw = false;
-              consecutiveRejects++;
-              if (consecutiveRejects >= 1000) {
-                stderr.writeln(
-                    '[hegeltest] Warning: MapGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
-                throw const HegelAssumptionViolated();
-              }
-            } else {
-              final v = values.generate(tc);
-              map[k] = v;
-              elementAdded = true;
-              threw = false;
-              consecutiveRejects = 0;
+        tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
+        bool elementAdded = false;
+        bool threw = true;
+        try {
+          final k = keys.generate(tc);
+          if (map.containsKey(k)) {
+            tc.lib.hegel_collection_reject(
+                tc.ctx, tc.handle, collectionId, ffi.nullptr);
+            threw = false;
+            consecutiveRejects++;
+            if (consecutiveRejects >= 1000) {
+              stderr.writeln(
+                  '[hegeltest] Warning: MapGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+              threw = true;
+              throw const HegelAssumptionViolated();
             }
-          } finally {
-            tc.safeStopSpan(discard: !elementAdded, hadError: threw);
+          } else {
+            final v = values.generate(tc);
+            map[k] = v;
+            elementAdded = true;
+            threw = false;
+            consecutiveRejects = 0;
           }
+        } finally {
+          tc.safeStopSpan(discard: !elementAdded, hadError: threw);
         }
-        success = true;
-        return map;
-      } finally {
-        tc.safeStopSpan(hadError: !success);
       }
-    });
+      success = true;
+      return map;
+    } finally {
+      tc.safeStopSpan(hadError: !success);
+    }
   }
 }
 
