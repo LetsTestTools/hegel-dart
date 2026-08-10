@@ -1,7 +1,7 @@
 # hegeltest — Property-based testing for Dart, powered by a native fuzzing engine.
 
 [![pub package](https://img.shields.io/pub/v/hegeltest.svg)](https://pub.dev/packages/hegeltest)
-[![CI](https://github.com/brucearctor/hegel-dart/actions/workflows/ci.yml/badge.svg)](https://github.com/brucearctor/hegel-dart/actions/workflows/ci.yml)
+[![CI](https://github.com/LetsTestTools/hegel-dart/actions/workflows/ci.yml/badge.svg)](https://github.com/LetsTestTools/hegel-dart/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## What is property-based testing?

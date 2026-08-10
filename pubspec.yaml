@@ -4,9 +4,9 @@ description: >-
   Automatically finds edge cases by generating random inputs and
   shrinking failures to minimal counterexamples.
 version: 0.1.1
-repository: https://github.com/brucearctor/hegel-dart
+repository: https://github.com/LetsTestTools/hegel-dart
 homepage: https://hegel.dev
-issue_tracker: https://github.com/brucearctor/hegel-dart/issues
+issue_tracker: https://github.com/LetsTestTools/hegel-dart/issues
 
 topics:
   - testing
