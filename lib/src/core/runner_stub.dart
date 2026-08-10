@@ -1,0 +1,40 @@
+/// Stub implementation for platforms that don't support dart:ffi (e.g., web).
+///
+/// This file is conditionally imported when dart.library.io is not available.
+/// All functions throw [UnsupportedError] at runtime.
+
+// ignore_for_file: avoid_unused_constructor_parameters
+
+/// Throws [UnsupportedError] — hegeltest requires dart:ffi.
+Never _unsupported() => throw UnsupportedError(
+      'hegeltest requires dart:ffi and is not supported on web. '
+      'Use hegeltest only in VM-based test environments (dart test, flutter test on mobile/desktop).',
+    );
+
+/// Stub for [hegelTest] on unsupported platforms.
+///
+/// Accepts the same parameters as the real implementation so that
+/// code compiles on web even though it cannot run.
+void hegelTest(
+  String description,
+  Function body, {
+  dynamic timeout,
+  dynamic tags,
+  dynamic skip,
+  dynamic onPlatform,
+  dynamic retry,
+  dynamic config,
+  int? testCases,
+  int? seed,
+  bool? derandomize,
+  dynamic phases,
+  dynamic verbosity,
+  dynamic suppressHealthChecks,
+  bool? reportMultipleFailures,
+  String? reproduce,
+  String? databaseKey,
+  String? database,
+  dynamic Function()? setUpEach,
+  dynamic Function()? tearDownEach,
+}) =>
+    _unsupported();

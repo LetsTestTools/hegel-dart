@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
-import 'package:hegeltest/src/core/runner.dart';
+import 'package:hegeltest/src/core/runner.dart' show HegelRunner;
 import 'package:hegeltest/src/core/exceptions.dart';
 import 'package:hegeltest/src/ffi/library_loader.dart';
 
@@ -37,7 +37,7 @@ void main() {
     // Now replay using the blob — should fail with the same error
     final runner2 = HegelRunner(lib);
     try {
-      await runner2.run(body, reproduceBlob: reproduceBlob);
+      await runner2.run(body, reproduceBlob: reproduceBlob!);
       fail('Replay should also fail');
     } on HegelTestFailure catch (e) {
       // Blob replay now wraps the error with counterexample context.

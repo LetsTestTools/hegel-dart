@@ -20,7 +20,11 @@ export 'src/core/exceptions.dart'
         HegelAssumptionViolated,
         HegelTestFailure;
 export 'src/core/result.dart' show RunStatus, RunResult, Failure;
-export 'src/core/runner.dart' show hegelTest;
+
+// Conditional export: use real implementation on VM, stub on web.
+export 'src/core/runner_stub.dart' if (dart.library.io) 'src/core/runner.dart'
+    show hegelTest;
+
 export 'src/core/hegel_settings.dart' show HegelConfig;
 export 'src/core/settings.dart'
     show Phase, Verbosity, Backend, HealthCheck, RunMode;
