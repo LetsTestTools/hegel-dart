@@ -1,3 +1,9 @@
+## 0.3.0
+
+- **Security**: SHA256 integrity verification for all bundled native binaries
+- **Supply chain**: Bundled `.sha256` checksum files alongside each binary
+- Binaries are verified before loading — corrupted/tampered files throw `StateError` with actionable error message
+
 ## 0.2.2
 
 - **Fix**: Library loader finds native binary in `flutter test` via `package_config.json` fallback
