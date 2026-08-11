@@ -2,9 +2,17 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:ffi/ffi.dart';
+
 import 'hegel_bindings.g.dart';
 
 LibHegel? _cachedLib;
+
+/// The minimum libhegel major.minor version this Dart package is compatible with.
+///
+/// Bumped whenever the C API has breaking changes.
+const _minMajor = 0;
+const _minMinor = 30;
 
 /// Loads the libhegel native library and returns [LibHegel] bindings.
 ///
@@ -13,9 +21,14 @@ LibHegel? _cachedLib;
 /// 2. Bundled binary in `native/<platform>/` relative to package root
 /// 3. Bundled binary resolved via `Isolate.resolvePackageUri` (pub cache)
 /// 4. System library path fallback
+///
+/// After loading, the library's ABI version is verified to ensure
+/// compatibility with this Dart package.
 LibHegel loadHegelLibrary() {
   if (_cachedLib != null) return _cachedLib!;
   final envPath = Platform.environment['HEGEL_LIBHEGEL_PATH'];
+
+  LibHegel lib;
 
   // 1. Check env override
   if (envPath != null && envPath.isNotEmpty) {
@@ -32,38 +45,98 @@ LibHegel loadHegelLibrary() {
       );
     }
     stderr.writeln('[hegeltest] Using custom libhegel: $envPath');
-    return _cachedLib = LibHegel(DynamicLibrary.open(envPath));
+    lib = LibHegel(DynamicLibrary.open(envPath));
+  } else {
+    // 2. Try platform-specific bundled binary relative to CWD
+    final libName = _platformLibName();
+    final platformDir = _platformDirName();
+    final cwdCandidate = 'native/$platformDir/$libName';
+
+    final cwdFile = File(cwdCandidate);
+    if (cwdFile.existsSync()) {
+      lib = LibHegel(DynamicLibrary.open(cwdFile.absolute.path));
+    } else {
+      // 3. Resolve via package URI (works when installed from pub cache)
+      final packageLib = _resolveFromPackageUri(platformDir, libName);
+      if (packageLib != null) {
+        lib = packageLib;
+      } else {
+        // 4. System library path fallback
+        try {
+          lib = LibHegel(DynamicLibrary.open(libName));
+        } catch (_) {
+          throw StateError(
+            'Could not find the hegeltest native library ($libName).\n'
+            '\n'
+            'If you installed hegeltest from pub.dev, this is a bug — please file an issue.\n'
+            '\n'
+            'If you are developing hegeltest locally:\n'
+            '  1. Build the native library: cd <hegel-rust> && cargo build --release -p hegeltest-c\n'
+            '  2. Set the path: export HEGEL_LIBHEGEL_PATH=<hegel-rust>/target/release/$libName',
+          );
+        }
+      }
+    }
   }
 
-  // 2. Try platform-specific bundled binary relative to CWD
-  final libName = _platformLibName();
-  final platformDir = _platformDirName();
-  final cwdCandidate = 'native/$platformDir/$libName';
+  // Verify ABI compatibility
+  _verifyAbiVersion(lib);
 
-  final cwdFile = File(cwdCandidate);
-  if (cwdFile.existsSync()) {
-    return _cachedLib = LibHegel(DynamicLibrary.open(cwdFile.absolute.path));
-  }
+  return _cachedLib = lib;
+}
 
-  // 3. Resolve via package URI (works when installed from pub cache)
-  final packageLib = _resolveFromPackageUri(platformDir, libName);
-  if (packageLib != null) {
-    return _cachedLib = packageLib;
-  }
-
-  // 4. System library path fallback
-  try {
-    return _cachedLib = LibHegel(DynamicLibrary.open(libName));
-  } catch (_) {
-    throw StateError(
-      'Could not find the hegeltest native library ($libName).\n'
-      '\n'
-      'If you installed hegeltest from pub.dev, this is a bug — please file an issue.\n'
-      '\n'
-      'If you are developing hegeltest locally:\n'
-      '  1. Build the native library: cd <hegel-rust> && cargo build --release -p hegeltest-c\n'
-      '  2. Set the path: export HEGEL_LIBHEGEL_PATH=<hegel-rust>/target/release/$libName',
+/// Calls `hegel_version()` and verifies the native library is compatible.
+///
+/// We require the same major version and at least [_minMinor] minor version.
+/// This prevents segfaults from mismatched struct layouts or removed symbols.
+void _verifyAbiVersion(LibHegel lib) {
+  // hegel_version requires a context, but we can create a temporary one
+  final ctx = lib.hegel_context_new();
+  if (ctx == nullptr) {
+    // Can't verify — proceed with a warning
+    stderr.writeln(
+      '[hegeltest] Warning: Could not create context to verify ABI version.',
     );
+    return;
+  }
+
+  try {
+    final outVersion = calloc<Pointer<Char>>();
+    try {
+      final result = lib.hegel_version(ctx, outVersion);
+      if (result != hegel_result_t.HEGEL_OK) {
+        stderr.writeln(
+          '[hegeltest] Warning: hegel_version() failed (${result.value}). '
+          'Cannot verify ABI compatibility.',
+        );
+        return;
+      }
+
+      final versionStr = outVersion.value.cast<Utf8>().toDartString();
+      final parts = versionStr.split('.');
+      if (parts.length < 2) {
+        stderr.writeln(
+          '[hegeltest] Warning: Unexpected version format: $versionStr',
+        );
+        return;
+      }
+
+      final major = int.tryParse(parts[0]) ?? -1;
+      final minor = int.tryParse(parts[1]) ?? -1;
+
+      if (major != _minMajor || minor < _minMinor) {
+        throw StateError(
+          'Incompatible libhegel version: $versionStr\n'
+          'This hegeltest package requires libhegel >= $_minMajor.$_minMinor.0\n'
+          '\n'
+          'Update the native library or reinstall hegeltest from pub.dev.',
+        );
+      }
+    } finally {
+      calloc.free(outVersion);
+    }
+  } finally {
+    lib.hegel_context_free(ctx);
   }
 }
 
