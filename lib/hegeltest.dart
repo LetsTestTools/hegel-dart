@@ -42,3 +42,6 @@ export 'src/generators/primitives.dart'
 export 'src/generators/temporal.dart' show dates, times, dateTimes;
 export 'src/generators/text.dart'
     show text, fromRegex, emails, urls, domains, uuids;
+export 'src/stateful/state_machine.dart'
+    show StateMachine, StateRule, StateInvariant, Pool;
+export 'src/stateful/stateful_test.dart' show hegelStatefulTest;
