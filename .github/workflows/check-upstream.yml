@@ -1,0 +1,56 @@
+name: Check hegel-rust release
+
+# Runs daily and checks if a newer hegel-rust release has binaries
+# that should be updated in this package.
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 8 AM UTC
+  workflow_dispatch:
+    inputs:
+      rust_version:
+        description: 'hegel-rust version to check (e.g. v0.33.0). Leave empty to check latest.'
+        required: false
+        type: string
+
+jobs:
+  check:
+    name: Check for new release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest hegel-rust release
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.rust_version }}" ]; then
+            TAG="${{ inputs.rust_version }}"
+          else
+            TAG=$(gh release view -R hegeldev/hegel-rust --json tagName -q '.tagName')
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest hegel-rust release: $TAG"
+
+      - name: Check bundled version
+        id: bundled
+        run: |
+          # The current bundled version is tracked in this file
+          if [ -f native/.hegel-rust-version ]; then
+            BUNDLED=$(cat native/.hegel-rust-version)
+          else
+            BUNDLED="unknown"
+          fi
+          echo "version=$BUNDLED" >> "$GITHUB_OUTPUT"
+          echo "Bundled hegel-rust version: $BUNDLED"
+
+      - name: Compare versions
+        run: |
+          LATEST="${{ steps.latest.outputs.tag }}"
+          BUNDLED="${{ steps.bundled.outputs.version }}"
+          if [ "$LATEST" = "$BUNDLED" ]; then
+            echo "✅ Already up to date ($BUNDLED)"
+          else
+            echo "⚠️ New release available: $LATEST (bundled: $BUNDLED)"
+            echo "Run the 'Build Native Binaries' workflow to update."
+          fi
