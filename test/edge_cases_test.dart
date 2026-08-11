@@ -1,9 +1,7 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
 import 'package:hegeltest/generators.dart';
-import 'package:hegeltest/src/core/runner.dart' show HegelRunner;
 import 'package:hegeltest/src/core/exceptions.dart';
-import 'package:hegeltest/src/ffi/library_loader.dart';
 
 void main() {
   group('boundary values', () {

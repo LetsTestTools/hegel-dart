@@ -1,10 +1,10 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
+import 'package:hegeltest/hegeltest.dart';
 import 'package:test/test.dart';
 
 import 'package:hegeltest/src/ffi/hegel_bindings.g.dart';
-import 'package:hegeltest/src/ffi/library_loader.dart';
 
 void main() {
   late LibHegel lib;

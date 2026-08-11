@@ -1,7 +1,5 @@
 import 'package:hegeltest/hegeltest.dart';
 import 'package:test/test.dart';
-import 'package:hegeltest/src/ffi/library_loader.dart';
-import 'package:hegeltest/src/core/runner.dart' show HegelRunner;
 
 void main() {
   test('multiple draws of same type reuse buffers', () async {

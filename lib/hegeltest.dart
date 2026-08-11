@@ -23,7 +23,9 @@ export 'src/core/result.dart' show RunStatus, RunResult, Failure;
 
 // Conditional export: use real implementation on VM, stub on web.
 export 'src/core/runner_stub.dart' if (dart.library.io) 'src/core/runner.dart'
-    show hegelTest;
+    show hegelTest, HegelRunner;
+
+export 'src/ffi/library_loader.dart' show loadHegelLibrary;
 
 export 'src/core/hegel_settings.dart' show HegelConfig;
 export 'src/core/settings.dart'
