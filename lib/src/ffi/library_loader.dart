@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:crypto/crypto.dart';
 import 'package:ffi/ffi.dart';
 
 import 'hegel_bindings.g.dart';
@@ -14,6 +15,24 @@ LibHegel? _cachedLib;
 /// Bumped whenever the C API has breaking changes.
 const _minMajor = 0;
 const _minMinor = 30;
+
+/// SHA256 hashes of the bundled native binaries (hegel-rust v0.32.2).
+///
+/// Used to verify integrity of bundled binaries before loading.
+/// Env-provided binaries (HEGEL_LIBHEGEL_PATH) are NOT verified — the user
+/// controls those.
+const _expectedHashes = {
+  'macos_arm64/libhegel_c.dylib':
+      'b411c77b7ca5e7aa93857f09cd9020fe23bab30bc51ff033b90b497e73f4bc9b',
+  'linux_x64/libhegel_c.so':
+      'fee3a62e6d3f53861b0dcc01459718a84e0509a1586e073f610fe2b723a8e36d',
+  'linux_arm64/libhegel_c.so':
+      '7316b8676120d08b49f1421522ff106307877277e1f7e0d56b59cb8982492b8e',
+  'windows_x64/hegel_c.dll':
+      '6799c577206ff040d0b3454aa995d17bd2661bf76df473689d1b3c510721ff0e',
+  'windows_arm64/hegel_c.dll':
+      'c8481b0e416d5dac4d38183e68238e4178111411786577d14f6c28395ba8c29b',
+};
 
 /// Loads the libhegel native library and returns [LibHegel] bindings.
 ///
@@ -55,6 +74,7 @@ LibHegel loadHegelLibrary() {
 
     final cwdFile = File(cwdCandidate);
     if (cwdFile.existsSync()) {
+      _verifyIntegrity(cwdFile, '$platformDir/$libName');
       lib = LibHegel(DynamicLibrary.open(cwdFile.absolute.path));
     } else {
       // 3. Resolve via package URI (works when installed from pub cache)
@@ -166,6 +186,7 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
 
       final nativeFile = File(nativePath);
       if (nativeFile.existsSync()) {
+        _verifyIntegrity(nativeFile, '$platformDir/$libName');
         return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
       }
     }
@@ -196,6 +217,7 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
           final nativePath = '$packageRoot/native/$platformDir/$libName';
           final nativeFile = File(nativePath);
           if (nativeFile.existsSync()) {
+            _verifyIntegrity(nativeFile, '$platformDir/$libName');
             return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
           }
           break;
@@ -233,5 +255,42 @@ String _platformDirName() {
       return 'windows_arm64';
     default:
       throw UnsupportedError('Unsupported ABI: $abi');
+  }
+}
+
+/// Verifies the SHA256 hash of a bundled binary against expected values.
+///
+/// [file] is the binary file to verify.
+/// [key] is the lookup key in [_expectedHashes] (e.g. 'macos_arm64/libhegel_c.dylib').
+///
+/// Throws [StateError] if the hash doesn't match. Skips silently if the
+/// platform has no expected hash registered.
+void _verifyIntegrity(File file, String key) {
+  final expectedHash = _expectedHashes[key];
+  if (expectedHash == null) {
+    // No hash registered for this platform — skip verification.
+    return;
+  }
+
+  try {
+    final bytes = file.readAsBytesSync();
+    final actualHash = sha256.convert(bytes).toString();
+    if (actualHash != expectedHash) {
+      throw StateError(
+        'Integrity check failed for bundled binary: ${file.path}\n'
+        '\n'
+        'Expected SHA256: $expectedHash\n'
+        'Actual SHA256:   $actualHash\n'
+        '\n'
+        'The binary may be corrupted or tampered with.\n'
+        'Try: dart pub cache clean hegeltest && dart pub get',
+      );
+    }
+  } catch (e) {
+    if (e is StateError) rethrow;
+    // If we can't read the file for verification, warn but don't block.
+    stderr.writeln(
+      '[hegeltest] Warning: Could not verify integrity of ${file.path}: $e',
+    );
   }
 }

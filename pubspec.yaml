@@ -3,7 +3,7 @@ description: >-
   Property-based testing for Dart, powered by Hegel's native engine.
   Automatically finds edge cases by generating random inputs and
   shrinking failures to minimal counterexamples.
-version: 0.2.2
+version: 0.3.0
 repository: https://github.com/LetsTestTools/hegel-dart
 homepage: https://hegel.dev
 issue_tracker: https://github.com/LetsTestTools/hegel-dart/issues
@@ -23,6 +23,7 @@ platforms:
   windows:
 
 dependencies:
+  crypto: ^3.0.0
   ffi: ^2.1.0
   meta: ^1.12.0
   test: ^1.25.0
