@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
@@ -145,31 +146,66 @@ void _verifyAbiVersion(LibHegel lib) {
 /// This correctly locates the native binary when the package is
 /// installed from pub cache (not just when running from the repo root).
 LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
+  // Strategy 1: Use Isolate.resolvePackageUriSync (works in standalone Dart)
   try {
     final packageUri = Uri.parse('package:hegeltest/hegeltest.dart');
     final resolvedUri = Isolate.resolvePackageUriSync(packageUri);
-    if (resolvedUri == null) return null;
+    if (resolvedUri != null) {
+      // resolvedUri points to lib/hegeltest.dart
+      // Resolve symlinks first (handles Nix flakes, symlinked pub caches,
+      // and monorepo setups where the pub cache path is a symlink).
+      final resolvedFile = File.fromUri(resolvedUri);
+      final realPath = resolvedFile.existsSync()
+          ? File(resolvedFile.resolveSymbolicLinksSync())
+          : resolvedFile;
 
-    // resolvedUri points to lib/hegeltest.dart
-    // Resolve symlinks first (handles Nix flakes, symlinked pub caches,
-    // and monorepo setups where the pub cache path is a symlink).
-    final resolvedFile = File.fromUri(resolvedUri);
-    final realPath = resolvedFile.existsSync()
-        ? File(resolvedFile.resolveSymbolicLinksSync())
-        : resolvedFile;
+      // Navigate up to package root: lib/ -> package root
+      final libDir = realPath.parent; // lib/
+      final packageRoot = libDir.parent; // package root
+      final nativePath = '${packageRoot.path}/native/$platformDir/$libName';
 
-    // Navigate up to package root: lib/ -> package root
-    final libDir = realPath.parent; // lib/
-    final packageRoot = libDir.parent; // package root
-    final nativePath = '${packageRoot.path}/native/$platformDir/$libName';
-
-    final nativeFile = File(nativePath);
-    if (nativeFile.existsSync()) {
-      return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
+      final nativeFile = File(nativePath);
+      if (nativeFile.existsSync()) {
+        return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
+      }
     }
   } catch (_) {
-    // Package resolution failed — fall through to system path
+    // Isolate-based resolution failed — try fallback
   }
+
+  // Strategy 2: Parse .dart_tool/package_config.json (works in flutter test)
+  try {
+    final packageConfig = File('.dart_tool/package_config.json');
+    if (packageConfig.existsSync()) {
+      final content = packageConfig.readAsStringSync();
+      final config = json.decode(content) as Map<String, dynamic>;
+      final packages = config['packages'] as List<dynamic>? ?? [];
+      for (final pkg in packages) {
+        if (pkg is Map<String, dynamic> && pkg['name'] == 'hegeltest') {
+          final rootUri = pkg['rootUri'] as String?;
+          if (rootUri == null) continue;
+          // rootUri might be relative to .dart_tool/ or absolute
+          String packageRoot;
+          if (rootUri.startsWith('file://')) {
+            packageRoot = Uri.parse(rootUri).toFilePath();
+          } else {
+            // Relative URI — resolve relative to .dart_tool/
+            packageRoot = File('.dart_tool/$rootUri')
+                .resolveSymbolicLinksSync();
+          }
+          final nativePath = '$packageRoot/native/$platformDir/$libName';
+          final nativeFile = File(nativePath);
+          if (nativeFile.existsSync()) {
+            return LibHegel(DynamicLibrary.open(nativeFile.absolute.path));
+          }
+          break;
+        }
+      }
+    }
+  } catch (_) {
+    // package_config.json resolution failed — fall through
+  }
+
   return null;
 }
 

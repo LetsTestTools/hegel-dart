@@ -1,3 +1,7 @@
+## 0.2.2
+
+- **Fix**: Library loader finds native binary in `flutter test` via `package_config.json` fallback
+
 ## 0.2.1
 
 - **API**: Export `HegelRunner` and `loadHegelLibrary` for downstream packages (e.g. `hegeltest_flutter`)
