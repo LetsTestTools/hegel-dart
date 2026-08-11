@@ -1,3 +1,8 @@
+## 0.2.1
+
+- **API**: Export `HegelRunner` and `loadHegelLibrary` for downstream packages (e.g. `hegeltest_flutter`)
+- **DX**: Clean up test imports to use package exports only
+
 ## 0.2.0
 
 - **Cross-platform**: Bundled native binaries for Linux x64, Linux arm64, Windows x64, and Windows arm64
