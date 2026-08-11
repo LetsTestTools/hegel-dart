@@ -211,8 +211,8 @@ LibHegel? _resolveFromPackageUri(String platformDir, String libName) {
             packageRoot = Uri.parse(rootUri).toFilePath();
           } else {
             // Relative URI — resolve relative to .dart_tool/
-            packageRoot = File('.dart_tool/$rootUri')
-                .resolveSymbolicLinksSync();
+            packageRoot =
+                File('.dart_tool/$rootUri').resolveSymbolicLinksSync();
           }
           final nativePath = '$packageRoot/native/$platformDir/$libName';
           final nativeFile = File(nativePath);
