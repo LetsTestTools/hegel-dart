@@ -1,3 +1,10 @@
+## 0.2.0
+
+- **Cross-platform**: Bundled native binaries for Linux x64, Linux arm64, Windows x64, and Windows arm64
+- **Safety**: ABI version check on library load — prevents segfaults from mismatched binary versions
+- **Upgrade**: Native engine updated to hegel-rust v0.32.2
+- **CI**: Tests now run on macOS, Linux, and Windows
+
 ## 0.1.2
 
 - **Web compat**: Conditional imports — web projects that import hegeltest compile cleanly (throws `UnsupportedError` at runtime)
