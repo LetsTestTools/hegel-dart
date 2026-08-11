@@ -1,3 +1,11 @@
+## 0.4.0
+
+- **New**: Stateful (model-based) testing — `hegelStatefulTest()`, `StateMachine`, `StateRule`, `StateInvariant`
+- **New**: `Pool<T>` for typed value tracking across rules (reusable/consumed draws)
+- **New**: Structured preconditions on rules — evaluated before engine selection, not inside rule bodies
+- Engine-driven Swarm Testing automatically explores rule subsets
+- Automatic shrinking of step sequences to minimal counterexamples
+
 ## 0.3.0
 
 - **Security**: SHA256 integrity verification for all bundled native binaries
