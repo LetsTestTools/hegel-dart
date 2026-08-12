@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:code_assets/code_assets.dart';
+import 'package:crypto/crypto.dart';
 import 'package:hooks/hooks.dart';
 
 /// Build hook that registers the correct prebuilt native binary
@@ -8,6 +9,9 @@ import 'package:hooks/hooks.dart';
 ///
 /// The Dart/Flutter SDK calls this automatically during `dart test`,
 /// `dart run`, `flutter test`, and `flutter build`.
+///
+/// Before registration, each binary is SHA256-verified against the
+/// `.sha256` sidecar file to ensure supply chain integrity.
 ///
 /// Unsupported targets (e.g. iOS, Android) get an empty asset list —
 /// no crash, no error. The runtime loader throws a clear error instead.
@@ -35,6 +39,9 @@ void main(List<String> args) async {
       return;
     }
 
+    // Verify binary integrity before registering (supply chain defense).
+    _verifyIntegrity(binaryFile, input.packageRoot, dirName, fileName);
+
     output.assets.code.add(
       CodeAsset(
         package: input.packageName,
@@ -44,6 +51,44 @@ void main(List<String> args) async {
       ),
     );
   });
+}
+
+/// Verifies the SHA256 hash of [binaryFile] against the `.sha256` sidecar.
+///
+/// Throws [StateError] if the hash doesn't match, preventing a potentially
+/// compromised binary from being loaded. This runs at build time — before
+/// the binary is ever loaded by the OS.
+void _verifyIntegrity(
+  File binaryFile,
+  Uri packageRoot,
+  String dirName,
+  String fileName,
+) {
+  final hashUri = packageRoot.resolve('native/$dirName/$fileName.sha256');
+  final hashFile = File.fromUri(hashUri);
+
+  if (!hashFile.existsSync()) {
+    stderr.writeln(
+      '[hegeltest] Warning: No .sha256 file for $dirName/$fileName. '
+      'Skipping integrity check.',
+    );
+    return;
+  }
+
+  final expectedHash = hashFile.readAsStringSync().trim().toLowerCase();
+  final bytes = binaryFile.readAsBytesSync();
+  final actualHash = sha256.convert(bytes).toString().toLowerCase();
+
+  if (actualHash != expectedHash) {
+    throw StateError(
+      '[hegeltest] Integrity check FAILED for $dirName/$fileName.\n'
+      '  Expected: $expectedHash\n'
+      '  Actual:   $actualHash\n'
+      '\n'
+      'The binary may have been tampered with. Reinstall hegeltest:\n'
+      '  dart pub cache clean hegeltest && dart pub get',
+    );
+  }
 }
 
 String _osName(OS os) {
