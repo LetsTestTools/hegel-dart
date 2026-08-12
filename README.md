@@ -14,7 +14,7 @@ Add `hegeltest` to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  hegeltest: ^0.1.0
+  hegeltest: ^0.4.0
   test: ^1.25.0
 ```
 
@@ -59,6 +59,81 @@ final userGen = Generator.composite<User>((tc) {
 });
 ```
 
+## Stateful Testing
+
+Test stateful systems by generating random sequences of operations and checking invariants after each step. Uses **Swarm Testing** to explore rule subsets and **automatic shrinking** to find minimal counterexamples.
+
+```dart
+class StackMachine extends StateMachine {
+  final stack = <int>[];
+  final model = <int>[];
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('push', execute: (tc) {
+      final val = tc.draw(integers(min: -100, max: 100));
+      stack.add(val);
+      model.add(val);
+    }),
+    StateRule('pop',
+      precondition: () => stack.isNotEmpty,
+      execute: (tc) {
+        expect(stack.removeLast(), equals(model.removeLast()));
+      },
+    ),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant('size matches', check: (tc) {
+      expect(stack.length, equals(model.length));
+    }),
+  ];
+}
+
+void main() {
+  hegelStatefulTest('stack behaves like list', () => StackMachine());
+}
+```
+
+### Pools — tracking values across rules
+
+Use `Pool<T>` to share values between rules (like keys you've inserted into a database):
+
+```dart
+class KVStoreMachine extends StateMachine {
+  final store = <String, int>{};
+  late final Pool<String> keys;
+
+  @override
+  void setUp() { keys = createPool<String>(); }
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('put', execute: (tc) {
+      final key = tc.draw(text(minSize: 1, maxSize: 5));
+      final val = tc.draw(integers(min: 0, max: 999));
+      store[key] = val;
+      keys.add(key);                        // track the key
+    }),
+    StateRule('get',
+      precondition: () => keys.isNotEmpty,
+      execute: (tc) {
+        final key = tc.draw(keys.reusable);  // draw without removing
+        expect(store.containsKey(key), isTrue);
+      },
+    ),
+    StateRule('delete',
+      precondition: () => keys.isNotEmpty,
+      execute: (tc) {
+        final key = tc.draw(keys.consumed);  // draw and remove from pool
+        store.remove(key);
+      },
+    ),
+  ];
+}
+```
+
 ## Configuration
 
 For reusable test configurations, you can use `HegelConfig`:
@@ -89,27 +164,43 @@ hegelTest('flaky test', (tc) { ... },
 );
 ```
 
-## Flutter Users
+## Flutter
 
-The `text()` generator name conflicts with Flutter's `Text` widget. When writing tests for Flutter, you should either hide `text` from `hegeltest` or use a library prefix:
+For Flutter apps, use [`hegeltest_flutter`](https://pub.dev/packages/hegeltest_flutter):
+
+```yaml
+dev_dependencies:
+  hegeltest_flutter: ^0.2.0
+```
 
 ```dart
-import 'package:hegeltest/hegeltest.dart' hide text;
-// or
-import 'package:hegeltest/hegeltest.dart' as hegel;
+import 'package:hegeltest_flutter/hegeltest_flutter.dart';
+
+void main() {
+  hegelFlutterTest('addition is commutative', (tc) {
+    final a = tc.draw(integers());
+    final b = tc.draw(integers());
+    expect(a + b, equals(b + a));
+  });
+
+  hegelFlutterStatefulTest('stack works', () => StackMachine());
+}
 ```
 
 ## Platform Support
 
-| Platform | Status |
-|---|---|
-| macOS (Apple Silicon) | ✅ Bundled |
-| macOS (Intel) | 🔜 Coming |
-| Linux (x64) | 🔜 Coming |
-| Linux (arm64) | 🔜 Coming |
-| Windows (x64) | 🔜 Coming |
+| Platform | Architecture | Status |
+|---|---|---|
+| macOS | Apple Silicon (arm64) | ✅ Bundled |
+| macOS | Intel (x64) | 🔜 Coming |
+| Linux | x64 | ✅ Bundled |
+| Linux | arm64 | ✅ Bundled |
+| Windows | x64 | ✅ Bundled |
+| Windows | arm64 | ✅ Bundled |
 
-> **Note:** v0.1.0 ships with macOS arm64 only. Additional platforms will be added in upcoming releases. Set `HEGEL_LIBHEGEL_PATH` to use a locally-built binary on other platforms.
+All bundled binaries are verified with SHA256 checksums before loading.
+
+Set `HEGEL_LIBHEGEL_PATH` to use a custom-built binary on unsupported platforms.
 
 ## License
 
