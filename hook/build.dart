@@ -11,7 +11,9 @@ import 'package:hooks/hooks.dart';
 /// `dart run`, `flutter test`, and `flutter build`.
 ///
 /// Before registration, each binary is SHA256-verified against the
-/// `.sha256` sidecar file to ensure supply chain integrity.
+/// `.sha256` sidecar file to detect accidental corruption or incomplete
+/// downloads. This is NOT a full supply chain defense (an attacker who
+/// can modify the package can also modify the hash file).
 ///
 /// Unsupported targets (e.g. iOS, Android) get an empty asset list —
 /// no crash, no error. The runtime loader throws a clear error instead.

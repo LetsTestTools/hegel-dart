@@ -109,10 +109,10 @@ LibHegel _trySystemPath(String libName) {
 void _verifyAbiVersion(LibHegel lib) {
   final ctx = lib.hegel_context_new();
   if (ctx == nullptr) {
-    stderr.writeln(
-      '[hegeltest] Warning: Could not create context to verify ABI version.',
+    throw StateError(
+      '[hegeltest] Could not create context to verify ABI version.\n'
+      'The native binary may be corrupt or incompatible.',
     );
-    return;
   }
 
   try {
@@ -120,20 +120,19 @@ void _verifyAbiVersion(LibHegel lib) {
     try {
       final result = lib.hegel_version(ctx, outVersion);
       if (result != hegel_result_t.HEGEL_OK) {
-        stderr.writeln(
-          '[hegeltest] Warning: hegel_version() failed (${result.value}). '
-          'Cannot verify ABI compatibility.',
+        throw StateError(
+          '[hegeltest] hegel_version() failed (${result.value}).\n'
+          'Cannot verify ABI compatibility. The native binary may be corrupt.',
         );
-        return;
       }
 
       final versionStr = outVersion.value.cast<Utf8>().toDartString();
       final parts = versionStr.split('.');
       if (parts.length < 2) {
-        stderr.writeln(
-          '[hegeltest] Warning: Unexpected version format: $versionStr',
+        throw StateError(
+          '[hegeltest] Unexpected version format: $versionStr\n'
+          'Expected semver (e.g. "0.30.0").',
         );
-        return;
       }
 
       final major = int.tryParse(parts[0]) ?? -1;
