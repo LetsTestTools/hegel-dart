@@ -25,9 +25,15 @@ void main(List<String> args) async {
     final binaryUri = input.packageRoot.resolve('native/$dirName/$fileName');
     final binaryFile = File.fromUri(binaryUri);
 
-    // Graceful: unsupported target → empty asset list.
-    // Runtime loader will throw a clear UnsupportedError.
-    if (!binaryFile.existsSync()) return;
+    // Unsupported target → empty asset list (no build crash).
+    // Log a warning so developers understand why tests may fail.
+    if (!binaryFile.existsSync()) {
+      stderr.writeln(
+        '[hegeltest] No prebuilt binary for $os $arch. '
+        'Tests using hegeltest will fail at runtime on this target.',
+      );
+      return;
+    }
 
     output.assets.code.add(
       CodeAsset(

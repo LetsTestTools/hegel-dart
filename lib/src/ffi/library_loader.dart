@@ -61,7 +61,12 @@ LibHegel loadHegelLibrary() {
 
 /// Attempts to load the native library from the Native Assets location.
 ///
-/// The Dart SDK copies the binary to `.dart_tool/lib/` when using build hooks.
+/// The Dart SDK copies the binary to `.dart_tool/lib/` when using build hooks
+/// during `dart test` and `dart run`. This is correct for hegeltest because
+/// it is a test-only package (dev_dependency) — never compiled into production
+/// builds where `.dart_tool/` wouldn't exist.
+///
+/// Long-term: migrate to `@Native(assetId: ...)` annotations (v0.6.0).
 LibHegel? _tryNativeAssets(String libName) {
   try {
     // The Dart SDK places native assets in .dart_tool/lib/ relative to the
