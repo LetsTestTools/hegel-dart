@@ -5,48 +5,55 @@ import 'package:hegeltest/hegeltest.dart';
 void main() {
   group('list properties', () {
     hegelTest('reverse-reverse is identity', (tc) {
-      final xs = tc
-          .draw(lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20));
+      final xs = tc.draw(
+        lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20),
+      );
       final reversedTwice = xs.reversed.toList().reversed.toList();
       expect(reversedTwice, equals(xs));
     });
 
     hegelTest('sort is idempotent', (tc) {
-      final xs = tc
-          .draw(lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20));
+      final xs = tc.draw(
+        lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20),
+      );
       final sortedOnce = List<int>.from(xs)..sort();
       final sortedTwice = List<int>.from(sortedOnce)..sort();
       expect(sortedOnce, equals(sortedTwice));
     });
 
     hegelTest('sort preserves length', (tc) {
-      final xs = tc
-          .draw(lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20));
+      final xs = tc.draw(
+        lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20),
+      );
       final sorted = List<int>.from(xs)..sort();
       expect(sorted.length, equals(xs.length));
     });
 
     hegelTest('sort preserves elements', (tc) {
-      final xs = tc
-          .draw(lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20));
+      final xs = tc.draw(
+        lists(integers(min: -100, max: 100), minSize: 0, maxSize: 20),
+      );
       final sorted = List<int>.from(xs)..sort();
       expect(sorted.toSet(), equals(xs.toSet()));
     });
 
     hegelTest('concatenation is associative', (tc) {
-      final a =
-          tc.draw(lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5));
-      final b =
-          tc.draw(lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5));
-      final c =
-          tc.draw(lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5));
+      final a = tc.draw(
+        lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5),
+      );
+      final b = tc.draw(
+        lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5),
+      );
+      final c = tc.draw(
+        lists(integers(min: 0, max: 10), minSize: 0, maxSize: 5),
+      );
       final left = [
         ...[...a, ...b],
-        ...c
+        ...c,
       ];
       final right = [
         ...a,
-        ...[...b, ...c]
+        ...[...b, ...c],
       ];
       expect(left, equals(right));
     });
@@ -88,8 +95,9 @@ void main() {
     });
 
     hegelTest('split-join roundtrip', (tc) {
-      final s = tc.draw(text(
-          minSize: 0, maxSize: 30, minCodepoint: 0x41, maxCodepoint: 0x5A));
+      final s = tc.draw(
+        text(minSize: 0, maxSize: 30, minCodepoint: 0x41, maxCodepoint: 0x5A),
+      );
       // Split on a character not in range, so join is identity
       expect(s.split('|').join('|'), equals(s));
     });
@@ -97,28 +105,34 @@ void main() {
 
   group('set properties', () {
     hegelTest('union is commutative', (tc) {
-      final a =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
-      final b =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
+      final a = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
+      final b = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
       expect(a.union(b), equals(b.union(a)));
     });
 
     hegelTest('intersection is subset of union', (tc) {
-      final a =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
-      final b =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
+      final a = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
+      final b = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
       final inter = a.intersection(b);
       final union = a.union(b);
       expect(union.containsAll(inter), isTrue);
     });
 
     hegelTest('|A ∪ B| + |A ∩ B| = |A| + |B|', (tc) {
-      final a =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
-      final b =
-          tc.draw(sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10));
+      final a = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
+      final b = tc.draw(
+        sets(integers(min: 0, max: 50), minSize: 0, maxSize: 10),
+      );
       expect(
         a.union(b).length + a.intersection(b).length,
         equals(a.length + b.length),
@@ -128,12 +142,14 @@ void main() {
 
   group('map properties', () {
     hegelTest('fromEntries/entries roundtrip', (tc) {
-      final m = tc.draw(maps(
-        integers(min: 0, max: 100),
-        integers(min: 0, max: 100),
-        minSize: 0,
-        maxSize: 10,
-      ));
+      final m = tc.draw(
+        maps(
+          integers(min: 0, max: 100),
+          integers(min: 0, max: 100),
+          minSize: 0,
+          maxSize: 10,
+        ),
+      );
       final roundtripped = Map.fromEntries(m.entries);
       expect(roundtripped, equals(m));
     });

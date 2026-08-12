@@ -17,8 +17,10 @@ abstract class Generator<T> {
     return MappedGenerator<T, U>(this, mapper);
   }
 
-  Generator<T> where(bool Function(T value) predicate,
-      {int maxAttempts = 100}) {
+  Generator<T> where(
+    bool Function(T value) predicate, {
+    int maxAttempts = 100,
+  }) {
     return FilteredGenerator<T>(this, predicate, maxAttempts: maxAttempts);
   }
 
@@ -48,9 +50,11 @@ class FilteredGenerator<T> extends Generator<T> {
   final bool Function(T value) _predicate;
   final int _maxAttempts;
 
-  const FilteredGenerator(this._generator, this._predicate,
-      {int maxAttempts = 100})
-      : _maxAttempts = maxAttempts;
+  const FilteredGenerator(
+    this._generator,
+    this._predicate, {
+    int maxAttempts = 100,
+  }) : _maxAttempts = maxAttempts;
 
   @override
   T generate(TestCase tc) {

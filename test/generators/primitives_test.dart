@@ -32,7 +32,8 @@ void main() {
   group('doubles', () {
     hegelTest('bounds respected', (tc) {
       final value = tc.draw(
-          doubles(min: 1.5, max: 5.5, allowNan: false, allowInfinity: false));
+        doubles(min: 1.5, max: 5.5, allowNan: false, allowInfinity: false),
+      );
       expect(value, greaterThanOrEqualTo(1.5));
       expect(value, lessThanOrEqualTo(5.5));
     });
@@ -56,24 +57,30 @@ void main() {
     });
 
     hegelTest('excludeMin/Max', (tc) {
-      final value = tc.draw(doubles(
+      final value = tc.draw(
+        doubles(
           min: 0.0,
           max: 1.0,
           excludeMin: true,
           excludeMax: true,
           allowNan: false,
-          allowInfinity: false));
+          allowInfinity: false,
+        ),
+      );
       expect(value, greaterThan(0.0));
       expect(value, lessThan(1.0));
     });
 
     hegelTest('smallestNonzero', (tc) {
-      final value = tc.draw(doubles(
+      final value = tc.draw(
+        doubles(
           min: -1.0,
           max: 1.0,
           smallestNonzeroMagnitude: 0.5,
           allowNan: false,
-          allowInfinity: false));
+          allowInfinity: false,
+        ),
+      );
       if (value != 0.0) {
         expect(value.abs(), greaterThanOrEqualTo(0.5));
       }
@@ -81,7 +88,8 @@ void main() {
 
     hegelTest('zero-width range', (tc) {
       final value = tc.draw(
-          doubles(min: 3.14, max: 3.14, allowNan: false, allowInfinity: false));
+        doubles(min: 3.14, max: 3.14, allowNan: false, allowInfinity: false),
+      );
       expect(value, equals(3.14));
     });
   });

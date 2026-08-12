@@ -27,8 +27,10 @@ Future<void> runStateMachine(
   final invariants = machine.invariants;
 
   if (rules.isEmpty) {
-    throw ArgumentError('StateMachine has no rules. '
-        'Override the `rules` getter to provide at least one StateRule.');
+    throw ArgumentError(
+      'StateMachine has no rules. '
+      'Override the `rules` getter to provide at least one StateRule.',
+    );
   }
 
   // Convert rule/invariant names to C strings
@@ -91,8 +93,13 @@ Future<void> runStateMachine(
       machine.poolGenerateCallback = (int poolId, bool consume) {
         final outVarId = calloc<Int64>();
         try {
-          final result =
-              lib.hegel_pool_generate(ctx, tc, poolId, consume, outVarId);
+          final result = lib.hegel_pool_generate(
+            ctx,
+            tc,
+            poolId,
+            consume,
+            outVarId,
+          );
           if (result == hegel_result_t.HEGEL_E_ASSUME) {
             return null; // pool empty
           }
@@ -108,16 +115,22 @@ Future<void> runStateMachine(
       try {
         while (true) {
           // Ask engine for next rule
-          final nextResult =
-              lib.hegel_state_machine_next_rule(ctx, tc, smId, outRuleIndex);
+          final nextResult = lib.hegel_state_machine_next_rule(
+            ctx,
+            tc,
+            smId,
+            outRuleIndex,
+          );
           _checkResult(nextResult, 'hegel_state_machine_next_rule');
 
           final ruleIndex = outRuleIndex.value;
           if (ruleIndex == HEGEL_STATE_MACHINE_DONE) break;
 
           if (ruleIndex < 0 || ruleIndex >= rules.length) {
-            throw StateError('Engine returned invalid rule index: $ruleIndex '
-                '(${rules.length} rules registered)');
+            throw StateError(
+              'Engine returned invalid rule index: $ruleIndex '
+              '(${rules.length} rules registered)',
+            );
           }
 
           final rule = rules[ruleIndex];

@@ -98,7 +98,11 @@ void main() {
 
         // Mark complete (valid)
         lib.hegel_mark_complete(
-            ctx, tc, hegel_status_t.HEGEL_STATUS_VALID.value, nullptr);
+          ctx,
+          tc,
+          hegel_status_t.HEGEL_STATUS_VALID.value,
+          nullptr,
+        );
         lib.hegel_test_case_free(ctx, tc);
       }
 
@@ -112,8 +116,10 @@ void main() {
 
       final outStatus = calloc<UnsignedInt>();
       lib.hegel_run_result_status(ctx, result, outStatus);
-      expect(outStatus.value,
-          equals(hegel_run_status_t.HEGEL_RUN_STATUS_PASSED.value));
+      expect(
+        outStatus.value,
+        equals(hegel_run_status_t.HEGEL_RUN_STATUS_PASSED.value),
+      );
       calloc.free(outStatus);
 
       lib.hegel_run_result_free(ctx, result);

@@ -25,11 +25,13 @@ void main() {
     });
 
     hegelTest('nested generator draws work', (tc) {
-      final nested = tc.draw(lists(
-        lists(integers(min: 0, max: 10), minSize: 0, maxSize: 3),
-        minSize: 0,
-        maxSize: 3,
-      ));
+      final nested = tc.draw(
+        lists(
+          lists(integers(min: 0, max: 10), minSize: 0, maxSize: 3),
+          minSize: 0,
+          maxSize: 3,
+        ),
+      );
       expect(nested, isA<List<List<int>>>());
     });
   });
@@ -87,11 +89,15 @@ void main() {
   });
 
   group('assume', () {
-    hegelTest('filters invalid test cases', (tc) {
-      final x = tc.draw(integers(min: 0, max: 200));
-      tc.assume(x > 50);
-      expect(x, greaterThan(50));
-    }, suppressHealthChecks: {HealthCheck.filterTooMuch});
+    hegelTest(
+      'filters invalid test cases',
+      (tc) {
+        final x = tc.draw(integers(min: 0, max: 200));
+        tc.assume(x > 50);
+        expect(x, greaterThan(50));
+      },
+      suppressHealthChecks: {HealthCheck.filterTooMuch},
+    );
   });
 
   group('settings', () {
@@ -106,14 +112,22 @@ void main() {
       int? firstVal2;
 
       final runner1 = HegelRunner(lib);
-      await runner1.run((tc) {
-        firstVal1 = tc.draw(integers());
-      }, seed: 12345, testCases: 1);
+      await runner1.run(
+        (tc) {
+          firstVal1 = tc.draw(integers());
+        },
+        seed: 12345,
+        testCases: 1,
+      );
 
       final runner2 = HegelRunner(lib);
-      await runner2.run((tc) {
-        firstVal2 = tc.draw(integers());
-      }, seed: 12345, testCases: 1);
+      await runner2.run(
+        (tc) {
+          firstVal2 = tc.draw(integers());
+        },
+        seed: 12345,
+        testCases: 1,
+      );
 
       expect(firstVal1, isNotNull);
       expect(firstVal1, equals(firstVal2));

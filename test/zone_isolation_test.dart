@@ -26,13 +26,10 @@ void main() {
     final runner = HegelRunner(lib);
 
     await expectLater(
-      runner.run(
-        (tc) {
-          tc.draw(integers(min: 0, max: 10));
-          // Body passes...
-        },
-        tearDownEach: () => throw StateError('teardown failed'),
-      ),
+      runner.run((tc) {
+        tc.draw(integers(min: 0, max: 10));
+        // Body passes...
+      }, tearDownEach: () => throw StateError('teardown failed')),
       throwsA(isA<HegelTestFailure>()),
     );
   });

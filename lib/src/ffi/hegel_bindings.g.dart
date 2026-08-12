@@ -13,16 +13,15 @@ import 'dart:ffi' as ffi;
 class LibHegel {
   /// Holds the symbol lookup function.
   final ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-      _lookup;
+  _lookup;
 
   /// The symbols are looked up in [dynamicLibrary].
   LibHegel(ffi.DynamicLibrary dynamicLibrary) : _lookup = dynamicLibrary.lookup;
 
   /// The symbols are looked up with [lookup].
   LibHegel.fromLookup(
-      ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-          lookup)
-      : _lookup = lookup;
+    ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName) lookup,
+  ) : _lookup = lookup;
 
   /// Ask whether the engine wants another element in this collection.
   /// On success writes `true` or `false` into `*out_more` and returns
@@ -34,24 +33,31 @@ class LibHegel {
     int collection_id,
     ffi.Pointer<ffi.Bool> out_more,
   ) {
-    return hegel_result_t.fromValue(_hegel_collection_more(
-      ctx,
-      tc,
-      collection_id,
-      out_more,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_collection_more(ctx, tc, collection_id, out_more),
+    );
   }
 
-  late final _hegel_collection_morePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_collection_morePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Pointer<ffi.Bool>)>>('hegel_collection_more');
-  late final _hegel_collection_more = _hegel_collection_morePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, ffi.Pointer<ffi.Bool>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Pointer<ffi.Bool>,
+          )
+        >
+      >('hegel_collection_more');
+  late final _hegel_collection_more = _hegel_collection_morePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          ffi.Pointer<ffi.Bool>,
+        )
+      >(isLeaf: true);
 
   /// Tell the engine the last element it produced for this collection
   /// is not acceptable (e.g. would create a duplicate in a set), so it
@@ -64,39 +70,43 @@ class LibHegel {
     int collection_id,
     ffi.Pointer<ffi.Char> why,
   ) {
-    return hegel_result_t.fromValue(_hegel_collection_reject(
-      ctx,
-      tc,
-      collection_id,
-      why,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_collection_reject(ctx, tc, collection_id, why),
+    );
   }
 
-  late final _hegel_collection_rejectPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_collection_rejectPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Pointer<ffi.Char>)>>('hegel_collection_reject');
-  late final _hegel_collection_reject = _hegel_collection_rejectPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, ffi.Pointer<ffi.Char>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('hegel_collection_reject');
+  late final _hegel_collection_reject = _hegel_collection_rejectPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          ffi.Pointer<ffi.Char>,
+        )
+      >(isLeaf: true);
 
   /// Free a context previously returned by `hegel_context_new`. Safe to call
   /// with NULL (a no-op that returns `HEGEL_OK`). The `ctx` argument is the
   /// context being freed; there is no separate error context to report into.
-  hegel_result_t hegel_context_free(
-    ffi.Pointer<hegel_context_t> ctx,
-  ) {
-    return hegel_result_t.fromValue(_hegel_context_free(
-      ctx,
-    ));
+  hegel_result_t hegel_context_free(ffi.Pointer<hegel_context_t> ctx) {
+    return hegel_result_t.fromValue(_hegel_context_free(ctx));
   }
 
-  late final _hegel_context_freePtr = _lookup<
-          ffi.NativeFunction<ffi.Int Function(ffi.Pointer<hegel_context_t>)>>(
-      'hegel_context_free');
+  late final _hegel_context_freePtr =
+      _lookup<
+        ffi.NativeFunction<ffi.Int Function(ffi.Pointer<hegel_context_t>)>
+      >('hegel_context_free');
   late final _hegel_context_free = _hegel_context_freePtr
       .asFunction<int Function(ffi.Pointer<hegel_context_t>)>(isLeaf: true);
 
@@ -116,18 +126,19 @@ class LibHegel {
   ffi.Pointer<ffi.Char> hegel_context_last_error(
     ffi.Pointer<hegel_context_t> ctx,
   ) {
-    return _hegel_context_last_error(
-      ctx,
-    );
+    return _hegel_context_last_error(ctx);
   }
 
-  late final _hegel_context_last_errorPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(
-              ffi.Pointer<hegel_context_t>)>>('hegel_context_last_error');
+  late final _hegel_context_last_errorPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<hegel_context_t>)
+        >
+      >('hegel_context_last_error');
   late final _hegel_context_last_error = _hegel_context_last_errorPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(ffi.Pointer<hegel_context_t>)>(
-          isLeaf: true);
+        isLeaf: true,
+      );
 
   /// Allocate a new error-reporting context initialised with an empty message.
   /// Never returns NULL. Must be paired with a `hegel_context_free` call.
@@ -137,7 +148,8 @@ class LibHegel {
 
   late final _hegel_context_newPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<hegel_context_t> Function()>>(
-          'hegel_context_new');
+        'hegel_context_new',
+      );
   late final _hegel_context_new = _hegel_context_newPtr
       .asFunction<ffi.Pointer<hegel_context_t> Function()>(isLeaf: true);
 
@@ -149,19 +161,22 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_failure_t> f,
   ) {
-    return hegel_result_t.fromValue(_hegel_failure_free(
-      ctx,
-      f,
-    ));
+    return hegel_result_t.fromValue(_hegel_failure_free(ctx, f));
   }
 
-  late final _hegel_failure_freePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_failure_t>)>>('hegel_failure_free');
-  late final _hegel_failure_free = _hegel_failure_freePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<hegel_failure_t>)>(isLeaf: true);
+  late final _hegel_failure_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_failure_t>,
+          )
+        >
+      >('hegel_failure_free');
+  late final _hegel_failure_free = _hegel_failure_freePtr
+      .asFunction<
+        int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_failure_t>)
+      >(isLeaf: true);
 
   /// Write the failure's origin string — the stable identifier the shrinker used
   /// to group probes for this bug — into `*out_origin`. See `hegel_mark_complete`
@@ -172,22 +187,27 @@ class LibHegel {
     ffi.Pointer<hegel_failure_t> f,
     ffi.Pointer<ffi.Pointer<ffi.Char>> out_origin,
   ) {
-    return hegel_result_t.fromValue(_hegel_failure_origin(
-      ctx,
-      f,
-      out_origin,
-    ));
+    return hegel_result_t.fromValue(_hegel_failure_origin(ctx, f, out_origin));
   }
 
-  late final _hegel_failure_originPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_failure_originPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_failure_t>,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>)>>('hegel_failure_origin');
-  late final _hegel_failure_origin = _hegel_failure_originPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_failure_t>,
-          ffi.Pointer<ffi.Pointer<ffi.Char>>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_failure_t>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          )
+        >
+      >('hegel_failure_origin');
+  late final _hegel_failure_origin = _hegel_failure_originPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_failure_t>,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+        )
+      >(isLeaf: true);
 
   /// Write the failure's reproduce blob — a base64 string encoding the minimal
   /// counterexample's choice sequence, suitable for deterministic replay via
@@ -201,26 +221,29 @@ class LibHegel {
     ffi.Pointer<hegel_failure_t> f,
     ffi.Pointer<ffi.Pointer<ffi.Char>> out_blob,
   ) {
-    return hegel_result_t.fromValue(_hegel_failure_reproduction_blob(
-      ctx,
-      f,
-      out_blob,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_failure_reproduction_blob(ctx, f, out_blob),
+    );
   }
 
-  late final _hegel_failure_reproduction_blobPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_failure_t>,
-                  ffi.Pointer<ffi.Pointer<ffi.Char>>)>>(
-      'hegel_failure_reproduction_blob');
+  late final _hegel_failure_reproduction_blobPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_failure_t>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          )
+        >
+      >('hegel_failure_reproduction_blob');
   late final _hegel_failure_reproduction_blob =
       _hegel_failure_reproduction_blobPtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_failure_t>,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_failure_t>,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+        )
+      >(isLeaf: true);
 
   /// Draw a single boolean that is `true` with probability `p`. `p`
   /// must be in `[0.0, 1.0]`; `p = 0.0` always yields `false` and
@@ -247,28 +270,35 @@ class LibHegel {
     bool has_forced,
     ffi.Pointer<ffi.Bool> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_boolean(
-      ctx,
-      tc,
-      p,
-      forced,
-      has_forced,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_boolean(ctx, tc, p, forced, has_forced, out_value),
+    );
   }
 
-  late final _hegel_generate_booleanPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_booleanPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Double,
-              ffi.Bool,
-              ffi.Bool,
-              ffi.Pointer<ffi.Bool>)>>('hegel_generate_boolean');
-  late final _hegel_generate_boolean = _hegel_generate_booleanPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          double, bool, bool, ffi.Pointer<ffi.Bool>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Double,
+            ffi.Bool,
+            ffi.Bool,
+            ffi.Pointer<ffi.Bool>,
+          )
+        >
+      >('hegel_generate_boolean');
+  late final _hegel_generate_boolean = _hegel_generate_booleanPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          double,
+          bool,
+          bool,
+          ffi.Pointer<ffi.Bool>,
+        )
+      >(isLeaf: true);
 
   /// Draw a byte string with length in `[min_size, max_size]` (both
   /// inclusive).
@@ -286,27 +316,33 @@ class LibHegel {
     int max_size,
     ffi.Pointer<hegel_generate_bytes_result_t> out_result,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_bytes(
-      ctx,
-      tc,
-      min_size,
-      max_size,
-      out_result,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_bytes(ctx, tc, min_size, max_size, out_result),
+    );
   }
 
-  late final _hegel_generate_bytesPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_test_case_t>,
-                  ffi.Uint64,
-                  ffi.Uint64,
-                  ffi.Pointer<hegel_generate_bytes_result_t>)>>(
-      'hegel_generate_bytes');
-  late final _hegel_generate_bytes = _hegel_generate_bytesPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, int, ffi.Pointer<hegel_generate_bytes_result_t>)>(isLeaf: true);
+  late final _hegel_generate_bytesPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint64,
+            ffi.Uint64,
+            ffi.Pointer<hegel_generate_bytes_result_t>,
+          )
+        >
+      >('hegel_generate_bytes');
+  late final _hegel_generate_bytes = _hegel_generate_bytesPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          int,
+          ffi.Pointer<hegel_generate_bytes_result_t>,
+        )
+      >(isLeaf: true);
 
   /// Release a buffer returned by `hegel_generate_bytes` and reset the struct
   /// to `{NULL, 0}`. Safe to call with a NULL `result` or an already-freed
@@ -315,21 +351,27 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_generate_bytes_result_t> result,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_bytes_result_free(
-      ctx,
-      result,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_bytes_result_free(ctx, result),
+    );
   }
 
-  late final _hegel_generate_bytes_result_freePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_generate_bytes_result_t>)>>(
-      'hegel_generate_bytes_result_free');
+  late final _hegel_generate_bytes_result_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_generate_bytes_result_t>,
+          )
+        >
+      >('hegel_generate_bytes_result_free');
   late final _hegel_generate_bytes_result_free =
       _hegel_generate_bytes_result_freePtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_generate_bytes_result_t>)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_generate_bytes_result_t>,
+        )
+      >(isLeaf: true);
 
   /// Draw a Gregorian calendar date in `[min_value, max_value]` (both
   /// inclusive), shrinking toward 2000-01-01, or the nearest bound when that
@@ -350,26 +392,33 @@ class LibHegel {
     hegel_date_t max_value,
     ffi.Pointer<hegel_date_t> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_date(
-      ctx,
-      tc,
-      min_value,
-      max_value,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_date(ctx, tc, min_value, max_value, out_value),
+    );
   }
 
-  late final _hegel_generate_datePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_datePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              hegel_date_t,
-              hegel_date_t,
-              ffi.Pointer<hegel_date_t>)>>('hegel_generate_date');
-  late final _hegel_generate_date = _hegel_generate_datePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          hegel_date_t, hegel_date_t, ffi.Pointer<hegel_date_t>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            hegel_date_t,
+            hegel_date_t,
+            ffi.Pointer<hegel_date_t>,
+          )
+        >
+      >('hegel_generate_date');
+  late final _hegel_generate_date = _hegel_generate_datePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          hegel_date_t,
+          hegel_date_t,
+          ffi.Pointer<hegel_date_t>,
+        )
+      >(isLeaf: true);
 
   /// Draw a naive datetime (no timezone) in `[min_value, max_value]` (both
   /// inclusive), shrinking toward 2000-01-01T00:00:00 clamped into range: a
@@ -388,30 +437,33 @@ class LibHegel {
     hegel_datetime_t max_value,
     ffi.Pointer<hegel_datetime_t> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_datetime(
-      ctx,
-      tc,
-      min_value,
-      max_value,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_datetime(ctx, tc, min_value, max_value, out_value),
+    );
   }
 
-  late final _hegel_generate_datetimePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_datetimePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              hegel_datetime_t,
-              hegel_datetime_t,
-              ffi.Pointer<hegel_datetime_t>)>>('hegel_generate_datetime');
-  late final _hegel_generate_datetime = _hegel_generate_datetimePtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            hegel_datetime_t,
+            hegel_datetime_t,
+            ffi.Pointer<hegel_datetime_t>,
+          )
+        >
+      >('hegel_generate_datetime');
+  late final _hegel_generate_datetime = _hegel_generate_datetimePtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_test_case_t>,
           hegel_datetime_t,
           hegel_datetime_t,
-          ffi.Pointer<hegel_datetime_t>)>(isLeaf: true);
+          ffi.Pointer<hegel_datetime_t>,
+        )
+      >(isLeaf: true);
 
   /// Draw a float of the given `width` (32 or 64) in
   /// `[min_value, max_value]`.
@@ -447,37 +499,44 @@ class LibHegel {
     double smallest_nonzero_magnitude,
     ffi.Pointer<ffi.Double> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_float(
-      ctx,
-      tc,
-      width,
-      min_value,
-      max_value,
-      allow_nan,
-      allow_infinity,
-      exclude_min,
-      exclude_max,
-      smallest_nonzero_magnitude,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_float(
+        ctx,
+        tc,
+        width,
+        min_value,
+        max_value,
+        allow_nan,
+        allow_infinity,
+        exclude_min,
+        exclude_max,
+        smallest_nonzero_magnitude,
+        out_value,
+      ),
+    );
   }
 
-  late final _hegel_generate_floatPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_floatPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Uint32,
-              ffi.Double,
-              ffi.Double,
-              ffi.Bool,
-              ffi.Bool,
-              ffi.Bool,
-              ffi.Bool,
-              ffi.Double,
-              ffi.Pointer<ffi.Double>)>>('hegel_generate_float');
-  late final _hegel_generate_float = _hegel_generate_floatPtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint32,
+            ffi.Double,
+            ffi.Double,
+            ffi.Bool,
+            ffi.Bool,
+            ffi.Bool,
+            ffi.Bool,
+            ffi.Double,
+            ffi.Pointer<ffi.Double>,
+          )
+        >
+      >('hegel_generate_float');
+  late final _hegel_generate_float = _hegel_generate_floatPtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_test_case_t>,
           int,
@@ -488,7 +547,9 @@ class LibHegel {
           bool,
           bool,
           double,
-          ffi.Pointer<ffi.Double>)>(isLeaf: true);
+          ffi.Pointer<ffi.Double>,
+        )
+      >(isLeaf: true);
 
   /// Draw an integer in `[min_value, max_value]` (both inclusive, both
   /// required). The engine biases toward boundary values and shrinks toward
@@ -508,26 +569,33 @@ class LibHegel {
     int max_value,
     ffi.Pointer<ffi.Int64> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_integer(
-      ctx,
-      tc,
-      min_value,
-      max_value,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_integer(ctx, tc, min_value, max_value, out_value),
+    );
   }
 
-  late final _hegel_generate_integerPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_integerPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Int64,
-              ffi.Pointer<ffi.Int64>)>>('hegel_generate_integer');
-  late final _hegel_generate_integer = _hegel_generate_integerPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, int, ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Int64,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_generate_integer');
+  late final _hegel_generate_integer = _hegel_generate_integerPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          int,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Draw an arbitrary-precision integer in `[min_value, max_value]`.
   ///
@@ -561,43 +629,51 @@ class LibHegel {
     int out_value_cap,
     ffi.Pointer<ffi.Size> out_value_len,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_integer_big(
-      ctx,
-      tc,
-      min_value,
-      min_value_len,
-      max_value,
-      max_value_len,
-      out_value,
-      out_value_cap,
-      out_value_len,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_integer_big(
+        ctx,
+        tc,
+        min_value,
+        min_value_len,
+        max_value,
+        max_value_len,
+        out_value,
+        out_value_cap,
+        out_value_len,
+      ),
+    );
   }
 
-  late final _hegel_generate_integer_bigPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_integer_bigPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Uint8>,
-              ffi.Size,
-              ffi.Pointer<ffi.Uint8>,
-              ffi.Size,
-              ffi.Pointer<ffi.Uint8>,
-              ffi.Size,
-              ffi.Pointer<ffi.Size>)>>('hegel_generate_integer_big');
-  late final _hegel_generate_integer_big =
-      _hegel_generate_integer_bigPtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Uint8>,
-              int,
-              ffi.Pointer<ffi.Uint8>,
-              int,
-              ffi.Pointer<ffi.Uint8>,
-              int,
-              ffi.Pointer<ffi.Size>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Size>,
+          )
+        >
+      >('hegel_generate_integer_big');
+  late final _hegel_generate_integer_big = _hegel_generate_integer_bigPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Size>,
+        )
+      >(isLeaf: true);
 
   /// Draw an IPv4 address. Half the draws are uniform over the whole address
   /// space and half are biased into the IANA special-purpose ranges
@@ -612,22 +688,27 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     ffi.Pointer<ffi.Uint8> out_bytes,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_ipv4(
-      ctx,
-      tc,
-      out_bytes,
-    ));
+    return hegel_result_t.fromValue(_hegel_generate_ipv4(ctx, tc, out_bytes));
   }
 
-  late final _hegel_generate_ipv4Ptr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_ipv4Ptr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Uint8>)>>('hegel_generate_ipv4');
-  late final _hegel_generate_ipv4 = _hegel_generate_ipv4Ptr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          ffi.Pointer<ffi.Uint8>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Uint8>,
+          )
+        >
+      >('hegel_generate_ipv4');
+  late final _hegel_generate_ipv4 = _hegel_generate_ipv4Ptr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          ffi.Pointer<ffi.Uint8>,
+        )
+      >(isLeaf: true);
 
   /// Draw an IPv6 address, with the same special-range biasing as
   /// `hegel_generate_ipv4`.
@@ -641,22 +722,27 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     ffi.Pointer<ffi.Uint8> out_bytes,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_ipv6(
-      ctx,
-      tc,
-      out_bytes,
-    ));
+    return hegel_result_t.fromValue(_hegel_generate_ipv6(ctx, tc, out_bytes));
   }
 
-  late final _hegel_generate_ipv6Ptr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_ipv6Ptr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Uint8>)>>('hegel_generate_ipv6');
-  late final _hegel_generate_ipv6 = _hegel_generate_ipv6Ptr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          ffi.Pointer<ffi.Uint8>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Uint8>,
+          )
+        >
+      >('hegel_generate_ipv6');
+  late final _hegel_generate_ipv6 = _hegel_generate_ipv6Ptr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          ffi.Pointer<ffi.Uint8>,
+        )
+      >(isLeaf: true);
 
   /// Draw a string described by `generator` (built with a
   /// `hegel_string_generator_*` constructor).
@@ -676,28 +762,31 @@ class LibHegel {
     ffi.Pointer<hegel_string_generator_t> generator,
     ffi.Pointer<hegel_generate_string_result_t> out_result,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_string(
-      ctx,
-      tc,
-      generator,
-      out_result,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_string(ctx, tc, generator, out_result),
+    );
   }
 
-  late final _hegel_generate_stringPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_test_case_t>,
-                  ffi.Pointer<hegel_string_generator_t>,
-                  ffi.Pointer<hegel_generate_string_result_t>)>>(
-      'hegel_generate_string');
-  late final _hegel_generate_string = _hegel_generate_stringPtr.asFunction<
-      int Function(
+  late final _hegel_generate_stringPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<hegel_string_generator_t>,
+            ffi.Pointer<hegel_generate_string_result_t>,
+          )
+        >
+      >('hegel_generate_string');
+  late final _hegel_generate_string = _hegel_generate_stringPtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_test_case_t>,
           ffi.Pointer<hegel_string_generator_t>,
-          ffi.Pointer<hegel_generate_string_result_t>)>(isLeaf: true);
+          ffi.Pointer<hegel_generate_string_result_t>,
+        )
+      >(isLeaf: true);
 
   /// Release a buffer returned by `hegel_generate_string` and reset the
   /// struct to `{NULL, 0}`. Safe to call with a NULL `result` or an
@@ -706,21 +795,27 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_generate_string_result_t> result,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_string_result_free(
-      ctx,
-      result,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_string_result_free(ctx, result),
+    );
   }
 
-  late final _hegel_generate_string_result_freePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_generate_string_result_t>)>>(
-      'hegel_generate_string_result_free');
+  late final _hegel_generate_string_result_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_generate_string_result_t>,
+          )
+        >
+      >('hegel_generate_string_result_free');
   late final _hegel_generate_string_result_free =
       _hegel_generate_string_result_freePtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_generate_string_result_t>)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_generate_string_result_t>,
+        )
+      >(isLeaf: true);
 
   /// Draw a time of day in `[min_value, max_value]` (both inclusive),
   /// shrinking toward `min_value` (the representable time closest to
@@ -738,26 +833,33 @@ class LibHegel {
     hegel_time_t max_value,
     ffi.Pointer<hegel_time_t> out_value,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_time(
-      ctx,
-      tc,
-      min_value,
-      max_value,
-      out_value,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_time(ctx, tc, min_value, max_value, out_value),
+    );
   }
 
-  late final _hegel_generate_timePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_timePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              hegel_time_t,
-              hegel_time_t,
-              ffi.Pointer<hegel_time_t>)>>('hegel_generate_time');
-  late final _hegel_generate_time = _hegel_generate_timePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          hegel_time_t, hegel_time_t, ffi.Pointer<hegel_time_t>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            hegel_time_t,
+            hegel_time_t,
+            ffi.Pointer<hegel_time_t>,
+          )
+        >
+      >('hegel_generate_time');
+  late final _hegel_generate_time = _hegel_generate_timePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          hegel_time_t,
+          hegel_time_t,
+          ffi.Pointer<hegel_time_t>,
+        )
+      >(isLeaf: true);
 
   /// Draw a UUID as 16 big-endian bytes written to `out_bytes` (which must
   /// have room for 16 bytes).
@@ -778,26 +880,33 @@ class LibHegel {
     bool has_version,
     ffi.Pointer<ffi.Uint8> out_bytes,
   ) {
-    return hegel_result_t.fromValue(_hegel_generate_uuid(
-      ctx,
-      tc,
-      version,
-      has_version,
-      out_bytes,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_generate_uuid(ctx, tc, version, has_version, out_bytes),
+    );
   }
 
-  late final _hegel_generate_uuidPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_generate_uuidPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Uint8,
-              ffi.Bool,
-              ffi.Pointer<ffi.Uint8>)>>('hegel_generate_uuid');
-  late final _hegel_generate_uuid = _hegel_generate_uuidPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, bool, ffi.Pointer<ffi.Uint8>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint8,
+            ffi.Bool,
+            ffi.Pointer<ffi.Uint8>,
+          )
+        >
+      >('hegel_generate_uuid');
+  late final _hegel_generate_uuid = _hegel_generate_uuidPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          bool,
+          ffi.Pointer<ffi.Uint8>,
+        )
+      >(isLeaf: true);
 
   /// Mark this test case complete with the given status.
   ///
@@ -842,24 +951,31 @@ class LibHegel {
     int status,
     ffi.Pointer<ffi.Char> origin,
   ) {
-    return hegel_result_t.fromValue(_hegel_mark_complete(
-      ctx,
-      tc,
-      status,
-      origin,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_mark_complete(ctx, tc, status, origin),
+    );
   }
 
-  late final _hegel_mark_completePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_mark_completePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Uint32,
-              ffi.Pointer<ffi.Char>)>>('hegel_mark_complete');
-  late final _hegel_mark_complete = _hegel_mark_completePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, ffi.Pointer<ffi.Char>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('hegel_mark_complete');
+  late final _hegel_mark_complete = _hegel_mark_completePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          ffi.Pointer<ffi.Char>,
+        )
+      >(isLeaf: true);
 
   /// Start an engine-managed variable-length collection. The engine
   /// chooses how many elements to produce; the caller pulls them one at
@@ -876,26 +992,33 @@ class LibHegel {
     int max_size,
     ffi.Pointer<ffi.Int64> out_collection_id,
   ) {
-    return hegel_result_t.fromValue(_hegel_new_collection(
-      ctx,
-      tc,
-      min_size,
-      max_size,
-      out_collection_id,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_new_collection(ctx, tc, min_size, max_size, out_collection_id),
+    );
   }
 
-  late final _hegel_new_collectionPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_new_collectionPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Uint64,
-              ffi.Uint64,
-              ffi.Pointer<ffi.Int64>)>>('hegel_new_collection');
-  late final _hegel_new_collection = _hegel_new_collectionPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, int, ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint64,
+            ffi.Uint64,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_new_collection');
+  late final _hegel_new_collection = _hegel_new_collectionPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          int,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Create a new engine-managed *variable pool* for stateful testing.
   ///
@@ -913,22 +1036,27 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     ffi.Pointer<ffi.Int64> out_pool_id,
   ) {
-    return hegel_result_t.fromValue(_hegel_new_pool(
-      ctx,
-      tc,
-      out_pool_id,
-    ));
+    return hegel_result_t.fromValue(_hegel_new_pool(ctx, tc, out_pool_id));
   }
 
-  late final _hegel_new_poolPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_new_poolPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Int64>)>>('hegel_new_pool');
-  late final _hegel_new_pool = _hegel_new_poolPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_new_pool');
+  late final _hegel_new_pool = _hegel_new_poolPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Register a *state machine* for engine-owned stateful (rule-based)
   /// testing: `num_rules` rules and `num_invariants` invariants, each
@@ -954,36 +1082,45 @@ class LibHegel {
     int num_invariants,
     ffi.Pointer<ffi.Int64> out_state_machine_id,
   ) {
-    return hegel_result_t.fromValue(_hegel_new_state_machine(
-      ctx,
-      tc,
-      rule_names,
-      num_rules,
-      invariant_names,
-      num_invariants,
-      out_state_machine_id,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_new_state_machine(
+        ctx,
+        tc,
+        rule_names,
+        num_rules,
+        invariant_names,
+        num_invariants,
+        out_state_machine_id,
+      ),
+    );
   }
 
-  late final _hegel_new_state_machinePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_new_state_machinePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>,
-              ffi.Size,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>,
-              ffi.Size,
-              ffi.Pointer<ffi.Int64>)>>('hegel_new_state_machine');
-  late final _hegel_new_state_machine = _hegel_new_state_machinePtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Size,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Size,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_new_state_machine');
+  late final _hegel_new_state_machine = _hegel_new_state_machinePtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_test_case_t>,
           ffi.Pointer<ffi.Pointer<ffi.Char>>,
           int,
           ffi.Pointer<ffi.Pointer<ffi.Char>>,
           int,
-          ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Run the engine on the calling thread until it produces the next test case,
   /// writing a handle for it into `*out_test_case`.
@@ -1006,23 +1143,29 @@ class LibHegel {
     ffi.Pointer<hegel_run_t> run,
     ffi.Pointer<ffi.Pointer<hegel_test_case_t>> out_test_case,
   ) {
-    return hegel_result_t.fromValue(_hegel_next_test_case(
-      ctx,
-      run,
-      out_test_case,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_next_test_case(ctx, run, out_test_case),
+    );
   }
 
-  late final _hegel_next_test_casePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_run_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>>(
-      'hegel_next_test_case');
-  late final _hegel_next_test_case = _hegel_next_test_casePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_run_t>,
-          ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>(isLeaf: true);
+  late final _hegel_next_test_casePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_t>,
+            ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+          )
+        >
+      >('hegel_next_test_case');
+  late final _hegel_next_test_case = _hegel_next_test_casePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_run_t>,
+          ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+        )
+      >(isLeaf: true);
 
   /// Register a new variable in the pool. The engine assigns it a fresh
   /// id, which the caller associates with the value it just generated.
@@ -1036,24 +1179,31 @@ class LibHegel {
     int pool_id,
     ffi.Pointer<ffi.Int64> out_variable_id,
   ) {
-    return hegel_result_t.fromValue(_hegel_pool_add(
-      ctx,
-      tc,
-      pool_id,
-      out_variable_id,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_pool_add(ctx, tc, pool_id, out_variable_id),
+    );
   }
 
-  late final _hegel_pool_addPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_pool_addPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Pointer<ffi.Int64>)>>('hegel_pool_add');
-  late final _hegel_pool_add = _hegel_pool_addPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_pool_add');
+  late final _hegel_pool_add = _hegel_pool_addPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Draw a variable id from the pool, letting the engine choose (and
   /// shrink) which previously-added variable to reuse. When
@@ -1074,26 +1224,33 @@ class LibHegel {
     bool consume,
     ffi.Pointer<ffi.Int64> out_variable_id,
   ) {
-    return hegel_result_t.fromValue(_hegel_pool_generate(
-      ctx,
-      tc,
-      pool_id,
-      consume,
-      out_variable_id,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_pool_generate(ctx, tc, pool_id, consume, out_variable_id),
+    );
   }
 
-  late final _hegel_pool_generatePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_pool_generatePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Bool,
-              ffi.Pointer<ffi.Int64>)>>('hegel_pool_generate');
-  late final _hegel_pool_generate = _hegel_pool_generatePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int, bool, ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Bool,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_pool_generate');
+  late final _hegel_pool_generate = _hegel_pool_generatePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          bool,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Free a run handle. Safe to call with NULL (a no-op that returns
   /// `HEGEL_OK`). Result and failure snapshots from `hegel_run_result` /
@@ -1108,19 +1265,22 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_run_t> run,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_free(
-      ctx,
-      run,
-    ));
+    return hegel_result_t.fromValue(_hegel_run_free(ctx, run));
   }
 
-  late final _hegel_run_freePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_t>)>>('hegel_run_free');
-  late final _hegel_run_free = _hegel_run_freePtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_run_t>)>(
-      isLeaf: true);
+  late final _hegel_run_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_t>,
+          )
+        >
+      >('hegel_run_free');
+  late final _hegel_run_free = _hegel_run_freePtr
+      .asFunction<
+        int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_run_t>)
+      >(isLeaf: true);
 
   /// Write a caller-owned snapshot of the aggregated result of a finished run
   /// into `*out_result`. Returns `HEGEL_E_NOT_COMPLETE` with
@@ -1137,23 +1297,27 @@ class LibHegel {
     ffi.Pointer<hegel_run_t> run,
     ffi.Pointer<ffi.Pointer<hegel_run_result_t>> out_result,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result(
-      ctx,
-      run,
-      out_result,
-    ));
+    return hegel_result_t.fromValue(_hegel_run_result(ctx, run, out_result));
   }
 
-  late final _hegel_run_resultPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_run_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_run_result_t>>)>>(
-      'hegel_run_result');
-  late final _hegel_run_result = _hegel_run_resultPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_run_t>,
-          ffi.Pointer<ffi.Pointer<hegel_run_result_t>>)>(isLeaf: true);
+  late final _hegel_run_resultPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_t>,
+            ffi.Pointer<ffi.Pointer<hegel_run_result_t>>,
+          )
+        >
+      >('hegel_run_result');
+  late final _hegel_run_result = _hegel_run_resultPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_run_t>,
+          ffi.Pointer<ffi.Pointer<hegel_run_result_t>>,
+        )
+      >(isLeaf: true);
 
   /// Write the run-level error message into `*out_error` when the run ended in
   /// an error rather than a verdict on the property — a failed health check
@@ -1169,24 +1333,27 @@ class LibHegel {
     ffi.Pointer<hegel_run_result_t> r,
     ffi.Pointer<ffi.Pointer<ffi.Char>> out_error,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result_error(
-      ctx,
-      r,
-      out_error,
-    ));
+    return hegel_result_t.fromValue(_hegel_run_result_error(ctx, r, out_error));
   }
 
-  late final _hegel_run_result_errorPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_run_result_errorPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>)>>('hegel_run_result_error');
-  late final _hegel_run_result_error = _hegel_run_result_errorPtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_result_t>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          )
+        >
+      >('hegel_run_result_error');
+  late final _hegel_run_result_error = _hegel_run_result_errorPtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_run_result_t>,
-          ffi.Pointer<ffi.Pointer<ffi.Char>>)>(isLeaf: true);
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+        )
+      >(isLeaf: true);
 
   /// Write a caller-owned snapshot of the `index`-th failure (0-based) into
   /// `*out_failure`. `index` must be less than
@@ -1202,29 +1369,31 @@ class LibHegel {
     int index,
     ffi.Pointer<ffi.Pointer<hegel_failure_t>> out_failure,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result_failure(
-      ctx,
-      r,
-      index,
-      out_failure,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_run_result_failure(ctx, r, index, out_failure),
+    );
   }
 
-  late final _hegel_run_result_failurePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_run_result_t>,
-                  ffi.Size,
-                  ffi.Pointer<ffi.Pointer<hegel_failure_t>>)>>(
-      'hegel_run_result_failure');
-  late final _hegel_run_result_failure =
-      _hegel_run_result_failurePtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>,
-              int,
-              ffi.Pointer<ffi.Pointer<hegel_failure_t>>)>(isLeaf: true);
+  late final _hegel_run_result_failurePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_result_t>,
+            ffi.Size,
+            ffi.Pointer<ffi.Pointer<hegel_failure_t>>,
+          )
+        >
+      >('hegel_run_result_failure');
+  late final _hegel_run_result_failure = _hegel_run_result_failurePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_run_result_t>,
+          int,
+          ffi.Pointer<ffi.Pointer<hegel_failure_t>>,
+        )
+      >(isLeaf: true);
 
   /// Write the number of *distinct* failures (by origin) the run surfaced into
   /// `*out_count`. Each can be inspected via `hegel_run_result_failure(r, i)`.
@@ -1235,25 +1404,29 @@ class LibHegel {
     ffi.Pointer<hegel_run_result_t> r,
     ffi.Pointer<ffi.Size> out_count,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result_failure_count(
-      ctx,
-      r,
-      out_count,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_run_result_failure_count(ctx, r, out_count),
+    );
   }
 
-  late final _hegel_run_result_failure_countPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_run_result_failure_countPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>,
-              ffi.Pointer<ffi.Size>)>>('hegel_run_result_failure_count');
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_result_t>,
+            ffi.Pointer<ffi.Size>,
+          )
+        >
+      >('hegel_run_result_failure_count');
   late final _hegel_run_result_failure_count =
       _hegel_run_result_failure_countPtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>,
-              ffi.Pointer<ffi.Size>)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_run_result_t>,
+          ffi.Pointer<ffi.Size>,
+        )
+      >(isLeaf: true);
 
   /// Release a run-result snapshot from `hegel_run_result`, along with the
   /// strings read off it. Safe to call with NULL (a no-op that returns
@@ -1263,19 +1436,25 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_run_result_t> r,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result_free(
-      ctx,
-      r,
-    ));
+    return hegel_result_t.fromValue(_hegel_run_result_free(ctx, r));
   }
 
-  late final _hegel_run_result_freePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>)>>('hegel_run_result_free');
-  late final _hegel_run_result_free = _hegel_run_result_freePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<hegel_run_result_t>)>(isLeaf: true);
+  late final _hegel_run_result_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_result_t>,
+          )
+        >
+      >('hegel_run_result_free');
+  late final _hegel_run_result_free = _hegel_run_result_freePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_run_result_t>,
+        )
+      >(isLeaf: true);
 
   /// Write the run's aggregate status into `*out_status`: passed, failed (the
   /// property has counterexamples — see `hegel_run_result_failure`), or errored
@@ -1287,24 +1466,29 @@ class LibHegel {
     ffi.Pointer<hegel_run_result_t> r,
     ffi.Pointer<ffi.UnsignedInt> out_status,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_result_status(
-      ctx,
-      r,
-      out_status,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_run_result_status(ctx, r, out_status),
+    );
   }
 
-  late final _hegel_run_result_statusPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_run_result_statusPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_run_result_t>,
-              ffi.Pointer<ffi.UnsignedInt>)>>('hegel_run_result_status');
-  late final _hegel_run_result_status = _hegel_run_result_statusPtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_run_result_t>,
+            ffi.Pointer<ffi.UnsignedInt>,
+          )
+        >
+      >('hegel_run_result_status');
+  late final _hegel_run_result_status = _hegel_run_result_statusPtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_run_result_t>,
-          ffi.Pointer<ffi.UnsignedInt>)>(isLeaf: true);
+          ffi.Pointer<ffi.UnsignedInt>,
+        )
+      >(isLeaf: true);
 
   /// Start a property-test run with the given settings, writing a handle the
   /// caller pulls test cases out of via `hegel_next_test_case` into `*out_run`.
@@ -1339,30 +1523,33 @@ class LibHegel {
     ffi.Pointer<ffi.Void> user_data,
     ffi.Pointer<ffi.Pointer<hegel_run_t>> out_run,
   ) {
-    return hegel_result_t.fromValue(_hegel_run_start(
-      ctx,
-      settings,
-      callback,
-      user_data,
-      out_run,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_run_start(ctx, settings, callback, user_data, out_run),
+    );
   }
 
-  late final _hegel_run_startPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_run_startPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              hegel_output_callback_t,
-              ffi.Pointer<ffi.Void>,
-              ffi.Pointer<ffi.Pointer<hegel_run_t>>)>>('hegel_run_start');
-  late final _hegel_run_start = _hegel_run_startPtr.asFunction<
-      int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            hegel_output_callback_t,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Pointer<hegel_run_t>>,
+          )
+        >
+      >('hegel_run_start');
+  late final _hegel_run_start = _hegel_run_startPtr
+      .asFunction<
+        int Function(
           ffi.Pointer<hegel_context_t>,
           ffi.Pointer<hegel_settings_t>,
           hegel_output_callback_t,
           ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Pointer<hegel_run_t>>)>(isLeaf: true);
+          ffi.Pointer<ffi.Pointer<hegel_run_t>>,
+        )
+      >(isLeaf: true);
 
   /// Free a settings handle previously returned by `hegel_settings_new`.
   /// Safe to call with NULL (a no-op that returns `HEGEL_OK`).
@@ -1370,19 +1557,25 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_settings_t> s,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_free(
-      ctx,
-      s,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_free(ctx, s));
   }
 
-  late final _hegel_settings_freePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>)>>('hegel_settings_free');
-  late final _hegel_settings_free = _hegel_settings_freePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<hegel_settings_t>)>(isLeaf: true);
+  late final _hegel_settings_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+          )
+        >
+      >('hegel_settings_free');
+  late final _hegel_settings_free = _hegel_settings_freePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+        )
+      >(isLeaf: true);
 
   /// Allocate a new settings handle initialised with libhegel's defaults
   /// (100 test cases, all phases enabled, normal verbosity, no seed,
@@ -1401,20 +1594,25 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<ffi.Pointer<hegel_settings_t>> out_settings,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_new(
-      ctx,
-      out_settings,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_new(ctx, out_settings));
   }
 
-  late final _hegel_settings_newPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_settings_t>>)>>(
-      'hegel_settings_new');
-  late final _hegel_settings_new = _hegel_settings_newPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<ffi.Pointer<hegel_settings_t>>)>(isLeaf: true);
+  late final _hegel_settings_newPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<ffi.Pointer<hegel_settings_t>>,
+          )
+        >
+      >('hegel_settings_new');
+  late final _hegel_settings_new = _hegel_settings_newPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<ffi.Pointer<hegel_settings_t>>,
+        )
+      >(isLeaf: true);
 
   /// Select the engine's randomness backend. `backend` is a `hegel_backend_t`
   /// value; the parameter is typed as `uint32_t` so an out-of-range value is a
@@ -1430,23 +1628,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int backend,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_backend(
-      ctx,
-      s,
-      backend,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_backend(ctx, s, backend),
+    );
   }
 
-  late final _hegel_settings_set_backendPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_backendPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint32)>>('hegel_settings_set_backend');
-  late final _hegel_settings_set_backend =
-      _hegel_settings_set_backendPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, int)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint32,
+          )
+        >
+      >('hegel_settings_set_backend');
+  late final _hegel_settings_set_backend = _hegel_settings_set_backendPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Configure the on-disk example database used by `HEGEL_PHASE_REUSE`
   /// and the auto-persistence path.
@@ -1462,25 +1666,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     ffi.Pointer<ffi.Char> database,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_database(
-      ctx,
-      s,
-      database,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_database(ctx, s, database),
+    );
   }
 
-  late final _hegel_settings_set_databasePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_databasePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Pointer<ffi.Char>)>>('hegel_settings_set_database');
-  late final _hegel_settings_set_database =
-      _hegel_settings_set_databasePtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Pointer<ffi.Char>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('hegel_settings_set_database');
+  late final _hegel_settings_set_database = _hegel_settings_set_databasePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >(isLeaf: true);
 
   /// Set the database key used to scope stored / replayed examples for this run.
   /// `key = NULL` clears it (the default).
@@ -1489,25 +1697,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     ffi.Pointer<ffi.Char> key,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_database_key(
-      ctx,
-      s,
-      key,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_database_key(ctx, s, key),
+    );
   }
 
-  late final _hegel_settings_set_database_keyPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_database_keyPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Pointer<ffi.Char>)>>('hegel_settings_set_database_key');
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('hegel_settings_set_database_key');
   late final _hegel_settings_set_database_key =
       _hegel_settings_set_database_keyPtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Pointer<ffi.Char>)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          ffi.Pointer<ffi.Char>,
+        )
+      >(isLeaf: true);
 
   /// Make the run reproducible: derive the seed from a stable hash of
   /// `database_key` instead of fresh randomness when no explicit seed is
@@ -1518,23 +1730,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     bool derandomize,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_derandomize(
-      ctx,
-      s,
-      derandomize,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_derandomize(ctx, s, derandomize),
+    );
   }
 
-  late final _hegel_settings_set_derandomizePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_derandomizePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Bool)>>('hegel_settings_set_derandomize');
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Bool,
+          )
+        >
+      >('hegel_settings_set_derandomize');
   late final _hegel_settings_set_derandomize =
       _hegel_settings_set_derandomizePtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, bool)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          bool,
+        )
+      >(isLeaf: true);
 
   /// Set whether the engine should drive a full run loop or stop after
   /// one test case. `mode` is a `hegel_mode_t` value; the parameter is typed
@@ -1545,22 +1763,27 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int mode,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_mode(
-      ctx,
-      s,
-      mode,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_set_mode(ctx, s, mode));
   }
 
-  late final _hegel_settings_set_modePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_modePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint32)>>('hegel_settings_set_mode');
-  late final _hegel_settings_set_mode = _hegel_settings_set_modePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_settings_t>,
-          int)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint32,
+          )
+        >
+      >('hegel_settings_set_mode');
+  late final _hegel_settings_set_mode = _hegel_settings_set_modePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Enable a specific set of phases, given as a bitwise OR of `hegel_phase_t`
   /// values. Phases not included are disabled. The default is `HEGEL_PHASE_ALL`.
@@ -1570,23 +1793,27 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int phases,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_phases(
-      ctx,
-      s,
-      phases,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_set_phases(ctx, s, phases));
   }
 
-  late final _hegel_settings_set_phasesPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_phasesPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint32)>>('hegel_settings_set_phases');
-  late final _hegel_settings_set_phases =
-      _hegel_settings_set_phasesPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, int)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint32,
+          )
+        >
+      >('hegel_settings_set_phases');
+  late final _hegel_settings_set_phases = _hegel_settings_set_phasesPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// When `yes = true` (the default), the engine keeps generating after
   /// the first failure to surface additional *distinct* bugs (different
@@ -1597,24 +1824,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     bool yes,
   ) {
-    return hegel_result_t
-        .fromValue(_hegel_settings_set_report_multiple_failures(
-      ctx,
-      s,
-      yes,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_report_multiple_failures(ctx, s, yes),
+    );
   }
 
-  late final _hegel_settings_set_report_multiple_failuresPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_report_multiple_failuresPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Bool)>>('hegel_settings_set_report_multiple_failures');
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Bool,
+          )
+        >
+      >('hegel_settings_set_report_multiple_failures');
   late final _hegel_settings_set_report_multiple_failures =
       _hegel_settings_set_report_multiple_failuresPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, bool)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          bool,
+        )
+      >(isLeaf: true);
 
   /// Set the RNG seed. When `has_seed = true`, `seed` is used to
   /// initialise generation; when `has_seed = false`, the engine picks a
@@ -1626,24 +1858,31 @@ class LibHegel {
     int seed,
     bool has_seed,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_seed(
-      ctx,
-      s,
-      seed,
-      has_seed,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_seed(ctx, s, seed, has_seed),
+    );
   }
 
-  late final _hegel_settings_set_seedPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_seedPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint64,
-              ffi.Bool)>>('hegel_settings_set_seed');
-  late final _hegel_settings_set_seed = _hegel_settings_set_seedPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_settings_t>,
-          int, bool)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint64,
+            ffi.Bool,
+          )
+        >
+      >('hegel_settings_set_seed');
+  late final _hegel_settings_set_seed = _hegel_settings_set_seedPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+          bool,
+        )
+      >(isLeaf: true);
 
   /// Suppress (disable) a set of health checks, given as a bitwise OR of
   /// `hegel_health_check_t` values. The default is "no suppression"; use this
@@ -1656,23 +1895,29 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int checks,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_suppress_health_check(
-      ctx,
-      s,
-      checks,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_settings_set_suppress_health_check(ctx, s, checks),
+    );
   }
 
-  late final _hegel_settings_set_suppress_health_checkPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_suppress_health_checkPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint32)>>('hegel_settings_set_suppress_health_check');
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint32,
+          )
+        >
+      >('hegel_settings_set_suppress_health_check');
   late final _hegel_settings_set_suppress_health_check =
       _hegel_settings_set_suppress_health_checkPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, int)>(isLeaf: true);
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Maximum number of valid test cases to run before declaring the
   /// property held. The default is 100. Note that this counts *valid*
@@ -1684,23 +1929,27 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int n,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_test_cases(
-      ctx,
-      s,
-      n,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_set_test_cases(ctx, s, n));
   }
 
-  late final _hegel_settings_set_test_casesPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_test_casesPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint64)>>('hegel_settings_set_test_cases');
-  late final _hegel_settings_set_test_cases =
-      _hegel_settings_set_test_casesPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, int)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint64,
+          )
+        >
+      >('hegel_settings_set_test_cases');
+  late final _hegel_settings_set_test_cases = _hegel_settings_set_test_casesPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Set the engine's output verbosity. `v` is a `hegel_verbosity_t` value;
   /// the parameter is typed as `uint32_t` so an out-of-range value is a
@@ -1710,23 +1959,27 @@ class LibHegel {
     ffi.Pointer<hegel_settings_t> s,
     int v,
   ) {
-    return hegel_result_t.fromValue(_hegel_settings_set_verbosity(
-      ctx,
-      s,
-      v,
-    ));
+    return hegel_result_t.fromValue(_hegel_settings_set_verbosity(ctx, s, v));
   }
 
-  late final _hegel_settings_set_verbosityPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_settings_set_verbosityPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Uint32)>>('hegel_settings_set_verbosity');
-  late final _hegel_settings_set_verbosity =
-      _hegel_settings_set_verbosityPtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>, int)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Uint32,
+          )
+        >
+      >('hegel_settings_set_verbosity');
+  late final _hegel_settings_set_verbosity = _hegel_settings_set_verbosityPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Open a labeled span around a group of draws so the shrinker can
   /// reason about them as a unit. Pair with exactly one
@@ -1741,20 +1994,27 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     int label,
   ) {
-    return hegel_result_t.fromValue(_hegel_start_span(
-      ctx,
-      tc,
-      label,
-    ));
+    return hegel_result_t.fromValue(_hegel_start_span(ctx, tc, label));
   }
 
-  late final _hegel_start_spanPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>, ffi.Uint64)>>('hegel_start_span');
-  late final _hegel_start_span = _hegel_start_spanPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          int)>(isLeaf: true);
+  late final _hegel_start_spanPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Uint64,
+          )
+        >
+      >('hegel_start_span');
+  late final _hegel_start_span = _hegel_start_spanPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+        )
+      >(isLeaf: true);
 
   /// Draw the index of the next rule to run, in `[0, num_rules)`, letting
   /// the engine choose (and shrink) the rule sequence. Swarm testing is
@@ -1774,28 +2034,31 @@ class LibHegel {
     int state_machine_id,
     ffi.Pointer<ffi.Int64> out_rule_index,
   ) {
-    return hegel_result_t.fromValue(_hegel_state_machine_next_rule(
-      ctx,
-      tc,
-      state_machine_id,
-      out_rule_index,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_state_machine_next_rule(ctx, tc, state_machine_id, out_rule_index),
+    );
   }
 
-  late final _hegel_state_machine_next_rulePtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_state_machine_next_rulePtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Int64,
-              ffi.Pointer<ffi.Int64>)>>('hegel_state_machine_next_rule');
-  late final _hegel_state_machine_next_rule =
-      _hegel_state_machine_next_rulePtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              int,
-              ffi.Pointer<ffi.Int64>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Int64,
+            ffi.Pointer<ffi.Int64>,
+          )
+        >
+      >('hegel_state_machine_next_rule');
+  late final _hegel_state_machine_next_rule = _hegel_state_machine_next_rulePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          int,
+          ffi.Pointer<ffi.Int64>,
+        )
+      >(isLeaf: true);
 
   /// Close the most-recently opened span. Pass `discard = true` to mark
   /// the span as rejected (e.g. a `filter` predicate didn't hold and the
@@ -1805,20 +2068,27 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     bool discard,
   ) {
-    return hegel_result_t.fromValue(_hegel_stop_span(
-      ctx,
-      tc,
-      discard,
-    ));
+    return hegel_result_t.fromValue(_hegel_stop_span(ctx, tc, discard));
   }
 
-  late final _hegel_stop_spanPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>, ffi.Bool)>>('hegel_stop_span');
-  late final _hegel_stop_span = _hegel_stop_spanPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          bool)>(isLeaf: true);
+  late final _hegel_stop_spanPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Bool,
+          )
+        >
+      >('hegel_stop_span');
+  late final _hegel_stop_span = _hegel_stop_spanPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          bool,
+        )
+      >(isLeaf: true);
 
   /// Build a **domain-name** string generator producing RFC 1035
   /// fully-qualified domain names of total length at most `max_length`
@@ -1834,23 +2104,29 @@ class LibHegel {
     int max_length,
     ffi.Pointer<ffi.Pointer<hegel_string_generator_t>> out_generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_domain(
-      ctx,
-      max_length,
-      out_generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_domain(ctx, max_length, out_generator),
+    );
   }
 
-  late final _hegel_string_generator_domainPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>, ffi.Uint64,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>>(
-      'hegel_string_generator_domain');
-  late final _hegel_string_generator_domain =
-      _hegel_string_generator_domainPtr.asFunction<
-              int Function(ffi.Pointer<hegel_context_t>, int,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>(
-          isLeaf: true);
+  late final _hegel_string_generator_domainPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Uint64,
+            ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+          )
+        >
+      >('hegel_string_generator_domain');
+  late final _hegel_string_generator_domain = _hegel_string_generator_domainPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          int,
+          ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+        )
+      >(isLeaf: true);
 
   /// Build an **email** string generator producing RFC 5321/5322 addresses
   /// like `alice@example.com`.
@@ -1862,22 +2138,27 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<ffi.Pointer<hegel_string_generator_t>> out_generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_email(
-      ctx,
-      out_generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_email(ctx, out_generator),
+    );
   }
 
-  late final _hegel_string_generator_emailPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>>(
-      'hegel_string_generator_email');
-  late final _hegel_string_generator_email =
-      _hegel_string_generator_emailPtr.asFunction<
-              int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>(
-          isLeaf: true);
+  late final _hegel_string_generator_emailPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+          )
+        >
+      >('hegel_string_generator_email');
+  late final _hegel_string_generator_email = _hegel_string_generator_emailPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+        )
+      >(isLeaf: true);
 
   /// Release a string generator built by a `hegel_string_generator_*`
   /// constructor. Safe to call with NULL (a no-op that returns `HEGEL_OK`).
@@ -1887,21 +2168,27 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_string_generator_t> generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_free(
-      ctx,
-      generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_free(ctx, generator),
+    );
   }
 
-  late final _hegel_string_generator_freePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_string_generator_t>)>>(
-      'hegel_string_generator_free');
-  late final _hegel_string_generator_free =
-      _hegel_string_generator_freePtr.asFunction<
-          int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_string_generator_t>)>(isLeaf: true);
+  late final _hegel_string_generator_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_string_generator_t>,
+          )
+        >
+      >('hegel_string_generator_free');
+  late final _hegel_string_generator_free = _hegel_string_generator_freePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_string_generator_t>,
+        )
+      >(isLeaf: true);
 
   /// Build a **regex** string generator: strings matching `pattern`
   /// (Python-`re` syntax). When `fullmatch` is true the whole string matches
@@ -1921,33 +2208,39 @@ class LibHegel {
     ffi.Pointer<hegel_string_generator_t> alphabet,
     ffi.Pointer<ffi.Pointer<hegel_string_generator_t>> out_generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_regex(
-      ctx,
-      pattern,
-      fullmatch,
-      alphabet,
-      out_generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_regex(
+        ctx,
+        pattern,
+        fullmatch,
+        alphabet,
+        out_generator,
+      ),
+    );
   }
 
-  late final _hegel_string_generator_regexPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Char>,
-                  ffi.Bool,
-                  ffi.Pointer<hegel_string_generator_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>>(
-      'hegel_string_generator_regex');
-  late final _hegel_string_generator_regex =
-      _hegel_string_generator_regexPtr.asFunction<
-              int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Char>,
-                  bool,
-                  ffi.Pointer<hegel_string_generator_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>(
-          isLeaf: true);
+  late final _hegel_string_generator_regexPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<ffi.Char>,
+            ffi.Bool,
+            ffi.Pointer<hegel_string_generator_t>,
+            ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+          )
+        >
+      >('hegel_string_generator_regex');
+  late final _hegel_string_generator_regex = _hegel_string_generator_regexPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<ffi.Char>,
+          bool,
+          ffi.Pointer<hegel_string_generator_t>,
+          ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+        )
+      >(isLeaf: true);
 
   /// Build a **text** string generator: strings with length in
   /// `[min_size, max_size]` whose characters are drawn from the described
@@ -1988,63 +2281,69 @@ class LibHegel {
     int exclude_characters_len,
     ffi.Pointer<ffi.Pointer<hegel_string_generator_t>> out_generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_text(
-      ctx,
-      min_size,
-      max_size,
-      codec,
-      min_codepoint,
-      max_codepoint,
-      categories,
-      categories_len,
-      exclude_categories,
-      exclude_categories_len,
-      include_characters,
-      include_characters_len,
-      exclude_characters,
-      exclude_characters_len,
-      out_generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_text(
+        ctx,
+        min_size,
+        max_size,
+        codec,
+        min_codepoint,
+        max_codepoint,
+        categories,
+        categories_len,
+        exclude_categories,
+        exclude_categories_len,
+        include_characters,
+        include_characters_len,
+        exclude_characters,
+        exclude_characters_len,
+        out_generator,
+      ),
+    );
   }
 
-  late final _hegel_string_generator_textPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Uint64,
-                  ffi.Uint64,
-                  ffi.Pointer<ffi.Char>,
-                  ffi.Uint32,
-                  ffi.Uint32,
-                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                  ffi.Size,
-                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                  ffi.Size,
-                  ffi.Pointer<ffi.Uint8>,
-                  ffi.Size,
-                  ffi.Pointer<ffi.Uint8>,
-                  ffi.Size,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>>(
-      'hegel_string_generator_text');
-  late final _hegel_string_generator_text =
-      _hegel_string_generator_textPtr.asFunction<
-              int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  int,
-                  int,
-                  ffi.Pointer<ffi.Char>,
-                  int,
-                  int,
-                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                  int,
-                  ffi.Pointer<ffi.Pointer<ffi.Char>>,
-                  int,
-                  ffi.Pointer<ffi.Uint8>,
-                  int,
-                  ffi.Pointer<ffi.Uint8>,
-                  int,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>(
-          isLeaf: true);
+  late final _hegel_string_generator_textPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Uint64,
+            ffi.Uint64,
+            ffi.Pointer<ffi.Char>,
+            ffi.Uint32,
+            ffi.Uint32,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Size,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+            ffi.Size,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Uint8>,
+            ffi.Size,
+            ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+          )
+        >
+      >('hegel_string_generator_text');
+  late final _hegel_string_generator_text = _hegel_string_generator_textPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          int,
+          int,
+          ffi.Pointer<ffi.Char>,
+          int,
+          int,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          int,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Uint8>,
+          int,
+          ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+        )
+      >(isLeaf: true);
 
   /// Build a **URL** string generator producing RFC 3986 `http`/`https` URLs.
   ///
@@ -2055,22 +2354,27 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<ffi.Pointer<hegel_string_generator_t>> out_generator,
   ) {
-    return hegel_result_t.fromValue(_hegel_string_generator_url(
-      ctx,
-      out_generator,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_string_generator_url(ctx, out_generator),
+    );
   }
 
-  late final _hegel_string_generator_urlPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>>(
-      'hegel_string_generator_url');
-  late final _hegel_string_generator_url =
-      _hegel_string_generator_urlPtr.asFunction<
-              int Function(ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>)>(
-          isLeaf: true);
+  late final _hegel_string_generator_urlPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+          )
+        >
+      >('hegel_string_generator_url');
+  late final _hegel_string_generator_url = _hegel_string_generator_urlPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<ffi.Pointer<hegel_string_generator_t>>,
+        )
+      >(isLeaf: true);
 
   /// Record a numeric observation under `label` for the engine's
   /// targeting phase to hill-climb toward. Higher values are "more
@@ -2089,24 +2393,29 @@ class LibHegel {
     double value,
     ffi.Pointer<ffi.Char> label,
   ) {
-    return hegel_result_t.fromValue(_hegel_target(
-      ctx,
-      tc,
-      value,
-      label,
-    ));
+    return hegel_result_t.fromValue(_hegel_target(ctx, tc, value, label));
   }
 
-  late final _hegel_targetPtr = _lookup<
-      ffi.NativeFunction<
+  late final _hegel_targetPtr =
+      _lookup<
+        ffi.NativeFunction<
           ffi.Int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>,
-              ffi.Double,
-              ffi.Pointer<ffi.Char>)>>('hegel_target');
-  late final _hegel_target = _hegel_targetPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          double, ffi.Pointer<ffi.Char>)>(isLeaf: true);
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Double,
+            ffi.Pointer<ffi.Char>,
+          )
+        >
+      >('hegel_target');
+  late final _hegel_target = _hegel_targetPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          double,
+          ffi.Pointer<ffi.Char>,
+        )
+      >(isLeaf: true);
 
   /// Clone a test-case handle, writing a new handle onto an *independent
   /// stream* of the same test case into `*out_test_case`.
@@ -2141,23 +2450,29 @@ class LibHegel {
     ffi.Pointer<hegel_test_case_t> tc,
     ffi.Pointer<ffi.Pointer<hegel_test_case_t>> out_test_case,
   ) {
-    return hegel_result_t.fromValue(_hegel_test_case_clone(
-      ctx,
-      tc,
-      out_test_case,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_test_case_clone(ctx, tc, out_test_case),
+    );
   }
 
-  late final _hegel_test_case_clonePtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_test_case_t>,
-                  ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>>(
-      'hegel_test_case_clone');
-  late final _hegel_test_case_clone = _hegel_test_case_clonePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>,
-          ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>(isLeaf: true);
+  late final _hegel_test_case_clonePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+            ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+          )
+        >
+      >('hegel_test_case_clone');
+  late final _hegel_test_case_clone = _hegel_test_case_clonePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+          ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+        )
+      >(isLeaf: true);
 
   /// Release a test-case handle, whatever its origin — a handle from
   /// `hegel_test_case_from_blob`, a clone from `hegel_test_case_clone`, or a
@@ -2182,19 +2497,25 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<hegel_test_case_t> tc,
   ) {
-    return hegel_result_t.fromValue(_hegel_test_case_free(
-      ctx,
-      tc,
-    ));
+    return hegel_result_t.fromValue(_hegel_test_case_free(ctx, tc));
   }
 
-  late final _hegel_test_case_freePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_test_case_t>)>>('hegel_test_case_free');
-  late final _hegel_test_case_free = _hegel_test_case_freePtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<hegel_test_case_t>)>(isLeaf: true);
+  late final _hegel_test_case_freePtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_test_case_t>,
+          )
+        >
+      >('hegel_test_case_free');
+  late final _hegel_test_case_free = _hegel_test_case_freePtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_test_case_t>,
+        )
+      >(isLeaf: true);
 
   /// Build a standalone test case that replays the example encoded in a
   /// base64 failure blob (obtained from `hegel_failure_reproduction_blob` on a
@@ -2233,35 +2554,42 @@ class LibHegel {
     ffi.Pointer<ffi.Void> user_data,
     ffi.Pointer<ffi.Pointer<hegel_test_case_t>> out_test_case,
   ) {
-    return hegel_result_t.fromValue(_hegel_test_case_from_blob(
-      ctx,
-      s,
-      blob,
-      callback,
-      user_data,
-      out_test_case,
-    ));
+    return hegel_result_t.fromValue(
+      _hegel_test_case_from_blob(
+        ctx,
+        s,
+        blob,
+        callback,
+        user_data,
+        out_test_case,
+      ),
+    );
   }
 
-  late final _hegel_test_case_from_blobPtr = _lookup<
-          ffi.NativeFunction<
-              ffi.Int Function(
-                  ffi.Pointer<hegel_context_t>,
-                  ffi.Pointer<hegel_settings_t>,
-                  ffi.Pointer<ffi.Char>,
-                  hegel_output_callback_t,
-                  ffi.Pointer<ffi.Void>,
-                  ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>>(
-      'hegel_test_case_from_blob');
-  late final _hegel_test_case_from_blob =
-      _hegel_test_case_from_blobPtr.asFunction<
-          int Function(
-              ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<hegel_settings_t>,
-              ffi.Pointer<ffi.Char>,
-              hegel_output_callback_t,
-              ffi.Pointer<ffi.Void>,
-              ffi.Pointer<ffi.Pointer<hegel_test_case_t>>)>(isLeaf: true);
+  late final _hegel_test_case_from_blobPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<hegel_settings_t>,
+            ffi.Pointer<ffi.Char>,
+            hegel_output_callback_t,
+            ffi.Pointer<ffi.Void>,
+            ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+          )
+        >
+      >('hegel_test_case_from_blob');
+  late final _hegel_test_case_from_blob = _hegel_test_case_from_blobPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<hegel_settings_t>,
+          ffi.Pointer<ffi.Char>,
+          hegel_output_callback_t,
+          ffi.Pointer<ffi.Void>,
+          ffi.Pointer<ffi.Pointer<hegel_test_case_t>>,
+        )
+      >(isLeaf: true);
 
   /// Write libhegel's version — matching the parent `hegeltest` crate's
   /// `CARGO_PKG_VERSION` (e.g. `"0.14.12"`) — into `*out_version`. The written
@@ -2271,19 +2599,25 @@ class LibHegel {
     ffi.Pointer<hegel_context_t> ctx,
     ffi.Pointer<ffi.Pointer<ffi.Char>> out_version,
   ) {
-    return hegel_result_t.fromValue(_hegel_version(
-      ctx,
-      out_version,
-    ));
+    return hegel_result_t.fromValue(_hegel_version(ctx, out_version));
   }
 
-  late final _hegel_versionPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Int Function(ffi.Pointer<hegel_context_t>,
-              ffi.Pointer<ffi.Pointer<ffi.Char>>)>>('hegel_version');
-  late final _hegel_version = _hegel_versionPtr.asFunction<
-      int Function(ffi.Pointer<hegel_context_t>,
-          ffi.Pointer<ffi.Pointer<ffi.Char>>)>(isLeaf: true);
+  late final _hegel_versionPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int Function(
+            ffi.Pointer<hegel_context_t>,
+            ffi.Pointer<ffi.Pointer<ffi.Char>>,
+          )
+        >
+      >('hegel_version');
+  late final _hegel_version = _hegel_versionPtr
+      .asFunction<
+        int Function(
+          ffi.Pointer<hegel_context_t>,
+          ffi.Pointer<ffi.Pointer<ffi.Char>>,
+        )
+      >(isLeaf: true);
 }
 
 const int HEGEL_STATE_MACHINE_DONE = -1;
@@ -2504,11 +2838,11 @@ enum hegel_backend_t {
   const hegel_backend_t(this.value);
 
   static hegel_backend_t fromValue(int value) => switch (value) {
-        0 => HEGEL_BACKEND_AUTO,
-        1 => HEGEL_BACKEND_DEFAULT,
-        2 => HEGEL_BACKEND_URANDOM,
-        _ => throw ArgumentError('Unknown value for hegel_backend_t: $value'),
-      };
+    0 => HEGEL_BACKEND_AUTO,
+    1 => HEGEL_BACKEND_DEFAULT,
+    2 => HEGEL_BACKEND_URANDOM,
+    _ => throw ArgumentError('Unknown value for hegel_backend_t: $value'),
+  };
 }
 
 final class hegel_context_t extends ffi.Opaque {}
@@ -2532,11 +2866,10 @@ final class hegel_date_t extends ffi.Struct {
     required int year,
     required int month,
     required int day,
-  }) =>
-      $allocator<hegel_date_t>()
-        ..ref.year = year
-        ..ref.month = month
-        ..ref.day = day;
+  }) => $allocator<hegel_date_t>()
+    ..ref.year = year
+    ..ref.month = month
+    ..ref.day = day;
 }
 
 /// A drawn naive datetime (a date plus a time of day, no timezone).
@@ -2564,10 +2897,9 @@ final class hegel_generate_bytes_result_t extends ffi.Struct {
     ffi.Allocator $allocator, {
     required ffi.Pointer<ffi.Uint8> data,
     required int len,
-  }) =>
-      $allocator<hegel_generate_bytes_result_t>()
-        ..ref.data = data
-        ..ref.len = len;
+  }) => $allocator<hegel_generate_bytes_result_t>()
+    ..ref.data = data
+    ..ref.len = len;
 }
 
 /// An engine-allocated string buffer returned by `hegel_generate_string`.
@@ -2589,10 +2921,9 @@ final class hegel_generate_string_result_t extends ffi.Struct {
     ffi.Allocator $allocator, {
     required ffi.Pointer<ffi.Char> data,
     required int len,
-  }) =>
-      $allocator<hegel_generate_string_result_t>()
-        ..ref.data = data
-        ..ref.len = len;
+  }) => $allocator<hegel_generate_string_result_t>()
+    ..ref.data = data
+    ..ref.len = len;
 }
 
 /// A health check, used as a bit flag for
@@ -2622,13 +2953,12 @@ enum hegel_health_check_t {
   const hegel_health_check_t(this.value);
 
   static hegel_health_check_t fromValue(int value) => switch (value) {
-        1 => HEGEL_HC_FILTER_TOO_MUCH,
-        2 => HEGEL_HC_TOO_SLOW,
-        4 => HEGEL_HC_TEST_CASES_TOO_LARGE,
-        8 => HEGEL_HC_LARGE_INITIAL_TEST_CASE,
-        _ =>
-          throw ArgumentError('Unknown value for hegel_health_check_t: $value'),
-      };
+    1 => HEGEL_HC_FILTER_TOO_MUCH,
+    2 => HEGEL_HC_TOO_SLOW,
+    4 => HEGEL_HC_TEST_CASES_TOO_LARGE,
+    8 => HEGEL_HC_LARGE_INITIAL_TEST_CASE,
+    _ => throw ArgumentError('Unknown value for hegel_health_check_t: $value'),
+  };
 }
 
 /// Identifies what kind of compound structure a span groups, passed to
@@ -2743,38 +3073,38 @@ enum hegel_label_t {
   const hegel_label_t(this.value);
 
   static hegel_label_t fromValue(int value) => switch (value) {
-        1 => HEGEL_LABEL_LIST,
-        2 => HEGEL_LABEL_LIST_ELEMENT,
-        3 => HEGEL_LABEL_SET,
-        4 => HEGEL_LABEL_SET_ELEMENT,
-        5 => HEGEL_LABEL_MAP,
-        6 => HEGEL_LABEL_MAP_ENTRY,
-        7 => HEGEL_LABEL_TUPLE,
-        8 => HEGEL_LABEL_ONE_OF,
-        9 => HEGEL_LABEL_OPTIONAL,
-        10 => HEGEL_LABEL_FIXED_DICT,
-        11 => HEGEL_LABEL_FLAT_MAP,
-        12 => HEGEL_LABEL_FILTER,
-        13 => HEGEL_LABEL_MAPPED,
-        14 => HEGEL_LABEL_SAMPLED_FROM,
-        15 => HEGEL_LABEL_ENUM_VARIANT,
-        16 => HEGEL_LABEL_FEATURE_FLAG,
-        17 => HEGEL_LABEL_REGEX,
-        18 => HEGEL_LABEL_EMAIL,
-        19 => HEGEL_LABEL_URL,
-        20 => HEGEL_LABEL_DOMAIN,
-        21 => HEGEL_LABEL_DATE,
-        22 => HEGEL_LABEL_TIME,
-        23 => HEGEL_LABEL_DATETIME,
-        24 => HEGEL_LABEL_UUID,
-        25 => HEGEL_LABEL_IP_ADDRESS,
-        26 => HEGEL_LABEL_INTEGER,
-        27 => HEGEL_LABEL_FLOAT,
-        28 => HEGEL_LABEL_BOOLEAN,
-        29 => HEGEL_LABEL_BYTES,
-        30 => HEGEL_LABEL_STRING,
-        _ => throw ArgumentError('Unknown value for hegel_label_t: $value'),
-      };
+    1 => HEGEL_LABEL_LIST,
+    2 => HEGEL_LABEL_LIST_ELEMENT,
+    3 => HEGEL_LABEL_SET,
+    4 => HEGEL_LABEL_SET_ELEMENT,
+    5 => HEGEL_LABEL_MAP,
+    6 => HEGEL_LABEL_MAP_ENTRY,
+    7 => HEGEL_LABEL_TUPLE,
+    8 => HEGEL_LABEL_ONE_OF,
+    9 => HEGEL_LABEL_OPTIONAL,
+    10 => HEGEL_LABEL_FIXED_DICT,
+    11 => HEGEL_LABEL_FLAT_MAP,
+    12 => HEGEL_LABEL_FILTER,
+    13 => HEGEL_LABEL_MAPPED,
+    14 => HEGEL_LABEL_SAMPLED_FROM,
+    15 => HEGEL_LABEL_ENUM_VARIANT,
+    16 => HEGEL_LABEL_FEATURE_FLAG,
+    17 => HEGEL_LABEL_REGEX,
+    18 => HEGEL_LABEL_EMAIL,
+    19 => HEGEL_LABEL_URL,
+    20 => HEGEL_LABEL_DOMAIN,
+    21 => HEGEL_LABEL_DATE,
+    22 => HEGEL_LABEL_TIME,
+    23 => HEGEL_LABEL_DATETIME,
+    24 => HEGEL_LABEL_UUID,
+    25 => HEGEL_LABEL_IP_ADDRESS,
+    26 => HEGEL_LABEL_INTEGER,
+    27 => HEGEL_LABEL_FLOAT,
+    28 => HEGEL_LABEL_BOOLEAN,
+    29 => HEGEL_LABEL_BYTES,
+    30 => HEGEL_LABEL_STRING,
+    _ => throw ArgumentError('Unknown value for hegel_label_t: $value'),
+  };
 }
 
 /// How the engine should treat the run: a full property-test loop or a
@@ -2794,10 +3124,10 @@ enum hegel_mode_t {
   const hegel_mode_t(this.value);
 
   static hegel_mode_t fromValue(int value) => switch (value) {
-        0 => HEGEL_MODE_TEST_RUN,
-        1 => HEGEL_MODE_SINGLE_TEST_CASE,
-        _ => throw ArgumentError('Unknown value for hegel_mode_t: $value'),
-      };
+    0 => HEGEL_MODE_TEST_RUN,
+    1 => HEGEL_MODE_SINGLE_TEST_CASE,
+    _ => throw ArgumentError('Unknown value for hegel_mode_t: $value'),
+  };
 }
 
 /// Per-line output callback, passed to `hegel_run_start` /
@@ -2806,12 +3136,20 @@ enum hegel_mode_t {
 /// engine output, NUL-terminated UTF-8 of `len` bytes (not counting the
 /// terminator) without a trailing newline, valid only for the duration of
 /// the call.
-typedef hegel_output_callback_t
-    = ffi.Pointer<ffi.NativeFunction<hegel_output_callback_tFunction>>;
-typedef hegel_output_callback_tFunction = ffi.Void Function(
-    ffi.Pointer<ffi.Void> user_data, ffi.Pointer<ffi.Char> line, ffi.Size len);
-typedef Darthegel_output_callback_tFunction = void Function(
-    ffi.Pointer<ffi.Void> user_data, ffi.Pointer<ffi.Char> line, int len);
+typedef hegel_output_callback_t =
+    ffi.Pointer<ffi.NativeFunction<hegel_output_callback_tFunction>>;
+typedef hegel_output_callback_tFunction =
+    ffi.Void Function(
+      ffi.Pointer<ffi.Void> user_data,
+      ffi.Pointer<ffi.Char> line,
+      ffi.Size len,
+    );
+typedef Darthegel_output_callback_tFunction =
+    void Function(
+      ffi.Pointer<ffi.Void> user_data,
+      ffi.Pointer<ffi.Char> line,
+      int len,
+    );
 
 /// A phase of the property-test loop, used as a bit flag for
 /// `hegel_settings_set_phases`.
@@ -2845,14 +3183,14 @@ enum hegel_phase_t {
   const hegel_phase_t(this.value);
 
   static hegel_phase_t fromValue(int value) => switch (value) {
-        1 => HEGEL_PHASE_EXPLICIT,
-        2 => HEGEL_PHASE_REUSE,
-        4 => HEGEL_PHASE_GENERATE,
-        8 => HEGEL_PHASE_TARGET,
-        16 => HEGEL_PHASE_SHRINK,
-        31 => HEGEL_PHASE_ALL,
-        _ => throw ArgumentError('Unknown value for hegel_phase_t: $value'),
-      };
+    1 => HEGEL_PHASE_EXPLICIT,
+    2 => HEGEL_PHASE_REUSE,
+    4 => HEGEL_PHASE_GENERATE,
+    8 => HEGEL_PHASE_TARGET,
+    16 => HEGEL_PHASE_SHRINK,
+    31 => HEGEL_PHASE_ALL,
+    _ => throw ArgumentError('Unknown value for hegel_phase_t: $value'),
+  };
 }
 
 /// Result of a libhegel call.
@@ -2920,18 +3258,18 @@ enum hegel_result_t {
   const hegel_result_t(this.value);
 
   static hegel_result_t fromValue(int value) => switch (value) {
-        0 => HEGEL_OK,
-        -1 => HEGEL_E_STOP_TEST,
-        -2 => HEGEL_E_ASSUME,
-        -3 => HEGEL_E_BACKEND,
-        -4 => HEGEL_E_INVALID_HANDLE,
-        -5 => HEGEL_E_INVALID_ARG,
-        -6 => HEGEL_E_ALREADY_COMPLETE,
-        -7 => HEGEL_E_NOT_COMPLETE,
-        -8 => HEGEL_E_INTERNAL,
-        -9 => HEGEL_E_CONCURRENT_USE,
-        _ => throw ArgumentError('Unknown value for hegel_result_t: $value'),
-      };
+    0 => HEGEL_OK,
+    -1 => HEGEL_E_STOP_TEST,
+    -2 => HEGEL_E_ASSUME,
+    -3 => HEGEL_E_BACKEND,
+    -4 => HEGEL_E_INVALID_HANDLE,
+    -5 => HEGEL_E_INVALID_ARG,
+    -6 => HEGEL_E_ALREADY_COMPLETE,
+    -7 => HEGEL_E_NOT_COMPLETE,
+    -8 => HEGEL_E_INTERNAL,
+    -9 => HEGEL_E_CONCURRENT_USE,
+    _ => throw ArgumentError('Unknown value for hegel_result_t: $value'),
+  };
 }
 
 final class hegel_run_result_t extends ffi.Opaque {}
@@ -2956,12 +3294,11 @@ enum hegel_run_status_t {
   const hegel_run_status_t(this.value);
 
   static hegel_run_status_t fromValue(int value) => switch (value) {
-        0 => HEGEL_RUN_STATUS_PASSED,
-        1 => HEGEL_RUN_STATUS_FAILED,
-        2 => HEGEL_RUN_STATUS_ERROR,
-        _ =>
-          throw ArgumentError('Unknown value for hegel_run_status_t: $value'),
-      };
+    0 => HEGEL_RUN_STATUS_PASSED,
+    1 => HEGEL_RUN_STATUS_FAILED,
+    2 => HEGEL_RUN_STATUS_ERROR,
+    _ => throw ArgumentError('Unknown value for hegel_run_status_t: $value'),
+  };
 }
 
 final class hegel_run_t extends ffi.Opaque {}
@@ -2991,12 +3328,12 @@ enum hegel_status_t {
   const hegel_status_t(this.value);
 
   static hegel_status_t fromValue(int value) => switch (value) {
-        0 => HEGEL_STATUS_VALID,
-        1 => HEGEL_STATUS_INVALID,
-        2 => HEGEL_STATUS_OVERRUN,
-        3 => HEGEL_STATUS_INTERESTING,
-        _ => throw ArgumentError('Unknown value for hegel_status_t: $value'),
-      };
+    0 => HEGEL_STATUS_VALID,
+    1 => HEGEL_STATUS_INVALID,
+    2 => HEGEL_STATUS_OVERRUN,
+    3 => HEGEL_STATUS_INTERESTING,
+    _ => throw ArgumentError('Unknown value for hegel_status_t: $value'),
+  };
 }
 
 final class hegel_string_generator_t extends ffi.Opaque {}
@@ -3024,12 +3361,11 @@ final class hegel_time_t extends ffi.Struct {
     required int minute,
     required int second,
     required int microsecond,
-  }) =>
-      $allocator<hegel_time_t>()
-        ..ref.hour = hour
-        ..ref.minute = minute
-        ..ref.second = second
-        ..ref.microsecond = microsecond;
+  }) => $allocator<hegel_time_t>()
+    ..ref.hour = hour
+    ..ref.minute = minute
+    ..ref.second = second
+    ..ref.microsecond = microsecond;
 }
 
 /// Verbosity of engine-emitted output (logs, per-case traces). Set via
@@ -3051,12 +3387,12 @@ enum hegel_verbosity_t {
   const hegel_verbosity_t(this.value);
 
   static hegel_verbosity_t fromValue(int value) => switch (value) {
-        0 => HEGEL_VERBOSITY_QUIET,
-        1 => HEGEL_VERBOSITY_NORMAL,
-        2 => HEGEL_VERBOSITY_VERBOSE,
-        3 => HEGEL_VERBOSITY_DEBUG,
-        _ => throw ArgumentError('Unknown value for hegel_verbosity_t: $value'),
-      };
+    0 => HEGEL_VERBOSITY_QUIET,
+    1 => HEGEL_VERBOSITY_NORMAL,
+    2 => HEGEL_VERBOSITY_VERBOSE,
+    3 => HEGEL_VERBOSITY_DEBUG,
+    _ => throw ArgumentError('Unknown value for hegel_verbosity_t: $value'),
+  };
 }
 
 const int true$ = 1;

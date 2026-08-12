@@ -7,9 +7,9 @@
 
 /// Throws [UnsupportedError] — hegeltest requires dart:ffi.
 Never _unsupported() => throw UnsupportedError(
-      'hegeltest requires dart:ffi and is not supported on web. '
-      'Use hegeltest only in VM-based test environments (dart test, flutter test on mobile/desktop).',
-    );
+  'hegeltest requires dart:ffi and is not supported on web. '
+  'Use hegeltest only in VM-based test environments (dart test, flutter test on mobile/desktop).',
+);
 
 /// Stub for [hegelTest] on unsupported platforms.
 ///
@@ -36,26 +36,26 @@ void hegelTest(
   String? database,
   dynamic Function()? setUpEach,
   dynamic Function()? tearDownEach,
-}) =>
-    _unsupported();
+}) => _unsupported();
 
 /// Stub for [HegelRunner] on unsupported platforms.
 class HegelRunner {
   HegelRunner(dynamic lib);
 
   /// Stub — throws [UnsupportedError].
-  Future<void> run(dynamic body,
-          {dynamic reproduceBlob,
-          int? testCases,
-          int? seed,
-          bool? derandomize,
-          dynamic phases,
-          dynamic verbosity,
-          dynamic suppressHealthChecks,
-          bool? reportMultipleFailures,
-          String? databaseKey,
-          String? database,
-          dynamic Function()? setUpEach,
-          dynamic Function()? tearDownEach}) =>
-      _unsupported();
+  Future<void> run(
+    dynamic body, {
+    dynamic reproduceBlob,
+    int? testCases,
+    int? seed,
+    bool? derandomize,
+    dynamic phases,
+    dynamic verbosity,
+    dynamic suppressHealthChecks,
+    bool? reportMultipleFailures,
+    String? databaseKey,
+    String? database,
+    dynamic Function()? setUpEach,
+    dynamic Function()? tearDownEach,
+  }) => _unsupported();
 }

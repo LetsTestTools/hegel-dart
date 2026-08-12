@@ -26,8 +26,13 @@ class _OwnedTestCaseResource {
   final RunLifecycle lifecycle;
   final Map<String, Pointer<Void>>? bufferCache;
 
-  _OwnedTestCaseResource(this.lib, this.ctx, this.handle, this.lifecycle,
-      [this.bufferCache]);
+  _OwnedTestCaseResource(
+    this.lib,
+    this.ctx,
+    this.handle,
+    this.lifecycle, [
+    this.bufferCache,
+  ]);
 }
 
 /// GC safety net: if a cloned TestCase is collected without dispose(),
@@ -79,7 +84,9 @@ class TestCase {
   /// or by dispose() (for clones).
   @internal
   Pointer<T> reuseBuffer<T extends NativeType>(
-      String key, Pointer<T> Function() allocate) {
+    String key,
+    Pointer<T> Function() allocate,
+  ) {
     _checkNotDisposed();
     final existing = _bufferCache[key];
     if (existing != null) return existing.cast<T>();
@@ -104,8 +111,8 @@ class TestCase {
     this._lifecycle, {
     bool isOwned = false,
     Map<String, Pointer<Void>>? bufferCache,
-  })  : _isOwned = isOwned,
-        _bufferCache = bufferCache ?? {};
+  }) : _isOwned = isOwned,
+       _bufferCache = bufferCache ?? {};
 
   /// Internal accessors used by generators.
   @internal

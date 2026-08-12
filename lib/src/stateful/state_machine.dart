@@ -23,11 +23,7 @@ class StateRule {
   final FutureOr<void> Function(TestCase tc) execute;
 
   /// Creates a state rule.
-  const StateRule(
-    this.name, {
-    this.precondition,
-    required this.execute,
-  });
+  const StateRule(this.name, {this.precondition, required this.execute});
 }
 
 /// An invariant checked after every successful rule execution.
@@ -42,10 +38,7 @@ class StateInvariant {
   final FutureOr<void> Function(TestCase tc) check;
 
   /// Creates a state invariant.
-  const StateInvariant(
-    this.name, {
-    required this.check,
-  });
+  const StateInvariant(this.name, {required this.check});
 }
 
 /// A typed pool of values that rules can add to and draw from.
@@ -76,8 +69,10 @@ class Pool<T> {
   /// other rules via [reusable] or [consumed].
   void add(T value) {
     if (machine == null || poolId < 0) {
-      throw StateError('Pool not registered with a StateMachine. '
-          'Create pools in setUp() via createPool().');
+      throw StateError(
+        'Pool not registered with a StateMachine. '
+        'Create pools in setUp() via createPool().',
+      );
     }
     final varId = machine!.poolAddCallback(poolId);
     values[varId] = value;
@@ -171,14 +166,14 @@ abstract class StateMachine {
 
   /// Callback to add a value to an engine pool.
   @internal
-  int Function(int poolId) poolAddCallback =
-      (_) => throw StateError('StateMachine not running');
+  int Function(int poolId) poolAddCallback = (_) =>
+      throw StateError('StateMachine not running');
 
   /// Callback to generate (draw) from an engine pool.
   /// Returns null if pool is empty (assumption violated).
   @internal
-  int? Function(int poolId, bool consume) poolGenerateCallback =
-      (_, __) => throw StateError('StateMachine not running');
+  int? Function(int poolId, bool consume) poolGenerateCallback = (_, __) =>
+      throw StateError('StateMachine not running');
 
   /// Registered pools for this machine.
   @internal

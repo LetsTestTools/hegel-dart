@@ -8,13 +8,10 @@ void main() {
     var count = 0;
 
     final config = HegelConfig(testCases: 5);
-    await runner.run(
-      (tc) {
-        tc.draw(integers());
-        count++;
-      },
-      testCases: config.testCases,
-    );
+    await runner.run((tc) {
+      tc.draw(integers());
+      count++;
+    }, testCases: config.testCases);
 
     // Should be around 5 (may vary slightly due to engine behavior)
     expect(count, greaterThan(0));
@@ -27,13 +24,10 @@ void main() {
     var count = 0;
 
     // Config says 1000, but direct param says 5 — direct wins
-    await runner.run(
-      (tc) {
-        tc.draw(integers());
-        count++;
-      },
-      testCases: 5,
-    );
+    await runner.run((tc) {
+      tc.draw(integers());
+      count++;
+    }, testCases: 5);
 
     expect(count, lessThanOrEqualTo(10));
   });

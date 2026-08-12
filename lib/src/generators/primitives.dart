@@ -18,8 +18,10 @@ class IntegerGenerator extends Generator<int> {
 
   @override
   int generate(TestCase tc) {
-    final outValue =
-        tc.reuseBuffer<ffi.Int64>('int64', () => calloc<ffi.Int64>());
+    final outValue = tc.reuseBuffer<ffi.Int64>(
+      'int64',
+      () => calloc<ffi.Int64>(),
+    );
     final result = tc.lib.hegel_generate_integer(
       tc.ctx,
       tc.handle,
@@ -46,8 +48,10 @@ class IntegerGenerator extends Generator<int> {
 /// ```dart
 /// tc.draw(integers(min: 0, max: 100))
 /// ```
-Generator<int> integers(
-    {int min = -9223372036854775808, int max = 9223372036854775807}) {
+Generator<int> integers({
+  int min = -9223372036854775808,
+  int max = 9223372036854775807,
+}) {
   return IntegerGenerator(min, max);
 }
 
@@ -79,8 +83,10 @@ class DoubleGenerator extends Generator<double> {
 
   @override
   double generate(TestCase tc) {
-    final outValue =
-        tc.reuseBuffer<ffi.Double>('double', () => calloc<ffi.Double>());
+    final outValue = tc.reuseBuffer<ffi.Double>(
+      'double',
+      () => calloc<ffi.Double>(),
+    );
     final result = tc.lib.hegel_generate_float(
       tc.ctx,
       tc.handle,
@@ -122,8 +128,15 @@ Generator<double> doubles({
   bool excludeMax = false,
   double smallestNonzeroMagnitude = 5e-324,
 }) {
-  return DoubleGenerator(min, max, allowNan, allowInfinity, excludeMin,
-      excludeMax, smallestNonzeroMagnitude);
+  return DoubleGenerator(
+    min,
+    max,
+    allowNan,
+    allowInfinity,
+    excludeMin,
+    excludeMax,
+    smallestNonzeroMagnitude,
+  );
 }
 
 class BooleanGenerator extends Generator<bool> {
@@ -220,7 +233,8 @@ class BigIntGenerator extends Generator<BigInt> {
 
       if (outLen.value > outCap) {
         throw HegelException(
-            'BigInt generation returned length ${outLen.value} exceeding capacity $outCap');
+          'BigInt generation returned length ${outLen.value} exceeding capacity $outCap',
+        );
       }
 
       final bytes = Uint8List(outLen.value);

@@ -11,14 +11,17 @@ class SampledGenerator<T> extends Generator<T> {
   SampledGenerator(this.values) {
     if (values.isEmpty) {
       throw ArgumentError(
-          'SampledGenerator requires a non-empty list of values.');
+        'SampledGenerator requires a non-empty list of values.',
+      );
     }
   }
 
   @override
   T generate(TestCase tc) {
-    final outIndex =
-        tc.reuseBuffer<ffi.Int64>('sampledIndex', () => calloc<ffi.Int64>());
+    final outIndex = tc.reuseBuffer<ffi.Int64>(
+      'sampledIndex',
+      () => calloc<ffi.Int64>(),
+    );
     final result = tc.lib.hegel_generate_integer(
       tc.ctx,
       tc.handle,
@@ -51,7 +54,8 @@ class OneOfGenerator<T> extends Generator<T> {
   OneOfGenerator(this.gens) {
     if (gens.isEmpty) {
       throw ArgumentError(
-          'OneOfGenerator requires a non-empty list of generators.');
+        'OneOfGenerator requires a non-empty list of generators.',
+      );
     }
   }
 
@@ -60,8 +64,10 @@ class OneOfGenerator<T> extends Generator<T> {
     tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
     bool success = false;
     try {
-      final outIndex =
-          tc.reuseBuffer<ffi.Int64>('oneOfIndex', () => calloc<ffi.Int64>());
+      final outIndex = tc.reuseBuffer<ffi.Int64>(
+        'oneOfIndex',
+        () => calloc<ffi.Int64>(),
+      );
       final result = tc.lib.hegel_generate_integer(
         tc.ctx,
         tc.handle,
@@ -100,7 +106,8 @@ class NullableGenerator<T> extends Generator<T?> {
   NullableGenerator(this.gen, this.nullProbability) {
     if (nullProbability < 0.0 || nullProbability > 1.0) {
       throw ArgumentError(
-          'nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]');
+        'nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]',
+      );
     }
   }
 
@@ -109,8 +116,10 @@ class NullableGenerator<T> extends Generator<T?> {
     tc.startSpan(hegel_label_t.HEGEL_LABEL_OPTIONAL.value);
     bool success = false;
     try {
-      final outBool =
-          tc.reuseBuffer<ffi.Bool>('nullableBool', () => calloc<ffi.Bool>());
+      final outBool = tc.reuseBuffer<ffi.Bool>(
+        'nullableBool',
+        () => calloc<ffi.Bool>(),
+      );
       final result = tc.lib.hegel_generate_boolean(
         tc.ctx,
         tc.handle,
@@ -125,7 +134,8 @@ class NullableGenerator<T> extends Generator<T?> {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException(
-            'Failed to generate boolean for nullable: ${result.value}');
+          'Failed to generate boolean for nullable: ${result.value}',
+        );
       }
 
       T? value;
@@ -227,13 +237,20 @@ Generator<(A, B)> tuples2<A, B>(Generator<A> a, Generator<B> b) {
 
 /// Generates 3-tuples of independent values.
 Generator<(A, B, C)> tuples3<A, B, C>(
-    Generator<A> a, Generator<B> b, Generator<C> c) {
+  Generator<A> a,
+  Generator<B> b,
+  Generator<C> c,
+) {
   return Tuple3Generator(a, b, c);
 }
 
 /// Generates 4-tuples of independent values.
 Generator<(A, B, C, D)> tuples4<A, B, C, D>(
-    Generator<A> a, Generator<B> b, Generator<C> c, Generator<D> d) {
+  Generator<A> a,
+  Generator<B> b,
+  Generator<C> c,
+  Generator<D> d,
+) {
   return Tuple4Generator(a, b, c, d);
 }
 
@@ -242,20 +259,23 @@ class FrequencyGenerator<T> extends Generator<T> {
   final int totalWeight;
 
   FrequencyGenerator(this.weighted)
-      : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
+    : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
     if (weighted.isEmpty) {
       throw ArgumentError(
-          'FrequencyGenerator requires a non-empty list of weighted generators.');
+        'FrequencyGenerator requires a non-empty list of weighted generators.',
+      );
     }
     for (final item in weighted) {
       if (item.$1 < 0) {
         throw ArgumentError(
-            'FrequencyGenerator weights must be non-negative, got ${item.$1}.');
+          'FrequencyGenerator weights must be non-negative, got ${item.$1}.',
+        );
       }
     }
     if (totalWeight <= 0) {
       throw ArgumentError(
-          'FrequencyGenerator requires at least one generator with weight > 0.');
+        'FrequencyGenerator requires at least one generator with weight > 0.',
+      );
     }
   }
 
@@ -264,8 +284,10 @@ class FrequencyGenerator<T> extends Generator<T> {
     tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
     bool success = false;
     try {
-      final outIndex =
-          tc.reuseBuffer<ffi.Int64>('freqIndex', () => calloc<ffi.Int64>());
+      final outIndex = tc.reuseBuffer<ffi.Int64>(
+        'freqIndex',
+        () => calloc<ffi.Int64>(),
+      );
       final result = tc.lib.hegel_generate_integer(
         tc.ctx,
         tc.handle,
@@ -279,7 +301,8 @@ class FrequencyGenerator<T> extends Generator<T> {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException(
-            'Failed to generate frequency index: ${result.value}');
+          'Failed to generate frequency index: ${result.value}',
+        );
       }
 
       int target = outIndex.value;
