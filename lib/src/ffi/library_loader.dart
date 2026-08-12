@@ -126,9 +126,18 @@ void _verifyAbiVersion(LibHegel lib) {
         );
       }
 
-      final versionStr = outVersion.value.cast<Utf8>().toDartString();
+      final versionPtr = outVersion.value;
+      if (versionPtr == nullptr) {
+        throw StateError(
+          '[hegeltest] hegel_version() returned no version string.\n'
+          'Cannot verify ABI compatibility.',
+        );
+      }
+
+      final versionStr = versionPtr.cast<Utf8>().toDartString();
       final parts = versionStr.split('.');
-      if (parts.length < 2) {
+      if (parts.length != 3 ||
+          parts.any((part) => int.tryParse(part) == null)) {
         throw StateError(
           '[hegeltest] Unexpected version format: $versionStr\n'
           'Expected semver (e.g. "0.30.0").',
