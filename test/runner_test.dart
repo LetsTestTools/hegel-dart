@@ -89,15 +89,11 @@ void main() {
   });
 
   group('assume', () {
-    hegelTest(
-      'filters invalid test cases',
-      (tc) {
-        final x = tc.draw(integers(min: 0, max: 200));
-        tc.assume(x > 50);
-        expect(x, greaterThan(50));
-      },
-      suppressHealthChecks: {HealthCheck.filterTooMuch},
-    );
+    hegelTest('filters invalid test cases', (tc) {
+      final x = tc.draw(integers(min: 0, max: 200));
+      tc.assume(x > 50);
+      expect(x, greaterThan(50));
+    }, suppressHealthChecks: {HealthCheck.filterTooMuch});
   });
 
   group('settings', () {

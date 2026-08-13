@@ -19,14 +19,10 @@ void main() {
   });
 
   group('where combinator', () {
-    hegelTest(
-      'filtered values satisfy predicate',
-      (tc) {
-        final v = tc.draw(integers(min: 0, max: 100).where((i) => i > 50));
-        expect(v, greaterThan(50));
-      },
-      suppressHealthChecks: {HealthCheck.filterTooMuch},
-    );
+    hegelTest('filtered values satisfy predicate', (tc) {
+      final v = tc.draw(integers(min: 0, max: 100).where((i) => i > 50));
+      expect(v, greaterThan(50));
+    }, suppressHealthChecks: {HealthCheck.filterTooMuch});
 
     hegelTest('even numbers only', (tc) {
       final v = tc.draw(integers(min: 0, max: 100).where((i) => i % 2 == 0));
