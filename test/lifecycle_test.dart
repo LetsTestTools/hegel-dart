@@ -17,11 +17,13 @@ void main() {
       expect(captured, isNotNull);
       expect(
         () => captured!.draw(integers()),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('after disposal'),
-        )),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('after disposal'),
+          ),
+        ),
       );
     });
 
@@ -49,10 +51,7 @@ void main() {
         captured = tc;
       }, testCases: 1);
 
-      expect(
-        () => captured!.clone(),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => captured!.clone(), throwsA(isA<StateError>()));
     });
 
     test('clone and dispose lifecycle works', () async {
@@ -92,10 +91,7 @@ void main() {
       await runner.run((tc) {
         final cloned = tc.clone();
         cloned.dispose();
-        expect(
-          () => cloned.draw(integers()),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => cloned.draw(integers()), throwsA(isA<StateError>()));
       }, testCases: 1);
     });
 
@@ -126,10 +122,7 @@ void main() {
       }, testCases: 1);
 
       // The clone's lifecycle.isAlive is now false, so draw should throw
-      expect(
-        () => leakedClone!.draw(integers()),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => leakedClone!.draw(integers()), throwsA(isA<StateError>()));
     });
   });
 }

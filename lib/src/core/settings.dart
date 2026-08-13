@@ -105,8 +105,11 @@ void applySettings(
   }
 
   if (verbosity != null) {
-    final res =
-        lib.hegel_settings_set_verbosity(ctx, settings, verbosity.value);
+    final res = lib.hegel_settings_set_verbosity(
+      ctx,
+      settings,
+      verbosity.value,
+    );
     _check(res, 'set_verbosity');
   }
 
@@ -115,14 +118,20 @@ void applySettings(
     for (final hc in suppressHealthChecks) {
       bits |= hc.value;
     }
-    final res =
-        lib.hegel_settings_set_suppress_health_check(ctx, settings, bits);
+    final res = lib.hegel_settings_set_suppress_health_check(
+      ctx,
+      settings,
+      bits,
+    );
     _check(res, 'set_suppress_health_check');
   }
 
   if (reportMultipleFailures != null) {
     final res = lib.hegel_settings_set_report_multiple_failures(
-        ctx, settings, reportMultipleFailures);
+      ctx,
+      settings,
+      reportMultipleFailures,
+    );
     _check(res, 'set_report_multiple_failures');
   }
 

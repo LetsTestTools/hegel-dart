@@ -50,43 +50,46 @@ void hegelStatefulTest(
   String? databaseKey,
   String? database,
 }) {
-  test(description, () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+  test(
+    description,
+    () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
 
-    await runner.run(
-      (tc) async {
-        final machine = create();
-        try {
-          await machine.setUp();
-          await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
-        } finally {
+      await runner.run(
+        (tc) async {
+          final machine = create();
           try {
-            await machine.tearDown();
-          } catch (e, st) {
-            stderr.writeln('[hegeltest] tearDown threw: $e\n$st');
+            await machine.setUp();
+            await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
+          } finally {
+            try {
+              await machine.tearDown();
+            } catch (e, st) {
+              stderr.writeln('[hegeltest] tearDown threw: $e\n$st');
+            }
           }
-        }
-      },
-      reproduceBlob: reproduce ?? config?.reproduce,
-      testCases: testCases ?? config?.testCases,
-      seed: seed ?? config?.seed ?? _envSeed(),
-      derandomize: derandomize ?? config?.derandomize,
-      phases: phases ?? config?.phases,
-      verbosity: verbosity ?? config?.verbosity,
-      suppressHealthChecks:
-          suppressHealthChecks ?? config?.suppressHealthChecks,
-      reportMultipleFailures:
-          reportMultipleFailures ?? config?.reportMultipleFailures,
-      databaseKey: databaseKey ?? config?.databaseKey,
-      database: database ?? config?.database,
-    );
-  },
-      timeout: timeout ?? const Timeout(Duration(minutes: 10)),
-      tags: tags,
-      skip: skip,
-      onPlatform: onPlatform,
-      retry: retry);
+        },
+        reproduceBlob: reproduce ?? config?.reproduce,
+        testCases: testCases ?? config?.testCases,
+        seed: seed ?? config?.seed ?? _envSeed(),
+        derandomize: derandomize ?? config?.derandomize,
+        phases: phases ?? config?.phases,
+        verbosity: verbosity ?? config?.verbosity,
+        suppressHealthChecks:
+            suppressHealthChecks ?? config?.suppressHealthChecks,
+        reportMultipleFailures:
+            reportMultipleFailures ?? config?.reportMultipleFailures,
+        databaseKey: databaseKey ?? config?.databaseKey,
+        database: database ?? config?.database,
+      );
+    },
+    timeout: timeout ?? const Timeout(Duration(minutes: 10)),
+    tags: tags,
+    skip: skip,
+    onPlatform: onPlatform,
+    retry: retry,
+  );
 }
 
 int? _envSeed() {

@@ -10,7 +10,8 @@ void main() {
 
   hegelTest('doubles respect bounds', (tc) {
     final v = tc.draw(
-        doubles(min: -1.0, max: 1.0, allowNan: false, allowInfinity: false));
+      doubles(min: -1.0, max: 1.0, allowNan: false, allowInfinity: false),
+    );
     expect(v, greaterThanOrEqualTo(-1.0));
     expect(v, lessThanOrEqualTo(1.0));
   });
@@ -38,10 +39,9 @@ void main() {
   });
 
   hegelTest('oneOf picks from generators', (tc) {
-    final v = tc.draw(oneOf([
-      integers(min: 0, max: 0),
-      integers(min: 1, max: 1),
-    ]));
+    final v = tc.draw(
+      oneOf([integers(min: 0, max: 0), integers(min: 1, max: 1)]),
+    );
     expect(v, anyOf(equals(0), equals(1)));
   });
 

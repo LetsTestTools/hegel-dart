@@ -59,11 +59,13 @@ void main() {
 
   group('composite generators', () {
     hegelTest('point record via composite', (tc) {
-      final point = tc.draw(Generator.composite<({int x, int y})>((tc) {
-        final x = tc.draw(integers(min: -100, max: 100));
-        final y = tc.draw(integers(min: -100, max: 100));
-        return (x: x, y: y);
-      }));
+      final point = tc.draw(
+        Generator.composite<({int x, int y})>((tc) {
+          final x = tc.draw(integers(min: -100, max: 100));
+          final y = tc.draw(integers(min: -100, max: 100));
+          return (x: x, y: y);
+        }),
+      );
       expect(point.x, greaterThanOrEqualTo(-100));
       expect(point.x, lessThanOrEqualTo(100));
       expect(point.y, greaterThanOrEqualTo(-100));
@@ -72,14 +74,21 @@ void main() {
 
     hegelTest('person model via composite', (tc) {
       final person = tc.draw(
-          Generator.composite<({String name, int age, bool active})>((tc) {
-        return (
-          name: tc.draw(text(
-              minSize: 1, maxSize: 20, minCodepoint: 0x41, maxCodepoint: 0x5A)),
-          age: tc.draw(integers(min: 0, max: 120)),
-          active: tc.draw(booleans()),
-        );
-      }));
+        Generator.composite<({String name, int age, bool active})>((tc) {
+          return (
+            name: tc.draw(
+              text(
+                minSize: 1,
+                maxSize: 20,
+                minCodepoint: 0x41,
+                maxCodepoint: 0x5A,
+              ),
+            ),
+            age: tc.draw(integers(min: 0, max: 120)),
+            active: tc.draw(booleans()),
+          );
+        }),
+      );
       expect(person.name, isNotEmpty);
       expect(person.age, greaterThanOrEqualTo(0));
       expect(person.age, lessThanOrEqualTo(120));
@@ -97,9 +106,10 @@ void main() {
 
     hegelTest('double map chain', (tc) {
       final v = tc.draw(
-        integers(min: 1, max: 10)
-            .map((i) => i.toString())
-            .map((s) => 'item_$s'),
+        integers(
+          min: 1,
+          max: 10,
+        ).map((i) => i.toString()).map((s) => 'item_$s'),
       );
       expect(v, startsWith('item_'));
     });

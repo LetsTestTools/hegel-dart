@@ -1,3 +1,18 @@
+## 0.5.0
+
+- **Breaking**: Minimum Dart SDK bumped to `>=3.10.0` (was `>=3.4.0`)
+- **New**: Native Assets integration — `hook/build.dart` registers prebuilt binaries
+  automatically. No more manual path resolution.
+- Simplified `library_loader.dart` (297 → 170 lines)
+- Moved SHA256 integrity verification to build time (`hook/build.dart`)
+- CI now tests native assets workflow (not env override)
+- Added `hooks` and `code_assets` dependencies
+- Graceful handling of unsupported targets (returns empty asset list, no build crash)
+- `HEGEL_LIBHEGEL_PATH` env override still works (runtime only)
+
+> **Migration**: If on Dart >=3.10.0, just bump to `hegeltest: ^0.5.0`.
+> If on Dart <3.10.0, stay on `hegeltest: ^0.4.0` (security fixes only).
+
 ## 0.4.0
 
 - **New**: Stateful (model-based) testing — `hegelStatefulTest()`, `StateMachine`, `StateRule`, `StateInvariant`

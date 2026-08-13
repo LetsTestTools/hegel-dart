@@ -16,7 +16,8 @@ class ListGenerator<T> extends Generator<List<T>> {
       throw ArgumentError('lists: minSize ($minSize) must be >= 0');
     if (minSize > maxSize)
       throw ArgumentError(
-          'lists: minSize ($minSize) must be <= maxSize ($maxSize)');
+        'lists: minSize ($minSize) must be <= maxSize ($maxSize)',
+      );
   }
 
   @override
@@ -25,21 +26,34 @@ class ListGenerator<T> extends Generator<List<T>> {
     bool success = false;
 
     try {
-      final outCollectionId =
-          tc.reuseBuffer<ffi.Int64>('listColId', () => calloc<ffi.Int64>());
+      final outCollectionId = tc.reuseBuffer<ffi.Int64>(
+        'listColId',
+        () => calloc<ffi.Int64>(),
+      );
       final res = tc.lib.hegel_new_collection(
-          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+        tc.ctx,
+        tc.handle,
+        minSize,
+        maxSize,
+        outCollectionId,
+      );
       if (res != hegel_result_t.HEGEL_OK)
         throw HegelException('Failed to create list collection');
 
       final collectionId = outCollectionId.value;
       final list = <T>[];
-      final outMore =
-          tc.reuseBuffer<ffi.Bool>('listMore', () => calloc<ffi.Bool>());
+      final outMore = tc.reuseBuffer<ffi.Bool>(
+        'listMore',
+        () => calloc<ffi.Bool>(),
+      );
 
       while (true) {
-        final moreRes = tc.lib
-            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        final moreRes = tc.lib.hegel_collection_more(
+          tc.ctx,
+          tc.handle,
+          collectionId,
+          outMore,
+        );
         if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
           throw const HegelStopTest();
         if (moreRes != hegel_result_t.HEGEL_OK)
@@ -73,7 +87,8 @@ class SetGenerator<T> extends Generator<Set<T>> {
       throw ArgumentError('sets: minSize ($minSize) must be >= 0');
     if (minSize > maxSize)
       throw ArgumentError(
-          'sets: minSize ($minSize) must be <= maxSize ($maxSize)');
+        'sets: minSize ($minSize) must be <= maxSize ($maxSize)',
+      );
   }
 
   @override
@@ -82,22 +97,35 @@ class SetGenerator<T> extends Generator<Set<T>> {
     bool success = false;
 
     try {
-      final outCollectionId =
-          tc.reuseBuffer<ffi.Int64>('setColId', () => calloc<ffi.Int64>());
+      final outCollectionId = tc.reuseBuffer<ffi.Int64>(
+        'setColId',
+        () => calloc<ffi.Int64>(),
+      );
       final res = tc.lib.hegel_new_collection(
-          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+        tc.ctx,
+        tc.handle,
+        minSize,
+        maxSize,
+        outCollectionId,
+      );
       if (res != hegel_result_t.HEGEL_OK)
         throw HegelException('Failed to create set collection');
 
       final collectionId = outCollectionId.value;
       final set = <T>{};
-      final outMore =
-          tc.reuseBuffer<ffi.Bool>('setMore', () => calloc<ffi.Bool>());
+      final outMore = tc.reuseBuffer<ffi.Bool>(
+        'setMore',
+        () => calloc<ffi.Bool>(),
+      );
       var consecutiveRejects = 0;
 
       while (true) {
-        final moreRes = tc.lib
-            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        final moreRes = tc.lib.hegel_collection_more(
+          tc.ctx,
+          tc.handle,
+          collectionId,
+          outMore,
+        );
         if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
           throw const HegelStopTest();
         if (moreRes != hegel_result_t.HEGEL_OK)
@@ -112,11 +140,16 @@ class SetGenerator<T> extends Generator<Set<T>> {
           threw = false;
           if (set.contains(e)) {
             tc.lib.hegel_collection_reject(
-                tc.ctx, tc.handle, collectionId, ffi.nullptr);
+              tc.ctx,
+              tc.handle,
+              collectionId,
+              ffi.nullptr,
+            );
             consecutiveRejects++;
             if (consecutiveRejects >= 1000) {
               stderr.writeln(
-                  '[hegeltest] Warning: SetGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+                '[hegeltest] Warning: SetGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.',
+              );
               threw = true;
               throw const HegelAssumptionViolated();
             }
@@ -148,7 +181,8 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
       throw ArgumentError('maps: minSize ($minSize) must be >= 0');
     if (minSize > maxSize)
       throw ArgumentError(
-          'maps: minSize ($minSize) must be <= maxSize ($maxSize)');
+        'maps: minSize ($minSize) must be <= maxSize ($maxSize)',
+      );
   }
 
   @override
@@ -157,22 +191,35 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
     bool success = false;
 
     try {
-      final outCollectionId =
-          tc.reuseBuffer<ffi.Int64>('mapColId', () => calloc<ffi.Int64>());
+      final outCollectionId = tc.reuseBuffer<ffi.Int64>(
+        'mapColId',
+        () => calloc<ffi.Int64>(),
+      );
       final res = tc.lib.hegel_new_collection(
-          tc.ctx, tc.handle, minSize, maxSize, outCollectionId);
+        tc.ctx,
+        tc.handle,
+        minSize,
+        maxSize,
+        outCollectionId,
+      );
       if (res != hegel_result_t.HEGEL_OK)
         throw HegelException('Failed to create map collection');
 
       final collectionId = outCollectionId.value;
       final map = <K, V>{};
-      final outMore =
-          tc.reuseBuffer<ffi.Bool>('mapMore', () => calloc<ffi.Bool>());
+      final outMore = tc.reuseBuffer<ffi.Bool>(
+        'mapMore',
+        () => calloc<ffi.Bool>(),
+      );
       var consecutiveRejects = 0;
 
       while (true) {
-        final moreRes = tc.lib
-            .hegel_collection_more(tc.ctx, tc.handle, collectionId, outMore);
+        final moreRes = tc.lib.hegel_collection_more(
+          tc.ctx,
+          tc.handle,
+          collectionId,
+          outMore,
+        );
         if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
           throw const HegelStopTest();
         if (moreRes != hegel_result_t.HEGEL_OK)
@@ -186,12 +233,17 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
           final k = keys.generate(tc);
           if (map.containsKey(k)) {
             tc.lib.hegel_collection_reject(
-                tc.ctx, tc.handle, collectionId, ffi.nullptr);
+              tc.ctx,
+              tc.handle,
+              collectionId,
+              ffi.nullptr,
+            );
             threw = false;
             consecutiveRejects++;
             if (consecutiveRejects >= 1000) {
               stderr.writeln(
-                  '[hegeltest] Warning: MapGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.');
+                '[hegeltest] Warning: MapGenerator rejected 1000 consecutive duplicates. Is the element domain too small for minSize? Discarding test case.',
+              );
               threw = true;
               throw const HegelAssumptionViolated();
             }
@@ -221,8 +273,11 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
 /// ```dart
 /// tc.draw(lists(integers(), maxSize: 10))
 /// ```
-Generator<List<T>> lists<T>(Generator<T> elements,
-    {int minSize = 0, int maxSize = 9223372036854775807}) {
+Generator<List<T>> lists<T>(
+  Generator<T> elements, {
+  int minSize = 0,
+  int maxSize = 9223372036854775807,
+}) {
   return ListGenerator(elements, minSize, maxSize);
 }
 
@@ -233,8 +288,11 @@ Generator<List<T>> lists<T>(Generator<T> elements,
 /// ```dart
 /// tc.draw(sets(integers(), maxSize: 5))
 /// ```
-Generator<Set<T>> sets<T>(Generator<T> elements,
-    {int minSize = 0, int maxSize = 9223372036854775807}) {
+Generator<Set<T>> sets<T>(
+  Generator<T> elements, {
+  int minSize = 0,
+  int maxSize = 9223372036854775807,
+}) {
   return SetGenerator(elements, minSize, maxSize);
 }
 
@@ -245,7 +303,11 @@ Generator<Set<T>> sets<T>(Generator<T> elements,
 /// ```dart
 /// tc.draw(maps(text(), integers(), maxSize: 5))
 /// ```
-Generator<Map<K, V>> maps<K, V>(Generator<K> keys, Generator<V> values,
-    {int minSize = 0, int maxSize = 9223372036854775807}) {
+Generator<Map<K, V>> maps<K, V>(
+  Generator<K> keys,
+  Generator<V> values, {
+  int minSize = 0,
+  int maxSize = 9223372036854775807,
+}) {
   return MapGenerator(keys, values, minSize, maxSize);
 }

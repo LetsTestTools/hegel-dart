@@ -42,7 +42,10 @@ class DateGenerator extends Generator<DateTime> {
       }
 
       return DateTime.utc(
-          outValue.ref.year, outValue.ref.month, outValue.ref.day);
+        outValue.ref.year,
+        outValue.ref.month,
+        outValue.ref.day,
+      );
     });
   }
 }
@@ -54,7 +57,9 @@ class DateGenerator extends Generator<DateTime> {
 /// ```
 Generator<DateTime> dates({DateTime? min, DateTime? max}) {
   return DateGenerator(
-      min ?? DateTime.utc(1, 1, 1), max ?? DateTime.utc(9999, 12, 31));
+    min ?? DateTime.utc(1, 1, 1),
+    max ?? DateTime.utc(9999, 12, 31),
+  );
 }
 
 typedef TimeRecord = ({int hour, int minute, int second, int microsecond});
@@ -101,7 +106,7 @@ class TimeGenerator extends Generator<TimeRecord> {
         hour: outValue.ref.hour,
         minute: outValue.ref.minute,
         second: outValue.ref.second,
-        microsecond: outValue.ref.microsecond
+        microsecond: outValue.ref.microsecond,
       );
     });
   }
@@ -113,8 +118,10 @@ class TimeGenerator extends Generator<TimeRecord> {
 /// tc.draw(times())
 /// ```
 Generator<TimeRecord> times({TimeRecord? min, TimeRecord? max}) {
-  return TimeGenerator(min ?? (hour: 0, minute: 0, second: 0, microsecond: 0),
-      max ?? (hour: 23, minute: 59, second: 59, microsecond: 999999));
+  return TimeGenerator(
+    min ?? (hour: 0, minute: 0, second: 0, microsecond: 0),
+    max ?? (hour: 23, minute: 59, second: 59, microsecond: 999999),
+  );
 }
 
 class DateTimeGenerator extends Generator<DateTime> {
@@ -182,6 +189,8 @@ class DateTimeGenerator extends Generator<DateTime> {
 /// tc.draw(dateTimes())
 /// ```
 Generator<DateTime> dateTimes({DateTime? min, DateTime? max}) {
-  return DateTimeGenerator(min ?? DateTime.utc(1, 1, 1),
-      max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 0, 999));
+  return DateTimeGenerator(
+    min ?? DateTime.utc(1, 1, 1),
+    max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 0, 999),
+  );
 }

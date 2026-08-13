@@ -23,8 +23,10 @@ void main() {
 
     // bigIntegers
     test('bigIntegers rejects inverted bounds', () {
-      expect(() => bigIntegers(min: BigInt.from(100), max: BigInt.from(0)),
-          throwsArgumentError);
+      expect(
+        () => bigIntegers(min: BigInt.from(100), max: BigInt.from(0)),
+        throwsArgumentError,
+      );
     });
 
     // text
@@ -39,7 +41,9 @@ void main() {
     });
     test('text rejects inverted codepoints', () {
       expect(
-          () => text(minCodepoint: 100, maxCodepoint: 50), throwsArgumentError);
+        () => text(minCodepoint: 100, maxCodepoint: 50),
+        throwsArgumentError,
+      );
     });
 
     // lists
@@ -47,8 +51,10 @@ void main() {
       expect(() => lists(integers(), minSize: -1), throwsArgumentError);
     });
     test('lists rejects inverted sizes', () {
-      expect(() => lists(integers(), minSize: 10, maxSize: 5),
-          throwsArgumentError);
+      expect(
+        () => lists(integers(), minSize: 10, maxSize: 5),
+        throwsArgumentError,
+      );
     });
 
     // sets
@@ -57,17 +63,23 @@ void main() {
     });
     test('sets rejects inverted sizes', () {
       expect(
-          () => sets(integers(), minSize: 10, maxSize: 5), throwsArgumentError);
+        () => sets(integers(), minSize: 10, maxSize: 5),
+        throwsArgumentError,
+      );
     });
 
     // maps
     test('maps rejects negative minSize', () {
       expect(
-          () => maps(integers(), integers(), minSize: -1), throwsArgumentError);
+        () => maps(integers(), integers(), minSize: -1),
+        throwsArgumentError,
+      );
     });
     test('maps rejects inverted sizes', () {
-      expect(() => maps(integers(), integers(), minSize: 10, maxSize: 5),
-          throwsArgumentError);
+      expect(
+        () => maps(integers(), integers(), minSize: 10, maxSize: 5),
+        throwsArgumentError,
+      );
     });
 
     // frequency
@@ -78,8 +90,10 @@ void main() {
       expect(() => frequency<int>([(0, integers())]), throwsArgumentError);
     });
     test('frequency rejects negative weights', () {
-      expect(() => frequency<int>([(-1, integers()), (10, integers())]),
-          throwsArgumentError);
+      expect(
+        () => frequency<int>([(-1, integers()), (10, integers())]),
+        throwsArgumentError,
+      );
     });
 
     // sampled
@@ -103,12 +117,16 @@ void main() {
       booleans(p: 1.0);
     });
     test('nullable rejects nullProbability < 0', () {
-      expect(() => nullable(integers(), nullProbability: -0.5),
-          throwsArgumentError);
+      expect(
+        () => nullable(integers(), nullProbability: -0.5),
+        throwsArgumentError,
+      );
     });
     test('nullable rejects nullProbability > 1', () {
-      expect(() => nullable(integers(), nullProbability: 1.5),
-          throwsArgumentError);
+      expect(
+        () => nullable(integers(), nullProbability: 1.5),
+        throwsArgumentError,
+      );
     });
   });
 }

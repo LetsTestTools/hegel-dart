@@ -14,7 +14,7 @@ Add `hegeltest` to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  hegeltest: ^0.4.0
+  hegeltest: ^0.5.0
   test: ^1.25.0
 ```
 
@@ -198,9 +198,20 @@ void main() {
 | Windows | x64 | ✅ Bundled |
 | Windows | arm64 | ✅ Bundled |
 
-All bundled binaries are verified with SHA256 checksums before loading.
+All bundled binaries are verified via ABI version check at load time.
 
 Set `HEGEL_LIBHEGEL_PATH` to use a custom-built binary on unsupported platforms.
+
+## Version Policy
+
+| Branch | Dart SDK | Status |
+|---|---|---|
+| `hegeltest ^0.5.0` | `>=3.10.0` | **Active** — all new features |
+| `hegeltest ^0.4.0` | `>=3.4.0` | **Maintenance** — security fixes only |
+
+## CI/CD Notes
+
+hegeltest uses Dart's [Build Hooks](https://dart.dev/tools/hooks) to register native binaries. The build hook runs automatically during `dart test` and `flutter test` — no extra CI configuration needed. No network access is required (binaries are bundled in the package).
 
 ## License
 

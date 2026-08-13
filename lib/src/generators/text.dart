@@ -68,25 +68,33 @@ class TextGenerator extends _BaseNativeStringGenerator {
   final int maxCodepoint;
 
   TextGenerator(
-      this.minSize, this.maxSize, this.minCodepoint, this.maxCodepoint) {
+    this.minSize,
+    this.maxSize,
+    this.minCodepoint,
+    this.maxCodepoint,
+  ) {
     if (minSize < 0) {
       throw ArgumentError('text: minSize ($minSize) must be >= 0');
     }
     if (minSize > maxSize) {
       throw ArgumentError(
-          'text: minSize ($minSize) must be <= maxSize ($maxSize)');
+        'text: minSize ($minSize) must be <= maxSize ($maxSize)',
+      );
     }
     if (minCodepoint < 0 || minCodepoint > 0x10FFFF) {
       throw ArgumentError(
-          'text: minCodepoint ($minCodepoint) must be in [0, 0x10FFFF]');
+        'text: minCodepoint ($minCodepoint) must be in [0, 0x10FFFF]',
+      );
     }
     if (maxCodepoint < 0 || maxCodepoint > 0x10FFFF) {
       throw ArgumentError(
-          'text: maxCodepoint ($maxCodepoint) must be in [0, 0x10FFFF]');
+        'text: maxCodepoint ($maxCodepoint) must be in [0, 0x10FFFF]',
+      );
     }
     if (minCodepoint > maxCodepoint) {
       throw ArgumentError(
-          'text: minCodepoint ($minCodepoint) must be <= maxCodepoint ($maxCodepoint)');
+        'text: minCodepoint ($minCodepoint) must be <= maxCodepoint ($maxCodepoint)',
+      );
     }
   }
 
@@ -130,11 +138,12 @@ class TextGenerator extends _BaseNativeStringGenerator {
 /// ```dart
 /// tc.draw(text(minSize: 10, maxSize: 50))
 /// ```
-Generator<String> text(
-    {int minSize = 0,
-    int maxSize = 100,
-    int minCodepoint = 0,
-    int maxCodepoint = 0x10FFFF}) {
+Generator<String> text({
+  int minSize = 0,
+  int maxSize = 100,
+  int minCodepoint = 0,
+  int maxCodepoint = 0x10FFFF,
+}) {
   return TextGenerator(minSize, maxSize, minCodepoint, maxCodepoint);
 }
 
@@ -156,8 +165,9 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final patternPtr =
-          pattern.toNativeUtf8(allocator: arena).cast<ffi.Char>();
+      final patternPtr = pattern
+          .toNativeUtf8(allocator: arena)
+          .cast<ffi.Char>();
       final result = tc.lib.hegel_string_generator_regex(
         tc.ctx,
         patternPtr,
@@ -170,7 +180,8 @@ class RegexGenerator extends _BaseNativeStringGenerator {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException(
-            'Failed to build regex generator: ${result.value}');
+          'Failed to build regex generator: ${result.value}',
+        );
       }
       return outGen.value;
     });
@@ -199,7 +210,8 @@ class EmailGenerator extends _BaseNativeStringGenerator {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException(
-            'Failed to build email generator: ${result.value}');
+          'Failed to build email generator: ${result.value}',
+        );
       }
       return outGen.value;
     });
@@ -247,14 +259,18 @@ class DomainGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final result =
-          tc.lib.hegel_string_generator_domain(tc.ctx, maxLength, outGen);
+      final result = tc.lib.hegel_string_generator_domain(
+        tc.ctx,
+        maxLength,
+        outGen,
+      );
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw HegelException(
-            'Failed to build domain generator: ${result.value}');
+          'Failed to build domain generator: ${result.value}',
+        );
       }
       return outGen.value;
     });
