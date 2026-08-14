@@ -1,3 +1,9 @@
+## 0.5.1
+
+- **Fix**: Move `hooks`, `code_assets`, and `crypto` to `dev_dependencies` —
+  these are build-time only (used by `hook/build.dart`), fixing Flutter
+  compatibility where `flutter_test` pins `meta 1.17.0`
+
 ## 0.5.0
 
 - **Breaking**: Minimum Dart SDK bumped to `>=3.10.0` (was `>=3.4.0`)
