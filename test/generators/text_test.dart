@@ -88,6 +88,15 @@ void main() {
     });
   });
 
+  group('urls', () {
+    hegelTest('parses as valid URI', (tc) {
+      final v = tc.draw(urls());
+      final uri = Uri.tryParse(v);
+      expect(uri, isNotNull);
+      expect(uri!.scheme, isNotEmpty);
+    });
+  });
+
   group('bytes', () {
     hegelTest('respects size bounds', (tc) {
       final v = tc.draw(bytes(minSize: 5, maxSize: 20));
