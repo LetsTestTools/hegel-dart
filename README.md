@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/pub/v/hegeltest.svg)](https://pub.dev/packages/hegeltest)
 [![CI](https://github.com/LetsTestTools/hegel-dart/actions/workflows/ci.yml/badge.svg)](https://github.com/LetsTestTools/hegel-dart/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## What is property-based testing?
 
@@ -26,13 +26,16 @@ import 'package:test/test.dart';
 
 void main() {
   hegelTest('reverse is involutory', (tc) {
-    final xs = tc.draw(lists(integers()));
+    // Provide a label to make counterexample output clearer on failure
+    final xs = tc.draw(lists(integers()), label: 'original list');
     expect(xs.reversed.toList().reversed.toList(), equals(xs));
   });
 }
 ```
 
 ## Available Generators
+
+*(If you only need generators, you can use the sub-path import: `import 'package:hegeltest/generators.dart';`)*
 
 | Category | Generators |
 |----------|------------|
@@ -57,6 +60,24 @@ final userGen = Generator.composite<User>((tc) {
   final age = tc.draw(integers(min: 0, max: 150));
   return User(name: name, age: age);
 });
+```
+
+## Preconditions and Filtering
+
+You can filter out invalid inputs using `tc.assume()`. If the condition is false, the current test case is discarded and a new one is generated:
+
+```dart
+final a = tc.draw(integers());
+tc.assume(a != 0); // discard test cases where a is 0
+```
+
+## Optimization Hints
+
+You can guide the engine's fuzzing towards specific edge cases using `tc.target()`. It records a numeric observation that the engine attempts to maximize or minimize. The `label` is required:
+
+```dart
+final items = tc.draw(lists(integers()), label: 'items');
+tc.target(items.length.toDouble(), label: 'list_length');
 ```
 
 ## Stateful Testing
@@ -143,6 +164,20 @@ final thorough = HegelConfig(testCases: 100000);
 hegelTest('check', (tc) { ... }, config: thorough);
 ```
 
+You can save and load previously discovered interesting inputs across runs by specifying a `database` directory path and a unique `databaseKey` for the test. Note: database persistence depends on engine support and may require explicit path configuration.
+
+For CI reproducibility, you can set the `HEGEL_SEED` environment variable. When set, all `hegelTest` calls will use this deterministic seed unless explicitly overridden.
+
+### Advanced Configuration
+
+You can fine-tune the engine's behavior using advanced settings:
+* `phases`: Control which phases to run — `Phase.explicit`, `Phase.reuse`, `Phase.generate`, `Phase.target`, `Phase.shrink`.
+* `verbosity`: Set output detail — `Verbosity.quiet`, `Verbosity.normal`, `Verbosity.verbose`, `Verbosity.debug`.
+* `backend`: Choose the randomness source — `Backend.auto_`, `Backend.default_`, `Backend.urandom`.
+* `suppressHealthChecks`: Disable specific engine health checks like `HealthCheck.tooSlow`, `HealthCheck.filterTooMuch`, `HealthCheck.returnsSlowly`, `HealthCheck.largeBaseExample`.
+* `derandomize`: Avoid randomizing generation if possible.
+* `reportMultipleFailures`: Report all failures instead of stopping at the first.
+
 ## Per-Iteration Isolation
 
 If your test mutates state, make sure to isolate iterations properly using `setUpEach` and `tearDownEach` instead of the standard `package:test` setup functions. `package:test`'s `setUp` runs once per property, **not** per iteration.
@@ -215,4 +250,4 @@ hegeltest uses Dart's [Build Hooks](https://dart.dev/tools/hooks) to register na
 
 ## License
 
-This package is licensed under the BSD-3-Clause license.
+This package is licensed under the MIT license.
