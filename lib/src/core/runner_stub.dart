@@ -5,6 +5,8 @@
 
 // ignore_for_file: avoid_unused_constructor_parameters
 
+import 'result.dart';
+
 /// Throws [UnsupportedError] — hegeltest requires dart:ffi.
 Never _unsupported() => throw UnsupportedError(
   'hegeltest requires dart:ffi and is not supported on web. '
@@ -39,7 +41,7 @@ void hegelTest(
 }) => _unsupported();
 
 /// Stub for [runHegelTest] on unsupported platforms.
-Future<dynamic> runHegelTest(
+Future<RunResult> runHegelTest(
   Function body, {
   dynamic config,
   int? testCases,
@@ -62,8 +64,25 @@ class HegelRunner {
 
   /// Stub — throws [UnsupportedError].
   Future<void> run(
-    dynamic body, {
-    dynamic reproduceBlob,
+    Function body, {
+    String? reproduceBlob,
+    int? testCases,
+    int? seed,
+    bool? derandomize,
+    dynamic phases,
+    dynamic verbosity,
+    dynamic suppressHealthChecks,
+    bool? reportMultipleFailures,
+    String? databaseKey,
+    String? database,
+    dynamic Function()? setUpEach,
+    dynamic Function()? tearDownEach,
+  }) => _unsupported();
+
+  /// Stub — throws [UnsupportedError].
+  Future<RunResult> runWithResult(
+    Function body, {
+    String? reproduceBlob,
     int? testCases,
     int? seed,
     bool? derandomize,
