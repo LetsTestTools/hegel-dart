@@ -1,3 +1,11 @@
+## 0.6.0
+
+- **New**: `runHegelTest()` — standalone property runner that returns `RunResult` without `package:test` dependency. Use for custom runners, CI integration, or programmatic analysis.
+- **New**: Examples — stateful testing (`StackMachine`, `Pool<String>`), composite generators (`User`, `Address`), and reproduction workflow
+- **New**: Test coverage for temporal (`dates`, `times`, `dateTimes`), network (`ipv4Addresses`, `ipv6Addresses`), and `urls()` generators
+- **Docs**: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue/PR templates
+- **Docs**: README — documented `assume()`, `target()`, named draws, `HEGEL_SEED`, `database`/`databaseKey`, advanced settings, standalone runner
+
 ## 0.5.0
 
 - **Breaking**: Minimum Dart SDK bumped to `>=3.10.0` (was `>=3.4.0`)
