@@ -38,6 +38,24 @@ void hegelTest(
   dynamic Function()? tearDownEach,
 }) => _unsupported();
 
+/// Stub for [runHegelTest] on unsupported platforms.
+Future<dynamic> runHegelTest(
+  Function body, {
+  dynamic config,
+  int? testCases,
+  int? seed,
+  bool? derandomize,
+  dynamic phases,
+  dynamic verbosity,
+  dynamic suppressHealthChecks,
+  bool? reportMultipleFailures,
+  String? reproduce,
+  String? databaseKey,
+  String? database,
+  dynamic Function()? setUpEach,
+  dynamic Function()? tearDownEach,
+}) => _unsupported();
+
 /// Stub for [HegelRunner] on unsupported platforms.
 class HegelRunner {
   HegelRunner(dynamic lib);

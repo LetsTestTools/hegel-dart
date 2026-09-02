@@ -155,7 +155,31 @@ class KVStoreMachine extends StateMachine {
 }
 ```
 
+## Standalone Runner
+
+If you are building custom test runners, integrating with other tools, or just want programmatic access to the fuzzing engine without `package:test` integration, you can use `runHegelTest()`:
+
+```dart
+import 'package:hegeltest/hegeltest.dart';
+
+void main() async {
+  final result = await runHegelTest((tc) {
+    final a = tc.draw(integers());
+    if (a < 0) throw Exception('No negatives!');
+  });
+
+  print(result.status); // RunStatus.failed
+  print(result.testCasesRun);
+  
+  for (final failure in result.failures) {
+    print(failure.message);
+    print(failure.reproductionBlob);
+  }
+}
+```
+
 ## Configuration
+
 
 For reusable test configurations, you can use `HegelConfig`:
 

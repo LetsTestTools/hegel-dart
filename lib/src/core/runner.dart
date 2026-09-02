@@ -10,6 +10,7 @@ import '../ffi/hegel_bindings.g.dart';
 import '../ffi/library_loader.dart';
 import 'exceptions.dart';
 import 'origin.dart';
+import 'result.dart';
 import 'settings.dart';
 import 'hegel_settings.dart';
 import 'test_case.dart';
@@ -39,7 +40,7 @@ class HegelRunner {
   final Map<String, (Object, StackTrace, List<(String, String)>)>
   _caughtExceptions = {};
 
-  Future<void> run(
+  Future<RunResult> runWithResult(
     FutureOr<void> Function(TestCase) body, {
     String? reproduceBlob,
     int? testCases,
@@ -214,24 +215,35 @@ class HegelRunner {
         });
 
         if (status == hegel_status_t.HEGEL_STATUS_INTERESTING.value) {
-          // Include counterexample in the rethrown error.
+          String message =
+              'Property failed during blob replay. Origin: $originStr';
           if (caughtError != null && caughtStack != null) {
             final drawLogStr = tc.drawLog.isNotEmpty
                 ? '\nCounterexample:\n${tc.drawLog.indexed.map((e) => '  draw #${e.$1 + 1} (${e.$2.$1}): ${e.$2.$2}').join('\n')}'
                 : '';
-            throw HegelTestFailure(
-              'Property failed during blob replay. Origin: $originStr\n'
-              '\nCaused by: $caughtError'
-              '\n$caughtStack'
-              '$drawLogStr',
-            );
+            message =
+                'Property failed during blob replay. Origin: $originStr\n'
+                '\nCaused by: $caughtError'
+                '\n$caughtStack'
+                '$drawLogStr';
           }
-          throw HegelTestFailure(
-            'Property failed during blob replay. Origin: $originStr',
+          return RunResult(
+            status: RunStatus.failed,
+            testCasesRun: 1,
+            failures: [
+              Failure(
+                message: message,
+                origin: originStr ?? '',
+                reproductionBlob: reproduceBlob,
+              ),
+            ],
           );
         }
 
-        return; // Done with blob replay
+        return const RunResult(
+          status: RunStatus.passed,
+          testCasesRun: 1,
+        ); // Done with blob replay
       }
 
       // 2. Start Run
@@ -263,6 +275,7 @@ class HegelRunner {
       final outTestCase = calloc<Pointer<hegel_test_case_t>>();
       // Shared buffer cache survives across iterations — freed at end-of-run.
       final sharedBufferCache = <String, Pointer<Void>>{};
+      int testCasesRun = 0;
       try {
         while (true) {
           final res = lib.hegel_next_test_case(ctx, runHandle, outTestCase);
@@ -279,6 +292,7 @@ class HegelRunner {
           if (tcHandle == nullptr) {
             break; // Run finished
           }
+          testCasesRun++;
 
           final tc = TestCase(
             ctx,
@@ -427,11 +441,12 @@ class HegelRunner {
         final resultHandle = outResult.value;
         if (resultHandle != nullptr) {
           try {
-            _reportResults(ctx, resultHandle);
+            return _extractRunResult(ctx, resultHandle, testCasesRun);
           } finally {
             lib.hegel_run_result_free(ctx, resultHandle);
           }
         }
+        return RunResult(status: RunStatus.passed, testCasesRun: testCasesRun);
       } finally {
         calloc.free(outResult);
       }
@@ -448,11 +463,53 @@ class HegelRunner {
     }
   }
 
-  void _reportResults(
+  Future<void> run(
+    FutureOr<void> Function(TestCase) body, {
+    String? reproduceBlob,
+    int? testCases,
+    int? seed,
+    bool? derandomize,
+    Set<Phase>? phases,
+    Verbosity? verbosity,
+    Set<HealthCheck>? suppressHealthChecks,
+    bool? reportMultipleFailures,
+    String? databaseKey,
+    String? database,
+    FutureOr<void> Function()? setUpEach,
+    FutureOr<void> Function()? tearDownEach,
+  }) async {
+    final result = await runWithResult(
+      body,
+      reproduceBlob: reproduceBlob,
+      testCases: testCases,
+      seed: seed,
+      derandomize: derandomize,
+      phases: phases,
+      verbosity: verbosity,
+      suppressHealthChecks: suppressHealthChecks,
+      reportMultipleFailures: reportMultipleFailures,
+      databaseKey: databaseKey,
+      database: database,
+      setUpEach: setUpEach,
+      tearDownEach: tearDownEach,
+    );
+
+    if (result.status == RunStatus.failed) {
+      throw HegelTestFailure(
+        result.failures.map((f) => f.message).join('\n---\n'),
+      );
+    } else if (result.status == RunStatus.error) {
+      throw HegelTestFailure(result.errorMessage ?? 'Run ended in an error.');
+    }
+  }
+
+  RunResult _extractRunResult(
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
+    int testCasesRun,
   ) {
     final outStatus = calloc<UnsignedInt>();
+    int statusValue;
     try {
       final statusRes = lib.hegel_run_result_status(
         ctx,
@@ -467,20 +524,30 @@ class HegelRunner {
           statusRes.value,
         );
       }
-      final statusValue = outStatus.value;
-
-      if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
-        _reportFailures(ctx, resultHandle);
-      } else if (statusValue ==
-          hegel_run_status_t.HEGEL_RUN_STATUS_ERROR.value) {
-        _reportError(ctx, resultHandle);
-      }
+      statusValue = outStatus.value;
     } finally {
       calloc.free(outStatus);
     }
+
+    if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
+      final failures = _extractFailures(ctx, resultHandle);
+      return RunResult(
+        status: RunStatus.failed,
+        testCasesRun: testCasesRun,
+        failures: failures,
+      );
+    } else if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_ERROR.value) {
+      final errMsg = _extractError(ctx, resultHandle);
+      return RunResult(
+        status: RunStatus.error,
+        testCasesRun: testCasesRun,
+        errorMessage: errMsg,
+      );
+    }
+    return RunResult(status: RunStatus.passed, testCasesRun: testCasesRun);
   }
 
-  void _reportFailures(
+  List<Failure> _extractFailures(
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
   ) {
@@ -500,9 +567,9 @@ class HegelRunner {
         );
       }
       final failCount = countPtr.value;
-      if (failCount == 0) return;
+      if (failCount == 0) return [];
 
-      final messages = <String>[];
+      final failures = <Failure>[];
       for (var i = 0; i < failCount; i++) {
         final failOut = calloc<Pointer<hegel_failure_t>>();
         try {
@@ -523,7 +590,37 @@ class HegelRunner {
           final failure = failOut.value;
           if (failure != nullptr) {
             try {
-              messages.add(_extractFailureMessage(ctx, failure));
+              final message = _extractFailureMessage(ctx, failure);
+
+              String originStr = '';
+              final originOut = calloc<Pointer<Char>>();
+              try {
+                lib.hegel_failure_origin(ctx, failure, originOut);
+                if (originOut.value != nullptr) {
+                  originStr = originOut.value.cast<Utf8>().toDartString();
+                }
+              } finally {
+                calloc.free(originOut);
+              }
+
+              String blobStr = '';
+              final blobOut = calloc<Pointer<Char>>();
+              try {
+                lib.hegel_failure_reproduction_blob(ctx, failure, blobOut);
+                if (blobOut.value != nullptr) {
+                  blobStr = blobOut.value.cast<Utf8>().toDartString();
+                }
+              } finally {
+                calloc.free(blobOut);
+              }
+
+              failures.add(
+                Failure(
+                  message: message,
+                  origin: originStr,
+                  reproductionBlob: blobStr,
+                ),
+              );
             } finally {
               lib.hegel_failure_free(ctx, failure);
             }
@@ -532,10 +629,26 @@ class HegelRunner {
           calloc.free(failOut);
         }
       }
-
-      throw HegelTestFailure(messages.join('\n---\n'));
+      return failures;
     } finally {
       calloc.free(countPtr);
+    }
+  }
+
+  String _extractError(
+    Pointer<hegel_context_t> ctx,
+    Pointer<hegel_run_result_t> resultHandle,
+  ) {
+    final errOut = calloc<Pointer<Char>>();
+    try {
+      lib.hegel_run_result_error(ctx, resultHandle, errOut);
+      var errMsg = 'Run ended in an error.';
+      if (errOut.value != nullptr) {
+        errMsg = errOut.value.cast<Utf8>().toDartString();
+      }
+      return errMsg;
+    } finally {
+      calloc.free(errOut);
     }
   }
 
@@ -589,23 +702,6 @@ class HegelRunner {
     }
 
     return buf.toString();
-  }
-
-  void _reportError(
-    Pointer<hegel_context_t> ctx,
-    Pointer<hegel_run_result_t> resultHandle,
-  ) {
-    final errOut = calloc<Pointer<Char>>();
-    try {
-      lib.hegel_run_result_error(ctx, resultHandle, errOut);
-      var errMsg = 'Run ended in an error.';
-      if (errOut.value != nullptr) {
-        errMsg = errOut.value.cast<Utf8>().toDartString();
-      }
-      throw HegelTestFailure(errMsg);
-    } finally {
-      calloc.free(errOut);
-    }
   }
 }
 
@@ -676,6 +772,47 @@ void hegelTest(
     skip: skip,
     onPlatform: onPlatform,
     retry: retry,
+  );
+}
+
+/// Run a property-based test standalone, returning a [RunResult] instead of
+/// throwing an exception.
+///
+/// This does not depend on `package:test` and is useful for custom test
+/// runners, programmatic execution, or analysis.
+Future<RunResult> runHegelTest(
+  FutureOr<void> Function(TestCase tc) body, {
+  HegelConfig? config,
+  int? testCases,
+  int? seed,
+  bool? derandomize,
+  Set<Phase>? phases,
+  Verbosity? verbosity,
+  Set<HealthCheck>? suppressHealthChecks,
+  bool? reportMultipleFailures,
+  String? reproduce,
+  String? databaseKey,
+  String? database,
+  FutureOr<void> Function()? setUpEach,
+  FutureOr<void> Function()? tearDownEach,
+}) async {
+  final lib = loadHegelLibrary();
+  final runner = HegelRunner(lib);
+  return runner.runWithResult(
+    body,
+    reproduceBlob: reproduce ?? config?.reproduce,
+    testCases: testCases ?? config?.testCases,
+    seed: seed ?? config?.seed ?? _envSeed(),
+    derandomize: derandomize ?? config?.derandomize,
+    phases: phases ?? config?.phases,
+    verbosity: verbosity ?? config?.verbosity,
+    suppressHealthChecks: suppressHealthChecks ?? config?.suppressHealthChecks,
+    reportMultipleFailures:
+        reportMultipleFailures ?? config?.reportMultipleFailures,
+    databaseKey: databaseKey ?? config?.databaseKey,
+    database: database ?? config?.database,
+    setUpEach: setUpEach,
+    tearDownEach: tearDownEach,
   );
 }
 
