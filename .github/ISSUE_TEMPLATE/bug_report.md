@@ -16,6 +16,8 @@ Provide the smallest test or code snippet that reproduces the issue:
 2. The input or seed used (if known)
 3. The full error output
 
+> ⚠️ **Before posting**, redact any secrets, personal data, and local file paths from your error output and `reproduce:` blobs.
+
 ## Expected Behavior
 A clear and concise description of what you expected to happen.
 
