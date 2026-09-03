@@ -1,3 +1,7 @@
+## 0.6.1
+
+- **Fix**: Add `runWithResult()` to web stub `HegelRunner` — fixes `undefined_method` analyzer error in downstream packages (e.g. `hegeltest_flutter`)
+
 ## 0.6.0
 
 - **New**: `runHegelTest()` — standalone property runner that returns `RunResult` without `package:test` dependency. Use for custom runners, CI integration, or programmatic analysis.
