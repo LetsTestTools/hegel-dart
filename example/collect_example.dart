@@ -27,7 +27,9 @@ void main() async {
     }
 
     // Invariant: reversing a list preserves its length
-    assert(xs.reversed.length == xs.length);
+    if (xs.reversed.length != xs.length) {
+      throw StateError('Invariant violated: length changed on reverse');
+    }
   }, testCases: 200);
 
   print('Status: ${result.status}');

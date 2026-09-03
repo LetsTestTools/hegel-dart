@@ -167,24 +167,14 @@ class HegelRunner {
           );
 
           await completer.future;
-          final staged = tc.takeStagedObservations();
-          for (final entry in staged.entries) {
-            final labelMap = statistics.putIfAbsent(entry.key, () => {});
-            for (final obs in entry.value) {
-              labelMap[obs] = (labelMap[obs] ?? 0) + 1;
-            }
-          }
         } on HegelStopTest {
-          tc.clearStagedObservations();
           status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
         } on HegelAssumptionViolated {
-          tc.clearStagedObservations();
           status = hegel_status_t.HEGEL_STATUS_INVALID.value;
         } on HegelException {
           tc.clearStagedObservations();
           rethrow;
         } catch (e, st) {
-          tc.clearStagedObservations();
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
           originStr = extractOrigin(st);
           caughtError = e;
@@ -203,6 +193,18 @@ class HegelRunner {
                 stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
               }
             }
+          }
+
+          if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+            final staged = tc.takeStagedObservations();
+            for (final entry in staged.entries) {
+              final labelMap = statistics.putIfAbsent(entry.key, () => {});
+              for (final obs in entry.value) {
+                labelMap[obs] = (labelMap[obs] ?? 0) + 1;
+              }
+            }
+          } else {
+            tc.clearStagedObservations();
           }
         }
 
@@ -354,18 +356,9 @@ class HegelRunner {
             );
 
             await completer.future;
-            final staged = tc.takeStagedObservations();
-            for (final entry in staged.entries) {
-              final labelMap = statistics.putIfAbsent(entry.key, () => {});
-              for (final obs in entry.value) {
-                labelMap[obs] = (labelMap[obs] ?? 0) + 1;
-              }
-            }
           } on HegelStopTest {
-            tc.clearStagedObservations();
             status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
           } on HegelAssumptionViolated {
-            tc.clearStagedObservations();
             status = hegel_status_t.HEGEL_STATUS_INVALID.value;
           } on HegelException {
             tc.clearStagedObservations();
@@ -373,7 +366,6 @@ class HegelRunner {
             // Rethrow so the runner's outer try/finally handles cleanup.
             rethrow;
           } catch (e, st) {
-            tc.clearStagedObservations();
             status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
             originStr = extractOrigin(st);
             // Store the exception with draw log for counterexample reporting
@@ -393,6 +385,18 @@ class HegelRunner {
                   stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
                 }
               }
+            }
+
+            if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+              final staged = tc.takeStagedObservations();
+              for (final entry in staged.entries) {
+                final labelMap = statistics.putIfAbsent(entry.key, () => {});
+                for (final obs in entry.value) {
+                  labelMap[obs] = (labelMap[obs] ?? 0) + 1;
+                }
+              }
+            } else {
+              tc.clearStagedObservations();
             }
           }
 
