@@ -88,7 +88,7 @@ LibHegel _trySystemPath(String libName) {
   } on ArgumentError {
     throw UnsupportedError(
       'hegeltest: no native binary available for '
-      '${Platform.operatingSystem} ${_currentArch}.\n'
+      '${Platform.operatingSystem} $_currentArch.\n'
       '\n'
       'Supported platforms: macOS arm64, Linux x64/arm64, '
       'Windows x64/arm64.\n'

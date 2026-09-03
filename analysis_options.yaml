@@ -10,6 +10,5 @@ analyzer:
 linter:
   rules:
     - prefer_single_quotes
-    - sort_constructors_first
     - unawaited_futures
     - prefer_final_locals

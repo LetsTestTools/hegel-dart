@@ -1,8 +1,9 @@
 /// Exceptions for the Hegel property-based testing framework.
+library;
 
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
-import 'package:test_api/test_api.dart' show TestFailure;
+import 'package:test/test.dart' show TestFailure;
 import '../ffi/hegel_bindings.g.dart';
 
 /// Thrown when the engine's choice budget is exhausted.

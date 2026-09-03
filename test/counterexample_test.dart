@@ -38,7 +38,7 @@ void main() {
         isA<HegelTestFailure>().having(
           (e) => e.message,
           'message',
-          contains("reproduce:"),
+          contains('reproduce:'),
         ),
       ),
     );

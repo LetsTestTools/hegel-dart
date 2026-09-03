@@ -11,7 +11,7 @@
 ///   });
 /// }
 /// ```
-library hegeltest;
+library;
 
 export 'src/core/exceptions.dart'
     show

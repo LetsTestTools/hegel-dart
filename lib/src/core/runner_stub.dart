@@ -2,6 +2,7 @@
 ///
 /// This file is conditionally imported when dart.library.io is not available.
 /// All functions throw [UnsupportedError] at runtime.
+library;
 
 // ignore_for_file: avoid_unused_constructor_parameters
 

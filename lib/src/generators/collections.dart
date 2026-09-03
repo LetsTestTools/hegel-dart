@@ -12,12 +12,14 @@ class ListGenerator<T> extends Generator<List<T>> {
   final int maxSize;
 
   ListGenerator(this.elements, this.minSize, this.maxSize) {
-    if (minSize < 0)
+    if (minSize < 0) {
       throw ArgumentError('lists: minSize ($minSize) must be >= 0');
-    if (minSize > maxSize)
+    }
+    if (minSize > maxSize) {
       throw ArgumentError(
         'lists: minSize ($minSize) must be <= maxSize ($maxSize)',
       );
+    }
   }
 
   @override
@@ -37,8 +39,9 @@ class ListGenerator<T> extends Generator<List<T>> {
         maxSize,
         outCollectionId,
       );
-      if (res != hegel_result_t.HEGEL_OK)
+      if (res != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to create list collection');
+      }
 
       final collectionId = outCollectionId.value;
       final list = <T>[];
@@ -54,10 +57,12 @@ class ListGenerator<T> extends Generator<List<T>> {
           collectionId,
           outMore,
         );
-        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) {
           throw const HegelStopTest();
-        if (moreRes != hegel_result_t.HEGEL_OK)
+        }
+        if (moreRes != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate collection more');
+        }
         if (!outMore.value) break;
 
         tc.startSpan(hegel_label_t.HEGEL_LABEL_LIST_ELEMENT.value);
@@ -83,12 +88,14 @@ class SetGenerator<T> extends Generator<Set<T>> {
   final int maxSize;
 
   SetGenerator(this.elements, this.minSize, this.maxSize) {
-    if (minSize < 0)
+    if (minSize < 0) {
       throw ArgumentError('sets: minSize ($minSize) must be >= 0');
-    if (minSize > maxSize)
+    }
+    if (minSize > maxSize) {
       throw ArgumentError(
         'sets: minSize ($minSize) must be <= maxSize ($maxSize)',
       );
+    }
   }
 
   @override
@@ -108,8 +115,9 @@ class SetGenerator<T> extends Generator<Set<T>> {
         maxSize,
         outCollectionId,
       );
-      if (res != hegel_result_t.HEGEL_OK)
+      if (res != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to create set collection');
+      }
 
       final collectionId = outCollectionId.value;
       final set = <T>{};
@@ -126,10 +134,12 @@ class SetGenerator<T> extends Generator<Set<T>> {
           collectionId,
           outMore,
         );
-        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) {
           throw const HegelStopTest();
-        if (moreRes != hegel_result_t.HEGEL_OK)
+        }
+        if (moreRes != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate collection more');
+        }
         if (!outMore.value) break;
 
         tc.startSpan(hegel_label_t.HEGEL_LABEL_SET_ELEMENT.value);
@@ -177,12 +187,14 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   final int maxSize;
 
   MapGenerator(this.keys, this.values, this.minSize, this.maxSize) {
-    if (minSize < 0)
+    if (minSize < 0) {
       throw ArgumentError('maps: minSize ($minSize) must be >= 0');
-    if (minSize > maxSize)
+    }
+    if (minSize > maxSize) {
       throw ArgumentError(
         'maps: minSize ($minSize) must be <= maxSize ($maxSize)',
       );
+    }
   }
 
   @override
@@ -202,8 +214,9 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
         maxSize,
         outCollectionId,
       );
-      if (res != hegel_result_t.HEGEL_OK)
+      if (res != hegel_result_t.HEGEL_OK) {
         throw HegelException('Failed to create map collection');
+      }
 
       final collectionId = outCollectionId.value;
       final map = <K, V>{};
@@ -220,10 +233,12 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
           collectionId,
           outMore,
         );
-        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST)
+        if (moreRes == hegel_result_t.HEGEL_E_STOP_TEST) {
           throw const HegelStopTest();
-        if (moreRes != hegel_result_t.HEGEL_OK)
+        }
+        if (moreRes != hegel_result_t.HEGEL_OK) {
           throw HegelException('Failed to generate collection more');
+        }
         if (!outMore.value) break;
 
         tc.startSpan(hegel_label_t.HEGEL_LABEL_MAP_ENTRY.value);
