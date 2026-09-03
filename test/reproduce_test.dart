@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
-import 'package:hegeltest/src/core/exceptions.dart';
 
 void main() {
   test('blob replay reproduces the same failure', () async {

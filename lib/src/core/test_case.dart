@@ -163,9 +163,12 @@ class TestCase {
   List<(String, String)> get drawLog =>
       _drawLog.map((e) => (e.$1, _formatValue(e.$2))).toList(growable: false);
 
-  /// Reset the draw log for the next iteration.
+  /// Reset the draw log and any staged observations for the next iteration.
   @internal
-  void resetDrawLog() => _drawLog.clear();
+  void resetDrawLog() {
+    _drawLog.clear();
+    _stagedObservations.clear();
+  }
 
   static String _formatValue(Object? value) {
     String s;
@@ -177,6 +180,46 @@ class TestCase {
     if (s.length <= 200) return s;
     final truncated = String.fromCharCodes(s.runes.take(200));
     return '$truncated...';
+  }
+
+  /// Staged observations for the current iteration, keyed by label.
+  final Map<String, List<String>> _stagedObservations = {};
+
+  /// Record an observation to tally input distribution statistics.
+  ///
+  /// Observations are grouped by [label] (defaulting to empty string).
+  /// If the current test iteration is discarded (e.g. via [assume]),
+  /// observations recorded during that iteration are automatically discarded.
+  ///
+  /// ```dart
+  /// tc.collect(
+  ///   switch (items.length) {
+  ///     0 => 'empty',
+  ///     < 5 => 'short',
+  ///     _ => 'long',
+  ///   },
+  ///   label: 'length',
+  /// );
+  /// ```
+  void collect(Object? observation, {String label = ''}) {
+    _checkNotDisposed();
+    final str = observation.toString();
+    _stagedObservations.putIfAbsent(label, () => []).add(str);
+  }
+
+  /// Take and clear all staged observations for the current iteration.
+  @internal
+  Map<String, List<String>> takeStagedObservations() {
+    if (_stagedObservations.isEmpty) return const {};
+    final result = Map<String, List<String>>.from(_stagedObservations);
+    _stagedObservations.clear();
+    return result;
+  }
+
+  /// Discard any staged observations (e.g. on assumption violation).
+  @internal
+  void clearStagedObservations() {
+    _stagedObservations.clear();
   }
 
   /// Assume a condition holds. If it doesn't, this test case is discarded.

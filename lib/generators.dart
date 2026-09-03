@@ -3,7 +3,7 @@
 /// ```dart
 /// import 'package:hegeltest/generators.dart';
 /// ```
-library generators;
+library;
 
 export 'src/generators/bytes.dart' show bytes;
 export 'src/generators/collections.dart' show lists, sets, maps;

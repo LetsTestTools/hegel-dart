@@ -80,6 +80,38 @@ final items = tc.draw(lists(integers()), label: 'items');
 tc.target(items.length.toDouble(), label: 'list_length');
 ```
 
+## Collecting Statistics
+
+Use `tc.collect()` to track the distribution of generated values across all valid test cases. This helps verify that your generators are producing a balanced variety of inputs:
+
+```dart
+hegelTest('reversing twice returns original list', (tc) {
+  final items = tc.draw(lists(integers()), label: 'items');
+
+  tc.collect(
+    switch (items.length) {
+      0 => 'empty',
+      < 5 => 'short',
+      _ => 'long',
+    },
+    label: 'length',
+  );
+
+  expect(items.reversed.toList().reversed.toList(), equals(items));
+}, verbosity: Verbosity.verbose);
+```
+
+When run with `verbosity: Verbosity.verbose`, a distribution summary is printed at the end:
+```text
+Collected statistics:
+  length:
+    52.0% short
+    38.0% long
+    10.0% empty
+```
+
+If a test case is discarded via `tc.assume()`, its observations are automatically excluded from the statistics.
+
 ## Stateful Testing
 
 Test stateful systems by generating random sequences of operations and checking invariants after each step. Uses **Swarm Testing** to explore rule subsets and **automatic shrinking** to find minimal counterexamples.

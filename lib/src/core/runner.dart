@@ -57,6 +57,7 @@ class HegelRunner {
   }) async {
     final ctx = lib.hegel_context_new();
     final lifecycle = RunLifecycle();
+    final statistics = <String, Map<String, int>>{};
     Pointer<hegel_settings_t> settings = nullptr;
     Pointer<hegel_run_t> runHandle = nullptr;
     Pointer<hegel_test_case_t> tcHandle = nullptr;
@@ -142,25 +143,27 @@ class HegelRunner {
           if (setUpEach != null) await setUpEach();
 
           final completer = Completer<void>();
-          runZonedGuarded(
-            () async {
-              try {
-                await body(tc);
-                if (!completer.isCompleted) completer.complete();
-              } catch (e, st) {
-                if (!completer.isCompleted) completer.completeError(e, st);
-              }
-            },
-            (e, st) {
-              if (!completer.isCompleted) {
-                completer.completeError(e, st);
-              } else {
-                stderr.writeln(
-                  '[hegeltest] Late async error (after iteration completed): $e',
-                );
-                stderr.writeln(st);
-              }
-            },
+          unawaited(
+            runZonedGuarded(
+              () async {
+                try {
+                  await body(tc);
+                  if (!completer.isCompleted) completer.complete();
+                } catch (e, st) {
+                  if (!completer.isCompleted) completer.completeError(e, st);
+                }
+              },
+              (e, st) {
+                if (!completer.isCompleted) {
+                  completer.completeError(e, st);
+                } else {
+                  stderr.writeln(
+                    '[hegeltest] Late async error (after iteration completed): $e',
+                  );
+                  stderr.writeln(st);
+                }
+              },
+            ),
           );
 
           await completer.future;
@@ -169,6 +172,7 @@ class HegelRunner {
         } on HegelAssumptionViolated {
           status = hegel_status_t.HEGEL_STATUS_INVALID.value;
         } on HegelException {
+          tc.clearStagedObservations();
           rethrow;
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
@@ -189,6 +193,18 @@ class HegelRunner {
                 stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
               }
             }
+          }
+
+          if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+            final staged = tc.takeStagedObservations();
+            for (final entry in staged.entries) {
+              final labelMap = statistics.putIfAbsent(entry.key, () => {});
+              for (final obs in entry.value) {
+                labelMap[obs] = (labelMap[obs] ?? 0) + 1;
+              }
+            }
+          } else {
+            tc.clearStagedObservations();
           }
         }
 
@@ -237,12 +253,14 @@ class HegelRunner {
                 reproductionBlob: reproduceBlob,
               ),
             ],
+            statistics: _freezeStatistics(statistics),
           );
         }
 
-        return const RunResult(
+        return RunResult(
           status: RunStatus.passed,
           testCasesRun: 1,
+          statistics: _freezeStatistics(statistics),
         ); // Done with blob replay
       }
 
@@ -312,27 +330,29 @@ class HegelRunner {
             // crash iteration N+10, attributing the failure to wrong inputs.
             final completer = Completer<void>();
 
-            runZonedGuarded(
-              () async {
-                try {
-                  await body(tc);
-                  if (!completer.isCompleted) completer.complete();
-                } catch (e, st) {
-                  if (!completer.isCompleted) completer.completeError(e, st);
-                }
-              },
-              (e, st) {
-                // Unawaited async error caught by zone
-                if (!completer.isCompleted) {
-                  completer.completeError(e, st);
-                } else {
-                  // Late async error — body already completed. Log instead of swallowing.
-                  stderr.writeln(
-                    '[hegeltest] Late async error (after iteration completed): $e',
-                  );
-                  stderr.writeln(st);
-                }
-              },
+            unawaited(
+              runZonedGuarded(
+                () async {
+                  try {
+                    await body(tc);
+                    if (!completer.isCompleted) completer.complete();
+                  } catch (e, st) {
+                    if (!completer.isCompleted) completer.completeError(e, st);
+                  }
+                },
+                (e, st) {
+                  // Unawaited async error caught by zone
+                  if (!completer.isCompleted) {
+                    completer.completeError(e, st);
+                  } else {
+                    // Late async error — body already completed. Log instead of swallowing.
+                    stderr.writeln(
+                      '[hegeltest] Late async error (after iteration completed): $e',
+                    );
+                    stderr.writeln(st);
+                  }
+                },
+              ),
             );
 
             await completer.future;
@@ -341,6 +361,7 @@ class HegelRunner {
           } on HegelAssumptionViolated {
             status = hegel_status_t.HEGEL_STATUS_INVALID.value;
           } on HegelException {
+            tc.clearStagedObservations();
             // Framework/engine errors must not be treated as property failures.
             // Rethrow so the runner's outer try/finally handles cleanup.
             rethrow;
@@ -364,6 +385,18 @@ class HegelRunner {
                   stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
                 }
               }
+            }
+
+            if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+              final staged = tc.takeStagedObservations();
+              for (final entry in staged.entries) {
+                final labelMap = statistics.putIfAbsent(entry.key, () => {});
+                for (final obs in entry.value) {
+                  labelMap[obs] = (labelMap[obs] ?? 0) + 1;
+                }
+              }
+            } else {
+              tc.clearStagedObservations();
             }
           }
 
@@ -441,12 +474,21 @@ class HegelRunner {
         final resultHandle = outResult.value;
         if (resultHandle != nullptr) {
           try {
-            return _extractRunResult(ctx, resultHandle, testCasesRun);
+            return _extractRunResult(
+              ctx,
+              resultHandle,
+              testCasesRun,
+              statistics,
+            );
           } finally {
             lib.hegel_run_result_free(ctx, resultHandle);
           }
         }
-        return RunResult(status: RunStatus.passed, testCasesRun: testCasesRun);
+        return RunResult(
+          status: RunStatus.passed,
+          testCasesRun: testCasesRun,
+          statistics: _freezeStatistics(statistics),
+        );
       } finally {
         calloc.free(outResult);
       }
@@ -500,13 +542,25 @@ class HegelRunner {
       );
     } else if (result.status == RunStatus.error) {
       throw HegelTestFailure(result.errorMessage ?? 'Run ended in an error.');
+    } else if (verbosity == Verbosity.verbose && result.statistics.isNotEmpty) {
+      print('Collected statistics:\n${result.formatStatistics()}');
     }
+  }
+
+  static Map<String, Map<String, int>> _freezeStatistics(
+    Map<String, Map<String, int>> stats,
+  ) {
+    if (stats.isEmpty) return const {};
+    return Map<String, Map<String, int>>.unmodifiable(
+      stats.map((k, v) => MapEntry(k, Map<String, int>.unmodifiable(v))),
+    );
   }
 
   RunResult _extractRunResult(
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
     int testCasesRun,
+    Map<String, Map<String, int>> statistics,
   ) {
     final outStatus = calloc<UnsignedInt>();
     int statusValue;
@@ -529,12 +583,14 @@ class HegelRunner {
       calloc.free(outStatus);
     }
 
+    final frozenStats = _freezeStatistics(statistics);
     if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
       final failures = _extractFailures(ctx, resultHandle);
       return RunResult(
         status: RunStatus.failed,
         testCasesRun: testCasesRun,
         failures: failures,
+        statistics: frozenStats,
       );
     } else if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_ERROR.value) {
       final errMsg = _extractError(ctx, resultHandle);
@@ -542,9 +598,14 @@ class HegelRunner {
         status: RunStatus.error,
         testCasesRun: testCasesRun,
         errorMessage: errMsg,
+        statistics: frozenStats,
       );
     }
-    return RunResult(status: RunStatus.passed, testCasesRun: testCasesRun);
+    return RunResult(
+      status: RunStatus.passed,
+      testCasesRun: testCasesRun,
+      statistics: frozenStats,
+    );
   }
 
   List<Failure> _extractFailures(

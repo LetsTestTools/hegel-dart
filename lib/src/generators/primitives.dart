@@ -200,10 +200,14 @@ class BigIntGenerator extends Generator<BigInt> {
   BigInt generate(TestCase tc) {
     return using((Arena arena) {
       final minBuf = arena<ffi.Uint8>(_minBytes.length);
-      for (var i = 0; i < _minBytes.length; i++) minBuf[i] = _minBytes[i];
+      for (var i = 0; i < _minBytes.length; i++) {
+        minBuf[i] = _minBytes[i];
+      }
 
       final maxBuf = arena<ffi.Uint8>(_maxBytes.length);
-      for (var i = 0; i < _maxBytes.length; i++) maxBuf[i] = _maxBytes[i];
+      for (var i = 0; i < _maxBytes.length; i++) {
+        maxBuf[i] = _maxBytes[i];
+      }
 
       int outCap = _minBytes.length > _maxBytes.length
           ? _minBytes.length

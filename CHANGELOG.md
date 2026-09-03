@@ -1,3 +1,10 @@
+## 0.7.0
+
+- **New**: `tc.collect()` — observation distribution tracking API. Gather and verify input distributions across valid test cases. Automatically discards observations from rejected cases (`tc.assume`).
+- **New**: `RunResult.statistics` & `RunResult.formatStatistics()` — access and format collected observations programmatically.
+- **Reporting**: Formatted statistics distribution is printed automatically on test completion when `verbosity: Verbosity.verbose`.
+- **Quality**: Resolved all linter infos and dangling doc comments across `lib/` for 100% pub.dev score (160/160 points). Replaced deprecated `package:test_api` import with `package:test`.
+
 ## 0.6.1
 
 - **Fix**: Add `runWithResult()` to web stub `HegelRunner` — fixes `undefined_method` analyzer error in downstream packages (e.g. `hegeltest_flutter`)

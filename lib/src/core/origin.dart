@@ -1,4 +1,5 @@
 /// Helpers for extracting failure origins.
+library;
 
 /// Extracts a stable origin string from a stack trace.
 ///

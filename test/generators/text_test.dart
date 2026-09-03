@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
-import 'package:hegeltest/generators.dart';
 
 void main() {
   group('text', () {
