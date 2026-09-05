@@ -1,3 +1,11 @@
+## 0.8.0
+
+- **New**: Persistent Counterexample Database — automatically caches failing counterexamples to `.hegel/examples/` (scoped by test description). Subsequent runs replay known failing examples first on iteration 1 during `Phase.reuse` for instant regression detection.
+- **New**: Automatic `.gitignore` created inside `.hegel/` to keep developer worktrees clean.
+- **New**: Opt-out support via `database: false` parameter or `HEGEL_DATABASE=0` environment variable.
+- **New**: Custom database storage support via `databasePath: String`.
+- **New**: `example/database_example.dart` and comprehensive `test/database_test.dart` suite.
+
 ## 0.7.0
 
 - **New**: `tc.collect()` — observation distribution tracking API. Gather and verify input distributions across valid test cases. Automatically discards observations from rejected cases (`tc.assume`).

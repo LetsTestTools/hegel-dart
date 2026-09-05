@@ -51,7 +51,8 @@ class HegelRunner {
     Set<HealthCheck>? suppressHealthChecks,
     bool? reportMultipleFailures,
     String? databaseKey,
-    String? database,
+    bool? database,
+    String? databasePath,
     FutureOr<void> Function()? setUpEach,
     FutureOr<void> Function()? tearDownEach,
   }) async {
@@ -81,6 +82,11 @@ class HegelRunner {
         calloc.free(outSettings);
       }
 
+      final effectiveDb = _envDatabase(database);
+      if (effectiveDb) {
+        _ensureHegelGitignore(databasePath);
+      }
+
       // Apply user settings
       applySettings(
         lib,
@@ -94,7 +100,8 @@ class HegelRunner {
         suppressHealthChecks: suppressHealthChecks,
         reportMultipleFailures: reportMultipleFailures,
         databaseKey: databaseKey,
-        database: database,
+        database: effectiveDb,
+        databasePath: databasePath,
       );
 
       // Per the C API docs, the callback is invoked synchronously on
@@ -516,7 +523,8 @@ class HegelRunner {
     Set<HealthCheck>? suppressHealthChecks,
     bool? reportMultipleFailures,
     String? databaseKey,
-    String? database,
+    bool? database,
+    String? databasePath,
     FutureOr<void> Function()? setUpEach,
     FutureOr<void> Function()? tearDownEach,
   }) async {
@@ -532,6 +540,7 @@ class HegelRunner {
       reportMultipleFailures: reportMultipleFailures,
       databaseKey: databaseKey,
       database: database,
+      databasePath: databasePath,
       setUpEach: setUpEach,
       tearDownEach: tearDownEach,
     );
@@ -799,7 +808,8 @@ void hegelTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
-  String? database,
+  bool? database,
+  String? databasePath,
   FutureOr<void> Function()? setUpEach,
   FutureOr<void> Function()? tearDownEach,
 }) {
@@ -820,8 +830,9 @@ void hegelTest(
             suppressHealthChecks ?? config?.suppressHealthChecks,
         reportMultipleFailures:
             reportMultipleFailures ?? config?.reportMultipleFailures,
-        databaseKey: databaseKey ?? config?.databaseKey,
+        databaseKey: databaseKey ?? config?.databaseKey ?? description,
         database: database ?? config?.database,
+        databasePath: databasePath ?? config?.databasePath,
         setUpEach: setUpEach,
         tearDownEach: tearDownEach,
       );
@@ -853,7 +864,8 @@ Future<RunResult> runHegelTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
-  String? database,
+  bool? database,
+  String? databasePath,
   FutureOr<void> Function()? setUpEach,
   FutureOr<void> Function()? tearDownEach,
 }) async {
@@ -870,11 +882,45 @@ Future<RunResult> runHegelTest(
     suppressHealthChecks: suppressHealthChecks ?? config?.suppressHealthChecks,
     reportMultipleFailures:
         reportMultipleFailures ?? config?.reportMultipleFailures,
-    databaseKey: databaseKey ?? config?.databaseKey,
+    databaseKey: databaseKey ?? config?.databaseKey ?? 'runHegelTest',
     database: database ?? config?.database,
+    databasePath: databasePath ?? config?.databasePath,
     setUpEach: setUpEach,
     tearDownEach: tearDownEach,
   );
+}
+
+/// Check the `HEGEL_DATABASE` environment variable for global persistence control.
+///
+/// Defaults to `true` (enabled) unless explicitly set to `0`, `false`, `no`, or `off`.
+bool _envDatabase(bool? userSetting) {
+  if (userSetting != null) return userSetting;
+  final env = Platform.environment['HEGEL_DATABASE']?.trim().toLowerCase();
+  if (env == '0' || env == 'false' || env == 'no' || env == 'off') {
+    return false;
+  }
+  return true;
+}
+
+/// Ensure `.gitignore` exists inside the database directory so git worktrees stay clean.
+void _ensureHegelGitignore(String? dbDir) {
+  try {
+    final Directory targetDir;
+    if (dbDir == null) {
+      targetDir = Directory('.hegel');
+    } else {
+      targetDir = Directory(dbDir);
+    }
+    if (!targetDir.existsSync()) {
+      targetDir.createSync(recursive: true);
+    }
+    final gitignore = File('${targetDir.path}/.gitignore');
+    if (!gitignore.existsSync()) {
+      gitignore.writeAsStringSync('*\n!.gitignore\n');
+    }
+  } catch (_) {
+    // Non-fatal if filesystem is read-only or in sandboxed environment.
+  }
 }
 
 /// Parse the `HEGEL_SEED` environment variable for CI reproducibility.
