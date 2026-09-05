@@ -38,8 +38,11 @@ class HegelConfig {
   /// An identifier for saving/loading from the database.
   final String? databaseKey;
 
-  /// The path to the database.
-  final String? database;
+  /// Whether to persist and replay counterexamples using the on-disk database.
+  final bool? database;
+
+  /// Custom path to the database directory (defaults to `.hegel/examples`).
+  final String? databasePath;
 
   const HegelConfig({
     this.testCases,
@@ -52,5 +55,6 @@ class HegelConfig {
     this.reproduce,
     this.databaseKey,
     this.database,
+    this.databasePath,
   });
 }

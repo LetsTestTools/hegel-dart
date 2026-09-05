@@ -48,7 +48,8 @@ void hegelStatefulTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
-  String? database,
+  bool? database,
+  String? databasePath,
 }) {
   test(
     description,
@@ -80,8 +81,9 @@ void hegelStatefulTest(
             suppressHealthChecks ?? config?.suppressHealthChecks,
         reportMultipleFailures:
             reportMultipleFailures ?? config?.reportMultipleFailures,
-        databaseKey: databaseKey ?? config?.databaseKey,
+        databaseKey: databaseKey ?? config?.databaseKey ?? description,
         database: database ?? config?.database,
+        databasePath: databasePath ?? config?.databasePath,
       );
     },
     timeout: timeout ?? const Timeout(Duration(minutes: 10)),

@@ -220,9 +220,28 @@ final thorough = HegelConfig(testCases: 100000);
 hegelTest('check', (tc) { ... }, config: thorough);
 ```
 
-You can save and load previously discovered interesting inputs across runs by specifying a `database` directory path and a unique `databaseKey` for the test. Note: database persistence depends on engine support and may require explicit path configuration.
+### Persistent Counterexample Database
 
-For CI reproducibility, you can set the `HEGEL_SEED` environment variable. When set, all `hegelTest` calls will use this deterministic seed unless explicitly overridden.
+By default, `hegeltest` automatically caches discovered failing counterexamples to `.hegel/examples/` (scoped by the test's `description`). On subsequent test runs, known failing examples are replayed **first** on iteration 1 during `Phase.reuse`, providing instant regression feedback before generating fresh random inputs.
+
+To ensure your repository worktree stays clean, `hegeltest` automatically creates a `.gitignore` inside `.hegel/`.
+
+You can configure or disable persistence:
+* **Opt-out**: pass `database: false` or set the environment variable `HEGEL_DATABASE=0` to disable disk persistence and replay.
+* **Custom storage path**: pass `databasePath: '.custom_db/'` to store examples in an alternative directory.
+* **Stable scoping**: pass `databaseKey: 'my_stable_key'` to preserve cache continuity even if a test description changes.
+
+In CI pipelines (e.g. GitHub Actions), cache `.hegel/` to catch regressions from previous runs instantly:
+```yaml
+- name: Cache Hegel counterexamples
+  uses: actions/cache@v4
+  with:
+    path: .hegel/
+    key: hegel-${{ runner.os }}-${{ github.ref_name }}
+    restore-keys: hegel-${{ runner.os }}-
+```
+
+For CI reproducibility without the database, you can set the `HEGEL_SEED` environment variable. When set, all `hegelTest` calls use this deterministic seed unless explicitly overridden.
 
 ### Advanced Configuration
 

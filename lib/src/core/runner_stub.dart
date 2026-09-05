@@ -36,7 +36,8 @@ void hegelTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
-  String? database,
+  dynamic database,
+  String? databasePath,
   dynamic Function()? setUpEach,
   dynamic Function()? tearDownEach,
 }) => _unsupported();
@@ -54,7 +55,8 @@ Future<RunResult> runHegelTest(
   bool? reportMultipleFailures,
   String? reproduce,
   String? databaseKey,
-  String? database,
+  dynamic database,
+  String? databasePath,
   dynamic Function()? setUpEach,
   dynamic Function()? tearDownEach,
 }) => _unsupported();
@@ -75,7 +77,8 @@ class HegelRunner {
     dynamic suppressHealthChecks,
     bool? reportMultipleFailures,
     String? databaseKey,
-    String? database,
+    dynamic database,
+    String? databasePath,
     dynamic Function()? setUpEach,
     dynamic Function()? tearDownEach,
   }) => _unsupported();
@@ -92,7 +95,8 @@ class HegelRunner {
     dynamic suppressHealthChecks,
     bool? reportMultipleFailures,
     String? databaseKey,
-    String? database,
+    dynamic database,
+    String? databasePath,
     dynamic Function()? setUpEach,
     dynamic Function()? tearDownEach,
   }) => _unsupported();

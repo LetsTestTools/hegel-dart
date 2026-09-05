@@ -74,7 +74,8 @@ void applySettings(
   bool? reportMultipleFailures,
   RunMode? mode,
   Backend? backend,
-  String? database,
+  bool? database,
+  String? databasePath,
   String? databaseKey,
 }) {
   if (testCases != null) {
@@ -145,10 +146,16 @@ void applySettings(
     _check(res, 'set_backend');
   }
 
-  if (database != null) {
-    _checkNoNullBytes(database, 'database');
+  if (database == false) {
     using((Arena arena) {
-      final dbPtr = database.toNativeUtf8(allocator: arena).cast<Char>();
+      final dbPtr = ''.toNativeUtf8(allocator: arena).cast<Char>();
+      final res = lib.hegel_settings_set_database(ctx, settings, dbPtr);
+      _check(res, 'set_database');
+    });
+  } else if (databasePath != null) {
+    _checkNoNullBytes(databasePath, 'databasePath');
+    using((Arena arena) {
+      final dbPtr = databasePath.toNativeUtf8(allocator: arena).cast<Char>();
       final res = lib.hegel_settings_set_database(ctx, settings, dbPtr);
       _check(res, 'set_database');
     });
