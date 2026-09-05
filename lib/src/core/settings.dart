@@ -153,6 +153,9 @@ void applySettings(
       _check(res, 'set_database');
     });
   } else if (databasePath != null) {
+    if (databasePath.isEmpty) {
+      throw ArgumentError('databasePath must not be empty');
+    }
     _checkNoNullBytes(databasePath, 'databasePath');
     using((Arena arena) {
       final dbPtr = databasePath.toNativeUtf8(allocator: arena).cast<Char>();

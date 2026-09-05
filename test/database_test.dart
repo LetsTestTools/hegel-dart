@@ -98,15 +98,28 @@ void main() {
       expect(files, isEmpty);
     });
 
-    test('automatic gitignore is created in .hegel directory', () {
-      final hegelDir = Directory('${tempDb.path}/.hegel');
-      hegelDir.createSync(recursive: true);
-      final gitignore = File('${hegelDir.path}/.gitignore');
-      gitignore.writeAsStringSync('*\n!.gitignore\n');
+    test('automatic gitignore is created in database directory', () async {
+      await runHegelTest(
+        (tc) {
+          final x = tc.draw(integers());
+          expect(x + 0, equals(x));
+        },
+        database: true,
+        databasePath: tempDb.path,
+        testCases: 5,
+      );
 
+      final gitignore = File('${tempDb.path}/.gitignore');
       expect(gitignore.existsSync(), isTrue);
       expect(gitignore.readAsStringSync(), contains('*'));
       expect(gitignore.readAsStringSync(), contains('!.gitignore'));
+    });
+
+    test('empty databasePath throws ArgumentError', () async {
+      expect(
+        () => runHegelTest((tc) {}, databasePath: ''),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     hegelTest(

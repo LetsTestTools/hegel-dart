@@ -82,6 +82,11 @@ class HegelRunner {
         calloc.free(outSettings);
       }
 
+      final effectiveDb = _envDatabase(database);
+      if (effectiveDb) {
+        _ensureHegelGitignore(databasePath);
+      }
+
       // Apply user settings
       applySettings(
         lib,
@@ -95,7 +100,7 @@ class HegelRunner {
         suppressHealthChecks: suppressHealthChecks,
         reportMultipleFailures: reportMultipleFailures,
         databaseKey: databaseKey,
-        database: database,
+        database: effectiveDb,
         databasePath: databasePath,
       );
 
@@ -813,11 +818,6 @@ void hegelTest(
     () async {
       final lib = loadHegelLibrary();
       final runner = HegelRunner(lib);
-      final effectiveDb = _envDatabase(database ?? config?.database);
-      final effectiveDbPath = databasePath ?? config?.databasePath;
-      if (effectiveDb) {
-        _ensureHegelGitignore(effectiveDbPath);
-      }
       await runner.run(
         body,
         reproduceBlob: reproduce ?? config?.reproduce,
@@ -831,8 +831,8 @@ void hegelTest(
         reportMultipleFailures:
             reportMultipleFailures ?? config?.reportMultipleFailures,
         databaseKey: databaseKey ?? config?.databaseKey ?? description,
-        database: effectiveDb,
-        databasePath: effectiveDbPath,
+        database: database ?? config?.database,
+        databasePath: databasePath ?? config?.databasePath,
         setUpEach: setUpEach,
         tearDownEach: tearDownEach,
       );
@@ -871,11 +871,6 @@ Future<RunResult> runHegelTest(
 }) async {
   final lib = loadHegelLibrary();
   final runner = HegelRunner(lib);
-  final effectiveDb = _envDatabase(database ?? config?.database);
-  final effectiveDbPath = databasePath ?? config?.databasePath;
-  if (effectiveDb) {
-    _ensureHegelGitignore(effectiveDbPath);
-  }
   return runner.runWithResult(
     body,
     reproduceBlob: reproduce ?? config?.reproduce,
@@ -888,8 +883,8 @@ Future<RunResult> runHegelTest(
     reportMultipleFailures:
         reportMultipleFailures ?? config?.reportMultipleFailures,
     databaseKey: databaseKey ?? config?.databaseKey ?? 'runHegelTest',
-    database: effectiveDb,
-    databasePath: effectiveDbPath,
+    database: database ?? config?.database,
+    databasePath: databasePath ?? config?.databasePath,
     setUpEach: setUpEach,
     tearDownEach: tearDownEach,
   );
@@ -907,16 +902,14 @@ bool _envDatabase(bool? userSetting) {
   return true;
 }
 
-/// Ensure `.gitignore` exists inside the `.hegel/` database directory so git
-/// worktrees stay clean when running tests.
+/// Ensure `.gitignore` exists inside the database directory so git worktrees stay clean.
 void _ensureHegelGitignore(String? dbDir) {
   try {
-    final effectivePath = dbDir ?? '.hegel';
-    Directory targetDir;
-    if (effectivePath.contains('.hegel')) {
+    final Directory targetDir;
+    if (dbDir == null) {
       targetDir = Directory('.hegel');
     } else {
-      targetDir = Directory(effectivePath);
+      targetDir = Directory(dbDir);
     }
     if (!targetDir.existsSync()) {
       targetDir.createSync(recursive: true);
