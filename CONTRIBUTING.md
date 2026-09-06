@@ -4,11 +4,46 @@ First off, thank you for considering contributing to `hegeltest`! It's people li
 
 ## Development Environment Setup
 
-To set up the project locally:
+### 1. With Nix (Recommended)
 
-1. Fork and clone the repository.
+If you use [Nix](https://nixos.org/), entering the development shell provides pinned versions of the Dart SDK, Lefthook, and automatically installs git hooks:
+
+```bash
+nix develop
+```
+
+On a fresh checkout, run `dart pub get` before running tests:
+```bash
+nix develop -c dart pub get
+nix develop -c dart test
+```
+
+### 2. Without Nix (Standard)
+
+1. Ensure you have the [Dart SDK](https://dart.dev/get-dart) installed (`>=3.10.0 <4.0.0`).
 2. Run `dart pub get` to fetch dependencies.
-3. Run `dart test` to execute the test suite.
+3. Install [Lefthook](https://github.com/evilmartians/lefthook) for automated pre-commit linting:
+   ```bash
+   # macOS:
+   brew install lefthook
+
+   # Linux / Windows (via npm or release binary):
+   npm install -g @evilmartians/lefthook
+   # or download from https://github.com/evilmartians/lefthook/releases
+
+   # Activate git pre-commit hooks:
+   lefthook install
+   ```
+4. Run `dart test` to execute the test suite.
+
+### Pre-commit Hooks (Lefthook)
+
+This repository enforces formatting and static analysis on every commit via Lefthook:
+- **`format`**: Verifies staged files conform to `dart format`.
+- **`analyze`**: Ensures `dart analyze --fatal-infos` passes cleanly.
+
+> [!NOTE]
+> Please do not bypass pre-commit hooks (avoid `git commit --no-verify`). Fixing lints locally ensures our CI checks pass on the first run.
 
 ### Native Binaries (libhegel)
 
