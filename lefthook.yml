@@ -1,0 +1,11 @@
+# Lefthook pre-commit configuration for hegeltest
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: "*.dart"
+      run: dart format --output=none --set-exit-if-changed {staged_files}
+    analyze:
+      run: dart analyze --fatal-infos
