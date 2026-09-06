@@ -20,8 +20,8 @@
           ];
 
           shellHook = ''
-            if [ -d .git ] && command -v lefthook >/dev/null 2>&1; then
-              lefthook install >/dev/null 2>&1
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && command -v lefthook >/dev/null 2>&1; then
+              lefthook install >/dev/null 2>&1 || echo "⚠️ Warning: failed to install lefthook git hooks"
             fi
             echo "🔧 hegeltest dev shell"
             echo "   Dart:     $(dart --version 2>&1)"

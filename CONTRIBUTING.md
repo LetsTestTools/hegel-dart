@@ -12,8 +12,9 @@ If you use [Nix](https://nixos.org/), entering the development shell provides pi
 nix develop
 ```
 
-All commands (tests, analysis, and commits) can be run from within the shell, or directly via:
+On a fresh checkout, run `dart pub get` before running tests:
 ```bash
+nix develop -c dart pub get
 nix develop -c dart test
 ```
 
@@ -23,8 +24,15 @@ nix develop -c dart test
 2. Run `dart pub get` to fetch dependencies.
 3. Install [Lefthook](https://github.com/evilmartians/lefthook) for automated pre-commit linting:
    ```bash
-   brew install lefthook   # macOS
-   lefthook install        # activates git pre-commit hooks
+   # macOS:
+   brew install lefthook
+
+   # Linux / Windows (via npm or release binary):
+   npm install -g @evilmartians/lefthook
+   # or download from https://github.com/evilmartians/lefthook/releases
+
+   # Activate git pre-commit hooks:
+   lefthook install
    ```
 4. Run `dart test` to execute the test suite.
 
