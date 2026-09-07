@@ -1,3 +1,11 @@
+## 0.9.0
+
+- **New**: `tc.classify(condition, observation, {label})` — conditional observation tracking combinator for input distribution monitoring.
+- **New**: `tc.cover(minPercentage, condition, label)` — minimum distribution coverage assertion. Asserts that edge cases are exercised across at least `minPercentage`% of valid test cases, throwing `InsufficientCoverageException` if unmet.
+- **New**: `sampledWeighted(List<(int, T)>)` — generator for weighted sampling from raw values without requiring generator wrapping.
+- **New**: `oneOfWeighted(List<(int, Generator<T>)>)` — discoverable alias for `frequency()` matching the `oneOf` combinator naming convention.
+- **New**: Export `InsufficientCoverageException` from root library.
+
 ## 0.8.0
 
 - **New**: Persistent Counterexample Database — automatically caches failing counterexamples to `.hegel/examples/` (scoped by test description). Subsequent runs replay known failing examples first on iteration 1 during `Phase.reuse` for instant regression detection.

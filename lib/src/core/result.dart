@@ -13,11 +13,13 @@ class Failure {
   final String message;
   final String origin;
   final String reproductionBlob;
+  final Object? exception;
 
   const Failure({
     required this.message,
     required this.origin,
     required this.reproductionBlob,
+    this.exception,
   });
 }
 

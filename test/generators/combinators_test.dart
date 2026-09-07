@@ -142,4 +142,36 @@ void main() {
       );
     });
   });
+
+  group('oneOfWeighted', () {
+    hegelTest('behaves identically to frequency', (tc) {
+      final v = tc.draw(
+        oneOfWeighted([
+          (10, integers(min: 1, max: 1)),
+          (1, integers(min: 99, max: 99)),
+        ]),
+      );
+      expect(v, anyOf(equals(1), equals(99)));
+    });
+  });
+
+  group('sampledWeighted', () {
+    hegelTest('picks weighted raw values', (tc) {
+      final v = tc.draw(sampledWeighted([(9, 'common'), (1, 'rare')]));
+      expect(v, isIn(['common', 'rare']));
+    });
+
+    test('distribution reflects weights', () async {
+      final result = await runHegelTest((tc) {
+        final v = tc.draw(sampledWeighted([(9, 'common'), (1, 'rare')]));
+        tc.collect(v);
+      }, testCases: 200);
+
+      expect(result.status, equals(RunStatus.passed));
+      final counts = result.statistics[''] ?? {};
+      final commonCount = counts['common'] ?? 0;
+      final rareCount = counts['rare'] ?? 0;
+      expect(commonCount, greaterThan(rareCount));
+    });
+  });
 }

@@ -55,6 +55,26 @@ class HegelTestFailure extends TestFailure {
   HegelTestFailure(this.message) : super(message);
 }
 
+/// Thrown when a property test fails to meet a registered coverage target ([TestCase.cover]).
+class InsufficientCoverageException extends HegelTestFailure {
+  final String label;
+  final double requiredPercent;
+  final double actualPercent;
+  final int hitCount;
+  final int totalCount;
+
+  InsufficientCoverageException({
+    required this.label,
+    required this.requiredPercent,
+    required this.actualPercent,
+    required this.hitCount,
+    required this.totalCount,
+  }) : super(
+         'Insufficient test coverage for "$label": required ${requiredPercent.toStringAsFixed(1)}%, '
+         'got ${actualPercent.toStringAsFixed(1)}% ($hitCount/$totalCount cases).',
+       );
+}
+
 /// Extract the last error message from the native engine context.
 ///
 /// Returns `null` if the pointer is null or the string is empty.

@@ -62,6 +62,25 @@ final userGen = Generator.composite<User>((tc) {
 });
 ```
 
+### Weighted Sampling
+
+Pick values or generators based on relative weights:
+
+```dart
+// Weighted raw values
+final statusGen = sampledWeighted([
+  (80, 'active'),
+  (15, 'pending'),
+  (5, 'suspended'),
+]);
+
+// Weighted generators (oneOfWeighted is an alias for frequency)
+final numberGen = oneOfWeighted([
+  (7, integers(min: 0, max: 100)),
+  (3, integers(min: 1000, max: 10000)),
+]);
+```
+
 ## Preconditions and Filtering
 
 You can filter out invalid inputs using `tc.assume()`. If the condition is false, the current test case is discarded and a new one is generated:
@@ -80,7 +99,7 @@ final items = tc.draw(lists(integers()), label: 'items');
 tc.target(items.length.toDouble(), label: 'list_length');
 ```
 
-## Collecting Statistics
+## Collecting Statistics & Coverage
 
 Use `tc.collect()` to track the distribution of generated values across all valid test cases. This helps verify that your generators are producing a balanced variety of inputs:
 
@@ -111,6 +130,32 @@ Collected statistics:
 ```
 
 If a test case is discarded via `tc.assume()`, its observations are automatically excluded from the statistics.
+
+### Classifying Observations
+
+Use `tc.classify()` to record observations conditionally:
+
+```dart
+tc.classify(items.isEmpty, 'empty');
+tc.classify(items.length > 50, 'large');
+```
+
+### Coverage Assertions
+
+Use `tc.cover()` to assert that a target condition holds across at least a minimum percentage of valid test cases:
+
+```dart
+hegelTest('handles empty and non-empty collections', (tc) {
+  final items = tc.draw(lists(integers()));
+
+  // Require that at least 10% of test cases exercise the empty list edge case:
+  tc.cover(10.0, items.isEmpty, 'empty collections');
+
+  expect(processItems(items).length, equals(items.length));
+});
+```
+
+If the test completes and the condition held in less than the required percentage of iterations, `hegelTest` fails with an `InsufficientCoverageException`. Coverage is computed exclusively over valid test cases (discarded cases from `tc.assume()` are excluded).
 
 ## Stateful Testing
 

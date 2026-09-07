@@ -59,6 +59,8 @@ class HegelRunner {
     final ctx = lib.hegel_context_new();
     final lifecycle = RunLifecycle();
     final statistics = <String, Map<String, int>>{};
+    final coverageTargets = <String, double>{};
+    int validCasesRun = 0;
     Pointer<hegel_settings_t> settings = nullptr;
     Pointer<hegel_run_t> runHandle = nullptr;
     Pointer<hegel_test_case_t> tcHandle = nullptr;
@@ -203,6 +205,8 @@ class HegelRunner {
           }
 
           if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+            validCasesRun++;
+            coverageTargets.addAll(tc.coverageTargets);
             final staged = tc.takeStagedObservations();
             for (final entry in staged.entries) {
               final labelMap = statistics.putIfAbsent(entry.key, () => {});
@@ -211,6 +215,7 @@ class HegelRunner {
               }
             }
           } else {
+            coverageTargets.addAll(tc.coverageTargets);
             tc.clearStagedObservations();
           }
         }
@@ -260,6 +265,20 @@ class HegelRunner {
                 reproductionBlob: reproduceBlob,
               ),
             ],
+            statistics: _freezeStatistics(statistics),
+          );
+        }
+
+        final coverageFailures = _checkCoverage(
+          validCasesRun,
+          statistics,
+          coverageTargets,
+        );
+        if (coverageFailures.isNotEmpty) {
+          return RunResult(
+            status: RunStatus.failed,
+            testCasesRun: 1,
+            failures: coverageFailures,
             statistics: _freezeStatistics(statistics),
           );
         }
@@ -395,6 +414,8 @@ class HegelRunner {
             }
 
             if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+              validCasesRun++;
+              coverageTargets.addAll(tc.coverageTargets);
               final staged = tc.takeStagedObservations();
               for (final entry in staged.entries) {
                 final labelMap = statistics.putIfAbsent(entry.key, () => {});
@@ -403,6 +424,7 @@ class HegelRunner {
                 }
               }
             } else {
+              coverageTargets.addAll(tc.coverageTargets);
               tc.clearStagedObservations();
             }
           }
@@ -486,10 +508,25 @@ class HegelRunner {
               resultHandle,
               testCasesRun,
               statistics,
+              coverageTargets: coverageTargets,
+              validCasesRun: validCasesRun,
             );
           } finally {
             lib.hegel_run_result_free(ctx, resultHandle);
           }
+        }
+        final coverageFailures = _checkCoverage(
+          validCasesRun,
+          statistics,
+          coverageTargets,
+        );
+        if (coverageFailures.isNotEmpty) {
+          return RunResult(
+            status: RunStatus.failed,
+            testCasesRun: testCasesRun,
+            failures: coverageFailures,
+            statistics: _freezeStatistics(statistics),
+          );
         }
         return RunResult(
           status: RunStatus.passed,
@@ -546,6 +583,11 @@ class HegelRunner {
     );
 
     if (result.status == RunStatus.failed) {
+      for (final f in result.failures) {
+        if (f.exception is InsufficientCoverageException) {
+          throw f.exception!;
+        }
+      }
       throw HegelTestFailure(
         result.failures.map((f) => f.message).join('\n---\n'),
       );
@@ -560,8 +602,11 @@ class HegelRunner {
     Map<String, Map<String, int>> stats,
   ) {
     if (stats.isEmpty) return const {};
+    final filtered = Map<String, Map<String, int>>.from(stats)
+      ..remove('__hegel_coverage__');
+    if (filtered.isEmpty) return const {};
     return Map<String, Map<String, int>>.unmodifiable(
-      stats.map((k, v) => MapEntry(k, Map<String, int>.unmodifiable(v))),
+      filtered.map((k, v) => MapEntry(k, Map<String, int>.unmodifiable(v))),
     );
   }
 
@@ -569,8 +614,10 @@ class HegelRunner {
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
     int testCasesRun,
-    Map<String, Map<String, int>> statistics,
-  ) {
+    Map<String, Map<String, int>> statistics, {
+    Map<String, double> coverageTargets = const {},
+    int validCasesRun = 0,
+  }) {
     final outStatus = calloc<UnsignedInt>();
     int statusValue;
     try {
@@ -610,11 +657,64 @@ class HegelRunner {
         statistics: frozenStats,
       );
     }
+
+    final coverageFailures = _checkCoverage(
+      validCasesRun,
+      statistics,
+      coverageTargets,
+    );
+    if (coverageFailures.isNotEmpty) {
+      return RunResult(
+        status: RunStatus.failed,
+        testCasesRun: testCasesRun,
+        failures: coverageFailures,
+        statistics: frozenStats,
+      );
+    }
+
     return RunResult(
       status: RunStatus.passed,
       testCasesRun: testCasesRun,
       statistics: frozenStats,
     );
+  }
+
+  static List<Failure> _checkCoverage(
+    int validCasesRun,
+    Map<String, Map<String, int>> statistics,
+    Map<String, double> coverageTargets,
+  ) {
+    if (coverageTargets.isEmpty) return const [];
+    final coverageStats = statistics['__hegel_coverage__'] ?? const {};
+    final failures = <Failure>[];
+
+    for (final entry in coverageTargets.entries) {
+      final label = entry.key;
+      final minPercentage = entry.value;
+      final hitCount = coverageStats[label] ?? 0;
+      final actualPercent = validCasesRun > 0
+          ? (hitCount / validCasesRun * 100.0)
+          : 0.0;
+
+      if (actualPercent < minPercentage) {
+        final ex = InsufficientCoverageException(
+          label: label,
+          requiredPercent: minPercentage,
+          actualPercent: actualPercent,
+          hitCount: hitCount,
+          totalCount: validCasesRun,
+        );
+        failures.add(
+          Failure(
+            message: ex.message,
+            origin: '',
+            reproductionBlob: '',
+            exception: ex,
+          ),
+        );
+      }
+    }
+    return failures;
   }
 
   List<Failure> _extractFailures(
