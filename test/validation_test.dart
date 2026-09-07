@@ -82,7 +82,7 @@ void main() {
       );
     });
 
-    // frequency
+    // frequency / oneOfWeighted
     test('frequency rejects empty list', () {
       expect(() => frequency<int>([]), throwsArgumentError);
     });
@@ -95,10 +95,27 @@ void main() {
         throwsArgumentError,
       );
     });
+    test('oneOfWeighted rejects empty list', () {
+      expect(() => oneOfWeighted<int>([]), throwsArgumentError);
+    });
 
     // sampled
     test('sampled rejects empty list', () {
       expect(() => sampled<int>([]), throwsArgumentError);
+    });
+
+    // sampledWeighted
+    test('sampledWeighted rejects empty list', () {
+      expect(() => sampledWeighted<int>([]), throwsArgumentError);
+    });
+    test('sampledWeighted rejects all-zero weights', () {
+      expect(() => sampledWeighted<int>([(0, 42)]), throwsArgumentError);
+    });
+    test('sampledWeighted rejects negative weights', () {
+      expect(
+        () => sampledWeighted<int>([(-1, 1), (5, 2)]),
+        throwsArgumentError,
+      );
     });
 
     // oneOf

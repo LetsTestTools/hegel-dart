@@ -207,6 +207,48 @@ class TestCase {
     _stagedObservations.putIfAbsent(label, () => []).add(str);
   }
 
+  /// Records [observation] in observation statistics if [condition] is true.
+  ///
+  /// This is the QuickCheck/Hypothesis `classify` combinator:
+  /// ```dart
+  /// tc.classify(list.isEmpty, 'empty');
+  /// tc.classify(list.length > 50, 'large');
+  /// ```
+  void classify(bool condition, Object? observation, {String label = ''}) {
+    if (condition) {
+      collect(observation, label: label);
+    }
+  }
+
+  final Map<String, double> _coverageTargets = {};
+
+  /// Asserts that a [condition] holds in at least [minPercentage]% of successful test cases.
+  ///
+  /// If the property run completes and the condition was satisfied in less than
+  /// [minPercentage]% of iterations, the test fails with [InsufficientCoverageException].
+  ///
+  /// ```dart
+  /// tc.cover(15.0, list.isEmpty, 'empty lists');
+  /// ```
+  void cover(double minPercentage, bool condition, String label) {
+    _checkNotDisposed();
+    if (minPercentage <= 0.0 || minPercentage > 100.0) {
+      throw ArgumentError.value(
+        minPercentage,
+        'minPercentage',
+        'must be between 0.0 (exclusive) and 100.0 (inclusive)',
+      );
+    }
+    _coverageTargets[label] = minPercentage;
+    if (condition) {
+      collect(label, label: '__hegel_coverage__');
+    }
+  }
+
+  /// Registered coverage targets (label -> minPercentage).
+  @internal
+  Map<String, double> get coverageTargets => _coverageTargets;
+
   /// Take and clear all staged observations for the current iteration.
   @internal
   Map<String, List<String>> takeStagedObservations() {

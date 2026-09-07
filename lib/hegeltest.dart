@@ -18,7 +18,8 @@ export 'src/core/exceptions.dart'
         HegelException,
         HegelStopTest,
         HegelAssumptionViolated,
-        HegelTestFailure;
+        HegelTestFailure,
+        InsufficientCoverageException;
 export 'src/core/result.dart' show RunStatus, RunResult, Failure;
 
 // Conditional export: use real implementation on VM, stub on web.
@@ -35,7 +36,16 @@ export 'src/core/test_case.dart' show TestCase;
 export 'src/generators/bytes.dart' show bytes;
 export 'src/generators/collections.dart' show lists, sets, maps;
 export 'src/generators/combinators.dart'
-    show sampled, oneOf, nullable, tuples2, tuples3, tuples4, frequency;
+    show
+        sampled,
+        sampledWeighted,
+        oneOf,
+        oneOfWeighted,
+        nullable,
+        tuples2,
+        tuples3,
+        tuples4,
+        frequency;
 export 'src/generators/generator.dart' show Generator;
 export 'src/generators/network.dart' show ipv4Addresses, ipv6Addresses;
 export 'src/generators/primitives.dart'

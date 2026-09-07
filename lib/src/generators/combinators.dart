@@ -332,3 +332,81 @@ class FrequencyGenerator<T> extends Generator<T> {
 /// ```
 Generator<T> frequency<T>(List<(int, Generator<T>)> weighted) =>
     FrequencyGenerator(weighted);
+
+/// Selects a generator based on provided probability weights.
+///
+/// Alias for [frequency] for discoverability alongside [oneOf].
+///
+/// ```dart
+/// tc.draw(oneOfWeighted([(1, integers()), (9, doubles())]))
+/// ```
+Generator<T> oneOfWeighted<T>(List<(int, Generator<T>)> weighted) =>
+    frequency(weighted);
+
+class SampledWeightedGenerator<T> extends Generator<T> {
+  final List<(int, T)> weighted;
+  final int totalWeight;
+
+  SampledWeightedGenerator(this.weighted)
+    : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
+    if (weighted.isEmpty) {
+      throw ArgumentError(
+        'SampledWeightedGenerator requires a non-empty list of weighted values.',
+      );
+    }
+    for (final item in weighted) {
+      if (item.$1 < 0) {
+        throw ArgumentError(
+          'SampledWeightedGenerator weights must be non-negative, got ${item.$1}.',
+        );
+      }
+    }
+    if (totalWeight <= 0) {
+      throw ArgumentError(
+        'SampledWeightedGenerator requires at least one value with weight > 0.',
+      );
+    }
+  }
+
+  @override
+  T generate(TestCase tc) {
+    final outIndex = tc.reuseBuffer<ffi.Int64>(
+      'sampledWeightedIndex',
+      () => calloc<ffi.Int64>(),
+    );
+    final result = tc.lib.hegel_generate_integer(
+      tc.ctx,
+      tc.handle,
+      1,
+      totalWeight,
+      outIndex,
+    );
+
+    if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+      throw const HegelStopTest();
+    }
+    if (result != hegel_result_t.HEGEL_OK) {
+      throw HegelException(
+        'Failed to generate sampledWeighted index: ${result.value}',
+      );
+    }
+
+    int target = outIndex.value;
+    for (final item in weighted) {
+      target -= item.$1;
+      if (target <= 0) {
+        return item.$2;
+      }
+    }
+
+    return weighted.last.$2;
+  }
+}
+
+/// Picks a value randomly from a list of weighted values.
+///
+/// ```dart
+/// tc.draw(sampledWeighted([(9, 'common'), (1, 'rare')]))
+/// ```
+Generator<T> sampledWeighted<T>(List<(int, T)> weighted) =>
+    SampledWeightedGenerator(weighted);
