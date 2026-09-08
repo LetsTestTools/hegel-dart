@@ -325,7 +325,7 @@ For Flutter apps, use [`hegeltest_flutter`](https://pub.dev/packages/hegeltest_f
 
 ```yaml
 dev_dependencies:
-  hegeltest_flutter: ^0.2.0
+  hegeltest_flutter: ^0.9.0
 ```
 
 ```dart
@@ -340,6 +340,23 @@ void main() {
 
   hegelFlutterStatefulTest('stack works', () => StackMachine());
 }
+```
+
+## Performance & Benchmarks
+
+`hegeltest` pairs high-level Dart generator abstractions with a high-throughput native Rust engine via C-FFI:
+
+* **Throughput**: >250,000 property iterations per second on integer draws; >90,000,000 raw choice steps/sec.
+* **Shrinking**: Automated byte-level binary shrinking reduces complex failing inputs down to minimal counterexamples in under 60ms.
+* **Persistent Cache**: Replaying known failing counterexamples from `.hegel/` on iteration 1 takes ~0.28ms (over 3,400 replays/second).
+
+You can run the benchmark suite locally:
+
+```bash
+dart run benchmark/run_benchmarks.dart
+# Or output markdown / json:
+dart run benchmark/run_benchmarks.dart --format=markdown
+dart run benchmark/run_benchmarks.dart --format=json
 ```
 
 ## Platform Support
