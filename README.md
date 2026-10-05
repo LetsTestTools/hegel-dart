@@ -14,7 +14,7 @@ Add `hegeltest` to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  hegeltest: ^0.5.0
+  hegeltest: ^0.9.0
   test: ^1.25.0
 ```
 
@@ -378,7 +378,7 @@ Set `HEGEL_LIBHEGEL_PATH` to use a custom-built binary on unsupported platforms.
 
 | Branch | Dart SDK | Status |
 |---|---|---|
-| `hegeltest ^0.5.0` | `>=3.10.0` | **Active** — all new features |
+| `hegeltest ^0.9.0` | `>=3.10.0` | **Active** — all new features |
 | `hegeltest ^0.4.0` | `>=3.4.0` | **Maintenance** — security fixes only |
 
 ## CI/CD Notes
