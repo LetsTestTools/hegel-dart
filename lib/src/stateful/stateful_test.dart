@@ -60,20 +60,27 @@ void hegelStatefulTest(
       await runner.run(
         (tc) async {
           final machine = create();
+          var bodyThrew = false;
           try {
             await machine.setUp();
             await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
+          } catch (_) {
+            bodyThrew = true;
+            rethrow;
           } finally {
             try {
               await machine.tearDown();
             } catch (e, st) {
+              if (!bodyThrew) {
+                rethrow;
+              }
               stderr.writeln('[hegeltest] tearDown threw: $e\n$st');
             }
           }
         },
         reproduceBlob: reproduce ?? config?.reproduce,
         testCases: testCases ?? config?.testCases,
-        seed: seed ?? config?.seed ?? _envSeed(),
+        seed: seed ?? config?.seed ?? envSeed(),
         derandomize: derandomize ?? config?.derandomize,
         phases: phases ?? config?.phases,
         verbosity: verbosity ?? config?.verbosity,
@@ -92,10 +99,4 @@ void hegelStatefulTest(
     onPlatform: onPlatform,
     retry: retry,
   );
-}
-
-int? _envSeed() {
-  final raw = Platform.environment['HEGEL_SEED'];
-  if (raw == null || raw.isEmpty) return null;
-  return int.tryParse(raw);
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
@@ -33,6 +32,28 @@ Future<void> runStateMachine(
     );
   }
 
+  for (final rule in rules) {
+    if (rule.name.contains('\x00')) {
+      throw ArgumentError.value(
+        rule.name,
+        'rule.name',
+        'must not contain null bytes (\\x00) — they cause silent '
+            'truncation at the FFI boundary',
+      );
+    }
+  }
+
+  for (final inv in invariants) {
+    if (inv.name.contains('\x00')) {
+      throw ArgumentError.value(
+        inv.name,
+        'invariant.name',
+        'must not contain null bytes (\\x00) — they cause silent '
+            'truncation at the FFI boundary',
+      );
+    }
+  }
+
   // Convert rule/invariant names to C strings
   final ruleNames = calloc<Pointer<Char>>(rules.length);
   final invariantNames = calloc<Pointer<Char>>(invariants.length);
@@ -63,7 +84,7 @@ Future<void> runStateMachine(
         invariants.length,
         outSmId,
       );
-      _checkResult(smResult, 'hegel_new_state_machine');
+      _checkResult(lib, ctx, smResult, 'hegel_new_state_machine');
       final smId = outSmId.value;
 
       // Create engine pools for each machine pool
@@ -71,7 +92,7 @@ Future<void> runStateMachine(
         final outPoolId = calloc<Int64>();
         try {
           final poolResult = lib.hegel_new_pool(ctx, tc, outPoolId);
-          _checkResult(poolResult, 'hegel_new_pool');
+          _checkResult(lib, ctx, poolResult, 'hegel_new_pool');
           pool.poolId = outPoolId.value;
         } finally {
           calloc.free(outPoolId);
@@ -83,7 +104,7 @@ Future<void> runStateMachine(
         final outVarId = calloc<Int64>();
         try {
           final result = lib.hegel_pool_add(ctx, tc, poolId, outVarId);
-          _checkResult(result, 'hegel_pool_add');
+          _checkResult(lib, ctx, result, 'hegel_pool_add');
           return outVarId.value;
         } finally {
           calloc.free(outVarId);
@@ -103,7 +124,7 @@ Future<void> runStateMachine(
           if (result == hegel_result_t.HEGEL_E_ASSUME) {
             return null; // pool empty
           }
-          _checkResult(result, 'hegel_pool_generate');
+          _checkResult(lib, ctx, result, 'hegel_pool_generate');
           return outVarId.value;
         } finally {
           calloc.free(outVarId);
@@ -121,7 +142,7 @@ Future<void> runStateMachine(
             smId,
             outRuleIndex,
           );
-          _checkResult(nextResult, 'hegel_state_machine_next_rule');
+          _checkResult(lib, ctx, nextResult, 'hegel_state_machine_next_rule');
 
           final ruleIndex = outRuleIndex.value;
           if (ruleIndex == HEGEL_STATE_MACHINE_DONE) break;
@@ -169,7 +190,12 @@ Future<void> runStateMachine(
 }
 
 /// Checks the result of an FFI call and throws on error.
-void _checkResult(hegel_result_t result, String functionName) {
+void _checkResult(
+  LibHegel lib,
+  Pointer<hegel_context_t> ctx,
+  hegel_result_t result,
+  String functionName,
+) {
   if (result == hegel_result_t.HEGEL_OK) return;
   if (result == hegel_result_t.HEGEL_E_ASSUME) {
     throw const HegelAssumptionViolated();
@@ -177,7 +203,10 @@ void _checkResult(hegel_result_t result, String functionName) {
   if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
     throw const HegelStopTest();
   }
-  stderr.writeln(
-    '[hegeltest] Warning: $functionName returned unexpected code: ${result.value}',
+  throw hegelExceptionWithDetail(
+    lib,
+    ctx,
+    'Failed in $functionName',
+    result.value,
   );
 }

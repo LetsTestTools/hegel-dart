@@ -40,6 +40,47 @@ void main() {
       expect(v.length, equals(3));
       expect(v, matches(RegExp(r'^[0-9]{3}$')));
     });
+
+    test(
+      'invalid regex pattern throws HegelException with native detail',
+      () async {
+        await expectLater(
+          runHegelTest((tc) {
+            tc.draw(fromRegex('[unclosed'));
+          }, database: false),
+          throwsA(
+            isA<HegelException>().having(
+              (e) => e.message,
+              'message',
+              contains('Failed to build regex generator'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'reused and inline string generators work cleanly across multiple runs',
+      () async {
+        final sharedTextGen = text(minSize: 1, maxSize: 10);
+        final sharedRegexGen = fromRegex(r'[a-z]{2,4}');
+        for (var i = 0; i < 3; i++) {
+          final result = await runHegelTest(
+            (tc) {
+              final s1 = tc.draw(sharedTextGen);
+              final s2 = tc.draw(text(minSize: 1, maxSize: 10));
+              final r = tc.draw(sharedRegexGen);
+              expect(s1, isNotEmpty);
+              expect(s2, isNotEmpty);
+              expect(r.length, inInclusiveRange(2, 4));
+            },
+            testCases: 10,
+            database: false,
+          );
+          expect(result.status, equals(RunStatus.passed));
+        }
+      },
+    );
   });
 
   group('emails', () {

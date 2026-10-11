@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 
@@ -18,7 +20,8 @@ const _minMinor = 30;
 /// Resolution order:
 /// 1. `HEGEL_LIBHEGEL_PATH` environment variable (for dev/custom builds)
 /// 2. Native Assets: binary registered by `hook/build.dart` and placed
-///    in `.dart_tool/lib/` by the Dart SDK
+///    in `.dart_tool/lib/` by the Dart SDK, or resolved directly from the
+///    package's bundled `native/<os>_<arch>/` directory (used by `flutter test`)
 /// 3. System library path fallback
 ///
 /// After loading, the library's ABI version is verified to ensure
@@ -47,8 +50,8 @@ LibHegel loadHegelLibrary() {
     // 2. Native Assets: SDK placed the binary via hook/build.dart
     //    The asset is registered under the ID
     //    'package:hegeltest/src/ffi/hegel_bindings.g.dart'.
-    //    Try loading from the .dart_tool/lib/ directory first,
-    //    then fall back to system path.
+    //    Try loading from the .dart_tool/lib/ directory or bundled package
+    //    native directory first, then fall back to system path.
     final libName = _platformLibName();
     lib = _tryNativeAssets(libName) ?? _trySystemPath(libName);
   }
@@ -59,24 +62,70 @@ LibHegel loadHegelLibrary() {
   return _cachedLib = lib;
 }
 
-/// Attempts to load the native library from the Native Assets location.
+/// Attempts to load the native library from the Native Assets location
+/// or from the package's bundled `native/<os>_<arch>/` directory.
 ///
 /// The Dart SDK copies the binary to `.dart_tool/lib/` when using build hooks
-/// during `dart test` and `dart run`. This is correct for hegeltest because
-/// it is a test-only package (dev_dependency) — never compiled into production
-/// builds where `.dart_tool/` wouldn't exist.
+/// during `dart test` and `dart run`. Under `flutter test`, `.dart_tool/lib/`
+/// is not populated, so we fall back to resolving the `hegeltest` package root
+/// to locate the bundled binary directly.
 ///
 /// Long-term: migrate to `@Native(assetId: ...)` annotations (v0.6.0).
 LibHegel? _tryNativeAssets(String libName) {
   try {
-    // The Dart SDK places native assets in .dart_tool/lib/ relative to the
-    // project root when running `dart test` or `dart run`.
+    // 1. The Dart SDK places native assets in .dart_tool/lib/ relative to the
+    //    project root when running `dart test` or `dart run`.
     final dartToolLib = File('.dart_tool/lib/$libName');
     if (dartToolLib.existsSync()) {
       return LibHegel(DynamicLibrary.open(dartToolLib.absolute.path));
     }
+
+    // 2. Fallback for `flutter test`, which does not populate `.dart_tool/lib/`.
+    final packageRootUri = _resolveHegeltestPackageRoot();
+    if (packageRootUri != null) {
+      final dirName = '${Platform.operatingSystem}_$_currentArch';
+      final bundledUri = packageRootUri.resolve('native/$dirName/$libName');
+      final bundledFile = File.fromUri(bundledUri);
+      if (bundledFile.existsSync()) {
+        return LibHegel(DynamicLibrary.open(bundledFile.absolute.path));
+      }
+    }
   } catch (_) {
     // Fall through to system path
+  }
+  return null;
+}
+
+Uri? _resolveHegeltestPackageRoot() {
+  try {
+    final packageLibUri = Isolate.resolvePackageUriSync(
+      Uri.parse('package:hegeltest/hegeltest.dart'),
+    );
+    if (packageLibUri != null) {
+      return packageLibUri.resolve('../');
+    }
+  } catch (_) {
+    // Isolate.resolvePackageUriSync throws UnsupportedError in flutter_tester
+  }
+
+  final configFile = File('.dart_tool/package_config.json');
+  if (!configFile.existsSync()) return null;
+
+  final decoded = jsonDecode(configFile.readAsStringSync());
+  if (decoded is! Map<String, dynamic>) return null;
+  final packages = decoded['packages'];
+  if (packages is! List) return null;
+
+  for (final pkg in packages) {
+    if (pkg is Map<String, dynamic> && pkg['name'] == 'hegeltest') {
+      final rootUriStr = pkg['rootUri'];
+      if (rootUriStr is String && rootUriStr.isNotEmpty) {
+        final normalized = rootUriStr.endsWith('/')
+            ? rootUriStr
+            : '$rootUriStr/';
+        return configFile.absolute.uri.resolve(normalized);
+      }
+    }
   }
   return null;
 }
