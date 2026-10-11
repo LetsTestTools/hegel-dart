@@ -196,6 +196,13 @@ void main() {
       );
     },
   );
+
+  hegelStatefulTest(
+    'nullable Pool<int?> supports storing and drawing null values',
+    () => _NullablePoolMachine(),
+    testCases: 20,
+    database: false,
+  );
 }
 
 class _FailingTearDownMachine extends StateMachine {
@@ -213,4 +220,42 @@ class _FailingTearDownMachine extends StateMachine {
 class _NullByteRuleMachine extends StateMachine {
   @override
   List<StateRule> get rules => [StateRule('bad\x00rule', execute: (_) {})];
+}
+
+class _NullablePoolMachine extends StateMachine {
+  late Pool<int?> pool;
+  final List<int?> drawn = [];
+
+  @override
+  void setUp() {
+    pool = createPool<int?>();
+  }
+
+  @override
+  List<StateRule> get rules => [
+    StateRule(
+      'addNull',
+      execute: (_) {
+        pool.add(null);
+      },
+    ),
+    StateRule(
+      'drawNullable',
+      precondition: () => pool.isNotEmpty,
+      execute: (tc) {
+        final v = tc.draw(pool.consumed);
+        drawn.add(v);
+      },
+    ),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'all drawn values are null',
+      check: (_) {
+        expect(drawn.every((v) => v == null), isTrue);
+      },
+    ),
+  ];
 }

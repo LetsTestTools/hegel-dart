@@ -16,7 +16,7 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
-      - run: dart analyze --fatal-warnings
+      - run: dart analyze --fatal-infos
 
   test:
     name: Test (${{ matrix.os }})
@@ -52,7 +52,7 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
-      - run: dart format --set-exit-if-changed lib/ test/ example/
+      - run: dart format --set-exit-if-changed lib/ test/ example/ benchmark/ hook/
 
   dry-run:
     name: Publish dry-run

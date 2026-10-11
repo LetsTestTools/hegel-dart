@@ -105,10 +105,10 @@ class _PoolGenerator<T> extends Generator<T> {
       // Pool was empty — signal assumption violation to skip this rule
       throw const HegelAssumptionViolated();
     }
-    final value = _pool.values[varId];
-    if (value == null) {
+    if (!_pool.values.containsKey(varId)) {
       throw StateError('Pool variable $varId not found in Dart-side storage.');
     }
+    final value = _pool.values[varId] as T;
     if (_consume) _pool.values.remove(varId);
     return value;
   }

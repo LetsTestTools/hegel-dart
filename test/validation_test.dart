@@ -1,7 +1,27 @@
 import 'package:test/test.dart';
 import 'package:hegeltest/hegeltest.dart';
+import 'package:hegeltest/src/core/origin.dart';
 
 void main() {
+  group('extractOrigin', () {
+    test(
+      'skips flutter_test and hegeltest_flutter frames and strips parentheses',
+      () {
+        final fakeTrace = StackTrace.fromString('''
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      _expect (package:matcher/src/expect/expect.dart:182:3)
+#2      expect (package:flutter_test/src/widget_tester.dart:473:18)
+#3      hegelFlutterLayoutSweepTest.<anonymous closure> (package:hegeltest_flutter/src/layout_sweep.dart:357:28)
+#4      main.<anonymous closure> (file:///Users/ab/code/app/test/my_widget_test.dart:42:9)
+''');
+        expect(
+          extractOrigin(fakeTrace),
+          equals('file:///Users/ab/code/app/test/my_widget_test.dart:42:9'),
+        );
+      },
+    );
+  });
+
   group('input validation', () {
     // integers
     test('integers rejects inverted bounds', () {
@@ -145,5 +165,30 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test(
+      'runHegelTest failure message reports winning shrunk counterexample',
+      () async {
+        final result = await runHegelTest(
+          (tc) {
+            final width = tc.draw(integers(min: 100, max: 500));
+            if (width > 200) {
+              throw StateError('overflow by ${width - 200}');
+            }
+          },
+          testCases: 20,
+          seed: 42,
+          database: false,
+        );
+
+        expect(result.status, equals(RunStatus.failed));
+        expect(result.failures, isNotEmpty);
+        expect(result.failures.first.message, contains('overflow by 1'));
+        expect(
+          result.failures.first.message,
+          contains('draw #1 (IntegerGenerator): 201'),
+        );
+      },
+    );
   });
 }

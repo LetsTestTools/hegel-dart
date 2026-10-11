@@ -73,13 +73,39 @@ void main() {
         expect(dt.second, inInclusiveRange(0, 59));
       });
 
-      hegelTest('respects min and max bounds', (tc) {
-        final min = DateTime.utc(2023, 5, 10, 12, 0, 0);
-        final max = DateTime.utc(2023, 5, 10, 18, 30, 0);
+      hegelTest('respects min and max bounds including milliseconds', (tc) {
+        final min = DateTime.utc(2023, 5, 10, 12, 0, 0, 500, 250);
+        final max = DateTime.utc(2023, 5, 10, 12, 0, 0, 800, 750);
         final dt = tc.draw(dateTimes(min: min, max: max));
 
         expect(dt.compareTo(min) >= 0, isTrue);
         expect(dt.compareTo(max) <= 0, isTrue);
+      });
+
+      test('rejects inverted bounds in dates, times, dateTimes, and bytes', () {
+        expect(
+          () => dates(
+            min: DateTime.utc(2025, 1, 2),
+            max: DateTime.utc(2025, 1, 1),
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => times(
+            min: (hour: 12, minute: 0, second: 0, microsecond: 0),
+            max: (hour: 11, minute: 0, second: 0, microsecond: 0),
+          ),
+          throwsArgumentError,
+        );
+        expect(
+          () => dateTimes(
+            min: DateTime.utc(2025, 1, 1, 0, 0, 0, 500),
+            max: DateTime.utc(2025, 1, 1, 0, 0, 0, 100),
+          ),
+          throwsArgumentError,
+        );
+        expect(() => bytes(minSize: -1), throwsArgumentError);
+        expect(() => bytes(minSize: 10, maxSize: 5), throwsArgumentError);
       });
     });
   });

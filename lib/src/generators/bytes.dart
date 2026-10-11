@@ -10,7 +10,16 @@ class BytesGenerator extends Generator<Uint8List> {
   final int minSize;
   final int maxSize;
 
-  const BytesGenerator(this.minSize, this.maxSize);
+  BytesGenerator(this.minSize, this.maxSize) {
+    if (minSize < 0) {
+      throw ArgumentError('bytes: minSize ($minSize) must be >= 0');
+    }
+    if (minSize > maxSize) {
+      throw ArgumentError(
+        'bytes: minSize ($minSize) must be <= maxSize ($maxSize)',
+      );
+    }
+  }
 
   @override
   Uint8List generate(TestCase tc) {
