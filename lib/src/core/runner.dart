@@ -793,7 +793,10 @@ class HegelRunner {
           lib.hegel_test_case_free(ctx, replayTcHandle);
         }
 
-        if (caughtError != null && caughtStack != null) {
+        if (caughtError != null &&
+            caughtStack != null &&
+            (!_caughtExceptions.containsKey(originStr) ||
+                extractOrigin(caughtStack) == originStr)) {
           _caughtExceptions[originStr] = (caughtError, caughtStack, drawLog);
         }
       }

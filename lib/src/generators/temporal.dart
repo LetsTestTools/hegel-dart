@@ -162,29 +162,16 @@ class DateTimeGenerator extends Generator<DateTime> {
   final DateTime min;
   final DateTime max;
 
-  DateTimeGenerator(this.min, this.max) {
-    final minUtc = DateTime.utc(
-      min.year,
-      min.month,
-      min.day,
-      min.hour,
-      min.minute,
-      min.second,
-      min.millisecond,
-      min.microsecond,
-    );
-    final maxUtc = DateTime.utc(
-      max.year,
-      max.month,
-      max.day,
-      max.hour,
-      max.minute,
-      max.second,
-      max.millisecond,
-      max.microsecond,
-    );
-    if (minUtc.isAfter(maxUtc)) {
+  DateTimeGenerator(DateTime min, DateTime max)
+    : min = min.toUtc(),
+      max = max.toUtc() {
+    if (this.min.isAfter(this.max)) {
       throw ArgumentError('dateTimes: min ($min) must be <= max ($max)');
+    }
+    if (this.min.year < 1 || this.max.year > 9999) {
+      throw ArgumentError(
+        'dateTimes: UTC year must be in [1, 9999] (got min=${this.min}, max=${this.max})',
+      );
     }
   }
 
