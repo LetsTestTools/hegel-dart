@@ -139,4 +139,78 @@ void main() {
   hegelStatefulTest('stack behaves like list', () => StackMachine());
 
   hegelStatefulTest('map with pool tracking', () => MapMachine());
+
+  test('stateful tearDown failure fails the test when rules succeed', () async {
+    final lib = loadHegelLibrary();
+    final runner = HegelRunner(lib);
+    final result = await runner.runWithResult(
+      (tc) async {
+        final StateMachine machine = _FailingTearDownMachine();
+        var bodyThrew = false;
+        try {
+          await machine.setUp();
+          await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
+        } catch (_) {
+          bodyThrew = true;
+          rethrow;
+        } finally {
+          try {
+            await machine.tearDown();
+          } catch (e) {
+            if (!bodyThrew) rethrow;
+          }
+        }
+      },
+      testCases: 5,
+      database: false,
+    );
+    expect(result.status, equals(RunStatus.failed));
+    expect(
+      result.failures.first.message,
+      contains('tearDown invariant broken'),
+    );
+  });
+
+  test(
+    'runStateMachine rejects rule and invariant names with NUL bytes',
+    () async {
+      final lib = loadHegelLibrary();
+      final runner = HegelRunner(lib);
+      final badRuleResult = await runner.runWithResult(
+        (tc) async {
+          await runStateMachine(
+            lib,
+            tc.ctx,
+            tc.handle,
+            _NullByteRuleMachine(),
+            tc,
+          );
+        },
+        testCases: 1,
+        database: false,
+      );
+      expect(badRuleResult.status, equals(RunStatus.failed));
+      expect(
+        badRuleResult.failures.first.message,
+        contains('must not contain null bytes'),
+      );
+    },
+  );
+}
+
+class _FailingTearDownMachine extends StateMachine {
+  @override
+  List<StateRule> get rules => [
+    StateRule('noop', execute: (tc) => tc.draw(integers(min: 0, max: 10))),
+  ];
+
+  @override
+  void tearDown() {
+    throw StateError('tearDown invariant broken');
+  }
+}
+
+class _NullByteRuleMachine extends StateMachine {
+  @override
+  List<StateRule> get rules => [StateRule('bad\x00rule', execute: (_) {})];
 }

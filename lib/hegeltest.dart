@@ -55,4 +55,5 @@ export 'src/generators/text.dart'
     show text, fromRegex, emails, urls, domains, uuids;
 export 'src/stateful/state_machine.dart'
     show StateMachine, StateRule, StateInvariant, Pool;
+export 'src/stateful/stateful_runner.dart' show runStateMachine;
 export 'src/stateful/stateful_test.dart' show hegelStatefulTest;

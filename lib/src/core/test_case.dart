@@ -16,6 +16,11 @@ import 'exceptions.dart';
 @internal
 class RunLifecycle {
   bool isAlive = true;
+
+  /// Native string generator handles allocated during this run, keyed by
+  /// generator configuration. Freed by [HegelRunner] before freeing the context.
+  final Map<Object, Pointer<hegel_string_generator_t>> stringGeneratorCache =
+      {};
 }
 
 /// Resource handle for GC-based cleanup of cloned test cases.
@@ -92,6 +97,23 @@ class TestCase {
     if (existing != null) return existing.cast<T>();
     final ptr = allocate();
     _bufferCache[key] = ptr.cast<Void>();
+    return ptr;
+  }
+
+  /// Get or create a cached native string generator handle for this run.
+  ///
+  /// Handles are stored on [RunLifecycle] and freed by [HegelRunner]
+  /// before the native context is freed.
+  @internal
+  Pointer<hegel_string_generator_t> cacheStringGenerator(
+    Object key,
+    Pointer<hegel_string_generator_t> Function() build,
+  ) {
+    _checkNotDisposed();
+    final existing = _lifecycle.stringGeneratorCache[key];
+    if (existing != null && existing != nullptr) return existing;
+    final ptr = build();
+    _lifecycle.stringGeneratorCache[key] = ptr;
     return ptr;
   }
 

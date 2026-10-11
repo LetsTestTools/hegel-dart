@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
+import 'package:meta/meta.dart';
 import 'package:test/test.dart';
 
 import '../ffi/hegel_bindings.g.dart';
@@ -541,6 +542,12 @@ class HegelRunner {
       // the GC finalizer and zombie clone usage from touching freed
       // memory. This is the single point of lifecycle coordination.
       lifecycle.isAlive = false;
+      for (final genPtr in lifecycle.stringGeneratorCache.values) {
+        if (genPtr != nullptr) {
+          lib.hegel_string_generator_free(ctx, genPtr);
+        }
+      }
+      lifecycle.stringGeneratorCache.clear();
       if (tcHandle != nullptr) lib.hegel_test_case_free(ctx, tcHandle);
       if (runHandle != nullptr) lib.hegel_run_free(ctx, runHandle);
       if (settings != nullptr) lib.hegel_settings_free(ctx, settings);
@@ -922,7 +929,7 @@ void hegelTest(
         body,
         reproduceBlob: reproduce ?? config?.reproduce,
         testCases: testCases ?? config?.testCases,
-        seed: seed ?? config?.seed ?? _envSeed(),
+        seed: seed ?? config?.seed ?? envSeed(),
         derandomize: derandomize ?? config?.derandomize,
         phases: phases ?? config?.phases,
         verbosity: verbosity ?? config?.verbosity,
@@ -975,7 +982,7 @@ Future<RunResult> runHegelTest(
     body,
     reproduceBlob: reproduce ?? config?.reproduce,
     testCases: testCases ?? config?.testCases,
-    seed: seed ?? config?.seed ?? _envSeed(),
+    seed: seed ?? config?.seed ?? envSeed(),
     derandomize: derandomize ?? config?.derandomize,
     phases: phases ?? config?.phases,
     verbosity: verbosity ?? config?.verbosity,
@@ -1027,14 +1034,15 @@ void _ensureHegelGitignore(String? dbDir) {
 ///
 /// When set, all `hegelTest` calls use this seed unless explicitly
 /// overridden via the `seed:` parameter.
-int? _envSeed() {
-  final envSeed = Platform.environment['HEGEL_SEED'];
-  if (envSeed == null || envSeed.isEmpty) return null;
-  final parsed = int.tryParse(envSeed);
+@internal
+int? envSeed() {
+  final raw = Platform.environment['HEGEL_SEED'];
+  if (raw == null || raw.isEmpty) return null;
+  final parsed = int.tryParse(raw);
   if (parsed == null) {
     throw ArgumentError(
       'HEGEL_SEED environment variable must be a valid integer, '
-      'got: "$envSeed"',
+      'got: "$raw"',
     );
   }
   return parsed;

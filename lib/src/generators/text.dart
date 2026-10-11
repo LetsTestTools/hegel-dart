@@ -7,28 +7,16 @@ import '../core/exceptions.dart';
 import 'generator.dart';
 
 abstract class _BaseNativeStringGenerator extends Generator<String> {
-  // Cache: context pointer address -> generator handle
-  // This is safe because the handle is bound to the context lifetime.
-  final Map<int, ffi.Pointer<hegel_string_generator_t>> _handleCache = {};
+  const _BaseNativeStringGenerator();
 
-  _BaseNativeStringGenerator();
+  Object get _cacheKey;
 
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc);
 
-  /// Get or create a cached string generator handle for this context.
-  ffi.Pointer<hegel_string_generator_t> _cachedBuild(TestCase tc) {
-    final key = tc.ctx.address;
-    var handle = _handleCache[key];
-    if (handle != null && handle != ffi.nullptr) return handle;
-    handle = _build(tc);
-    _handleCache[key] = handle;
-    return handle;
-  }
-
   @override
   String generate(TestCase tc) {
-    final genHandle = _cachedBuild(tc);
-    // Don't free the handle here — it's cached!
+    final genHandle = tc.cacheStringGenerator(_cacheKey, () => _build(tc));
+    // Handle is cached on RunLifecycle and freed by HegelRunner at end-of-run.
     return using((Arena arena) {
       final outResult = arena<hegel_generate_string_result_t>();
       final result = tc.lib.hegel_generate_string(
@@ -45,7 +33,12 @@ abstract class _BaseNativeStringGenerator extends Generator<String> {
         throw const HegelAssumptionViolated();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate string: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to generate string',
+          result.value,
+        );
       }
 
       try {
@@ -99,6 +92,10 @@ class TextGenerator extends _BaseNativeStringGenerator {
   }
 
   @override
+  Object get _cacheKey =>
+      (TextGenerator, minSize, maxSize, minCodepoint, maxCodepoint);
+
+  @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
@@ -123,7 +120,12 @@ class TextGenerator extends _BaseNativeStringGenerator {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to build text generator: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to build text generator',
+          result.value,
+        );
       }
       return outGen.value;
     });
@@ -162,6 +164,9 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   }
 
   @override
+  Object get _cacheKey => (RegexGenerator, pattern, fullmatch);
+
+  @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
@@ -179,8 +184,11 @@ class RegexGenerator extends _BaseNativeStringGenerator {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException(
-          'Failed to build regex generator: ${result.value}',
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to build regex generator',
+          result.value,
         );
       }
       return outGen.value;
@@ -198,7 +206,10 @@ Generator<String> fromRegex(String pattern, {bool fullmatch = true}) {
 }
 
 class EmailGenerator extends _BaseNativeStringGenerator {
-  EmailGenerator();
+  const EmailGenerator();
+
+  @override
+  Object get _cacheKey => EmailGenerator;
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
@@ -209,8 +220,11 @@ class EmailGenerator extends _BaseNativeStringGenerator {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException(
-          'Failed to build email generator: ${result.value}',
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to build email generator',
+          result.value,
         );
       }
       return outGen.value;
@@ -223,10 +237,13 @@ class EmailGenerator extends _BaseNativeStringGenerator {
 /// ```dart
 /// tc.draw(emails())
 /// ```
-Generator<String> emails() => EmailGenerator();
+Generator<String> emails() => const EmailGenerator();
 
 class UrlGenerator extends _BaseNativeStringGenerator {
-  UrlGenerator();
+  const UrlGenerator();
+
+  @override
+  Object get _cacheKey => UrlGenerator;
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
@@ -237,7 +254,12 @@ class UrlGenerator extends _BaseNativeStringGenerator {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to build url generator: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to build url generator',
+          result.value,
+        );
       }
       return outGen.value;
     });
@@ -249,11 +271,14 @@ class UrlGenerator extends _BaseNativeStringGenerator {
 /// ```dart
 /// tc.draw(urls())
 /// ```
-Generator<String> urls() => UrlGenerator();
+Generator<String> urls() => const UrlGenerator();
 
 class DomainGenerator extends _BaseNativeStringGenerator {
   final int maxLength;
-  DomainGenerator(this.maxLength);
+  const DomainGenerator(this.maxLength);
+
+  @override
+  Object get _cacheKey => (DomainGenerator, maxLength);
 
   @override
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
@@ -268,8 +293,11 @@ class DomainGenerator extends _BaseNativeStringGenerator {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException(
-          'Failed to build domain generator: ${result.value}',
+        throw hegelExceptionWithDetail(
+          tc.lib,
+          tc.ctx,
+          'Failed to build domain generator',
+          result.value,
         );
       }
       return outGen.value;
