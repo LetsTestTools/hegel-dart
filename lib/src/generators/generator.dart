@@ -21,6 +21,9 @@ abstract class Generator<T> {
     bool Function(T value) predicate, {
     int maxAttempts = 100,
   }) {
+    if (maxAttempts <= 0) {
+      throw ArgumentError.value(maxAttempts, 'maxAttempts', 'must be > 0');
+    }
     return FilteredGenerator<T>(this, predicate, maxAttempts: maxAttempts);
   }
 
@@ -50,11 +53,12 @@ class FilteredGenerator<T> extends Generator<T> {
   final bool Function(T value) _predicate;
   final int _maxAttempts;
 
-  const FilteredGenerator(
-    this._generator,
-    this._predicate, {
-    int maxAttempts = 100,
-  }) : _maxAttempts = maxAttempts;
+  FilteredGenerator(this._generator, this._predicate, {int maxAttempts = 100})
+    : _maxAttempts = maxAttempts {
+    if (maxAttempts <= 0) {
+      throw ArgumentError.value(maxAttempts, 'maxAttempts', 'must be > 0');
+    }
+  }
 
   @override
   T generate(TestCase tc) {

@@ -1,3 +1,13 @@
+## 0.9.1
+
+- **Fix**: Free native `hegel_string_generator_t` handles at end-of-run (`hegel_string_generator_free`) and cache handles per-run by structural generator parameters on `RunLifecycle`.
+- **Fix**: Enrich string and regex generator build failures with native engine diagnostics (`hegelExceptionWithDetail`).
+- **Fix**: Throw `hegelExceptionWithDetail` on FFI failures in `stateful_runner.dart` instead of continuing with uninitialized out-pointers, and validate rule/invariant names against NUL bytes (`\x00`).
+- **Fix**: Propagate `machine.tearDown()` exceptions in `hegelStatefulTest` when the stateful body succeeded.
+- **Fix**: Add package-URI and `.dart_tool/package_config.json` fallback to `loadHegelLibrary()` so `flutter test` resolves the bundled native binary when `.dart_tool/lib/` is not populated.
+- **Fix**: Deduplicate repeated `tc.cover()` calls for the same label within a single iteration and reject `NaN` in `tc.cover()`, `tc.target()`, `booleans()`, and `nullable()`, as well as non-positive `maxAttempts` in `Generator.where()`.
+- **API**: Export `runStateMachine` from `package:hegeltest/hegeltest.dart`.
+
 ## 0.9.0
 
 - **New**: `tc.classify(condition, observation, {label})` — conditional observation tracking combinator for input distribution monitoring.

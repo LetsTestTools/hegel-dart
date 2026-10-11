@@ -254,7 +254,7 @@ class TestCase {
   /// ```
   void cover(double minPercentage, bool condition, String label) {
     _checkNotDisposed();
-    if (minPercentage <= 0.0 || minPercentage > 100.0) {
+    if (minPercentage.isNaN || minPercentage <= 0.0 || minPercentage > 100.0) {
       throw ArgumentError.value(
         minPercentage,
         'minPercentage',
@@ -263,7 +263,13 @@ class TestCase {
     }
     _coverageTargets[label] = minPercentage;
     if (condition) {
-      collect(label, label: '__hegel_coverage__');
+      final covered = _stagedObservations.putIfAbsent(
+        '__hegel_coverage__',
+        () => [],
+      );
+      if (!covered.contains(label)) {
+        covered.add(label);
+      }
     }
   }
 
@@ -296,6 +302,9 @@ class TestCase {
   /// Record a numeric observation for the engine's targeting phase.
   void target(double value, {required String label}) {
     _checkNotDisposed();
+    if (value.isNaN) {
+      throw ArgumentError.value(value, 'value', 'must not be NaN');
+    }
     if (label.contains('\x00')) {
       throw ArgumentError.value(
         label,
