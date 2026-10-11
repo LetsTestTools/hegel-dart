@@ -15,7 +15,10 @@ String extractOrigin(StackTrace stackTrace) {
     'package:test_core/',
     'package:test_api/',
     'package:matcher/',
+    'package:flutter_test/',
+    'package:flutter/',
     'package:hegeltest/',
+    'package:hegeltest_flutter/',
     'dart:async',
     'dart:core',
     'dart:isolate',
@@ -31,7 +34,9 @@ String extractOrigin(StackTrace stackTrace) {
       // Parse "file:line:col" pattern from the frame
       // Dart VM format: "#N      FunctionName (file:line:col)"
       // or: "#N      file:line:col"
-      final match = RegExp(r'(\S+\.dart[:\s]\d+)').firstMatch(trimmed);
+      final match = RegExp(
+        r'([^\s()]+\.dart[:\s]\d+(?::\d+)?)',
+      ).firstMatch(trimmed);
       if (match != null) {
         return match.group(1)!;
       }

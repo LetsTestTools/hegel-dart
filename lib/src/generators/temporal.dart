@@ -9,7 +9,13 @@ class DateGenerator extends Generator<DateTime> {
   final DateTime min;
   final DateTime max;
 
-  const DateGenerator(this.min, this.max);
+  DateGenerator(this.min, this.max) {
+    final minDay = DateTime.utc(min.year, min.month, min.day);
+    final maxDay = DateTime.utc(max.year, max.month, max.day);
+    if (minDay.isAfter(maxDay)) {
+      throw ArgumentError('dates: min ($min) must be <= max ($max)');
+    }
+  }
 
   @override
   DateTime generate(TestCase tc) {
@@ -68,7 +74,35 @@ class TimeGenerator extends Generator<TimeRecord> {
   final TimeRecord min;
   final TimeRecord max;
 
-  const TimeGenerator(this.min, this.max);
+  TimeGenerator(this.min, this.max) {
+    _validateTimeRecord(min, 'min');
+    _validateTimeRecord(max, 'max');
+    if (_toTotalMicros(min) > _toTotalMicros(max)) {
+      throw ArgumentError('times: min ($min) must be <= max ($max)');
+    }
+  }
+
+  static void _validateTimeRecord(TimeRecord t, String name) {
+    if (t.hour < 0 || t.hour > 23) {
+      throw ArgumentError.value(t.hour, '$name.hour', 'must be in 0..23');
+    }
+    if (t.minute < 0 || t.minute > 59) {
+      throw ArgumentError.value(t.minute, '$name.minute', 'must be in 0..59');
+    }
+    if (t.second < 0 || t.second > 59) {
+      throw ArgumentError.value(t.second, '$name.second', 'must be in 0..59');
+    }
+    if (t.microsecond < 0 || t.microsecond > 999999) {
+      throw ArgumentError.value(
+        t.microsecond,
+        '$name.microsecond',
+        'must be in 0..999999',
+      );
+    }
+  }
+
+  static int _toTotalMicros(TimeRecord t) =>
+      (((t.hour * 60 + t.minute) * 60 + t.second) * 1000000) + t.microsecond;
 
   @override
   TimeRecord generate(TestCase tc) {
@@ -128,7 +162,18 @@ class DateTimeGenerator extends Generator<DateTime> {
   final DateTime min;
   final DateTime max;
 
-  const DateTimeGenerator(this.min, this.max);
+  DateTimeGenerator(DateTime min, DateTime max)
+    : min = min.toUtc(),
+      max = max.toUtc() {
+    if (this.min.isAfter(this.max)) {
+      throw ArgumentError('dateTimes: min ($min) must be <= max ($max)');
+    }
+    if (this.min.year < 1 || this.max.year > 9999) {
+      throw ArgumentError(
+        'dateTimes: UTC year must be in [1, 9999] (got min=${this.min}, max=${this.max})',
+      );
+    }
+  }
 
   @override
   DateTime generate(TestCase tc) {
@@ -142,7 +187,7 @@ class DateTimeGenerator extends Generator<DateTime> {
         ..ref.time.hour = min.hour
         ..ref.time.minute = min.minute
         ..ref.time.second = min.second
-        ..ref.time.microsecond = min.microsecond;
+        ..ref.time.microsecond = min.millisecond * 1000 + min.microsecond;
 
       final maxStruct = arena<hegel_datetime_t>()
         ..ref.date.year = max.year
@@ -151,7 +196,7 @@ class DateTimeGenerator extends Generator<DateTime> {
         ..ref.time.hour = max.hour
         ..ref.time.minute = max.minute
         ..ref.time.second = max.second
-        ..ref.time.microsecond = max.microsecond;
+        ..ref.time.microsecond = max.millisecond * 1000 + max.microsecond;
 
       final result = tc.lib.hegel_generate_datetime(
         tc.ctx,
@@ -191,6 +236,6 @@ class DateTimeGenerator extends Generator<DateTime> {
 Generator<DateTime> dateTimes({DateTime? min, DateTime? max}) {
   return DateTimeGenerator(
     min ?? DateTime.utc(1, 1, 1),
-    max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 0, 999),
+    max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 999, 999),
   );
 }

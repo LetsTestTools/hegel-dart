@@ -57,6 +57,7 @@ class HegelRunner {
     FutureOr<void> Function()? setUpEach,
     FutureOr<void> Function()? tearDownEach,
   }) async {
+    _caughtExceptions.clear();
     final ctx = lib.hegel_context_new();
     final lifecycle = RunLifecycle();
     final statistics = <String, Map<String, int>>{};
@@ -504,6 +505,18 @@ class HegelRunner {
         final resultHandle = outResult.value;
         if (resultHandle != nullptr) {
           try {
+            if (testCasesRun > 1) {
+              await _replayWinningFailures(
+                ctx,
+                settings,
+                resultHandle,
+                callback.nativeFunction,
+                lifecycle,
+                body,
+                setUpEach: setUpEach,
+                tearDownEach: tearDownEach,
+              );
+            }
             return _extractRunResult(
               ctx,
               resultHandle,
@@ -615,6 +628,184 @@ class HegelRunner {
     return Map<String, Map<String, int>>.unmodifiable(
       filtered.map((k, v) => MapEntry(k, Map<String, int>.unmodifiable(v))),
     );
+  }
+
+  Future<void> _replayWinningFailures(
+    Pointer<hegel_context_t> ctx,
+    Pointer<hegel_settings_t> settings,
+    Pointer<hegel_run_result_t> resultHandle,
+    Pointer<NativeFunction<hegel_output_callback_tFunction>> callbackFn,
+    RunLifecycle lifecycle,
+    FutureOr<void> Function(TestCase) body, {
+    FutureOr<void> Function()? setUpEach,
+    FutureOr<void> Function()? tearDownEach,
+  }) async {
+    final outStatus = calloc<UnsignedInt>();
+    try {
+      final statusRes = lib.hegel_run_result_status(
+        ctx,
+        resultHandle,
+        outStatus,
+      );
+      if (statusRes != hegel_result_t.HEGEL_OK ||
+          outStatus.value != hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
+        return;
+      }
+    } finally {
+      calloc.free(outStatus);
+    }
+
+    final countPtr = calloc<Size>();
+    int failCount = 0;
+    try {
+      if (lib.hegel_run_result_failure_count(ctx, resultHandle, countPtr) ==
+          hegel_result_t.HEGEL_OK) {
+        failCount = countPtr.value;
+      }
+    } finally {
+      calloc.free(countPtr);
+    }
+    if (failCount == 0) return;
+
+    final winningBlobs = <(String, String)>[];
+    for (var i = 0; i < failCount; i++) {
+      final failOut = calloc<Pointer<hegel_failure_t>>();
+      try {
+        if (lib.hegel_run_result_failure(ctx, resultHandle, i, failOut) ==
+                hegel_result_t.HEGEL_OK &&
+            failOut.value != nullptr) {
+          final failure = failOut.value;
+          try {
+            String? originStr;
+            final originOut = calloc<Pointer<Char>>();
+            try {
+              lib.hegel_failure_origin(ctx, failure, originOut);
+              if (originOut.value != nullptr) {
+                originStr = originOut.value.cast<Utf8>().toDartString();
+              }
+            } finally {
+              calloc.free(originOut);
+            }
+
+            String? blobStr;
+            final blobOut = calloc<Pointer<Char>>();
+            try {
+              lib.hegel_failure_reproduction_blob(ctx, failure, blobOut);
+              if (blobOut.value != nullptr) {
+                blobStr = blobOut.value.cast<Utf8>().toDartString();
+              }
+            } finally {
+              calloc.free(blobOut);
+            }
+
+            if (originStr != null && blobStr != null && blobStr.isNotEmpty) {
+              winningBlobs.add((originStr, blobStr));
+            }
+          } finally {
+            lib.hegel_failure_free(ctx, failure);
+          }
+        }
+      } finally {
+        calloc.free(failOut);
+      }
+    }
+
+    final replayBufferCache = <String, Pointer<Void>>{};
+    try {
+      for (final (originStr, blobStr) in winningBlobs) {
+        Pointer<hegel_test_case_t> replayTcHandle = nullptr;
+        using((Arena arena) {
+          final blobPtr = blobStr.toNativeUtf8(allocator: arena).cast<Char>();
+          final outTc = arena<Pointer<hegel_test_case_t>>();
+          final res = lib.hegel_test_case_from_blob(
+            ctx,
+            settings,
+            blobPtr,
+            callbackFn,
+            nullptr,
+            outTc,
+          );
+          if (res == hegel_result_t.HEGEL_OK) {
+            replayTcHandle = outTc.value;
+          }
+        });
+        if (replayTcHandle == nullptr) continue;
+
+        final tc = TestCase(
+          ctx,
+          replayTcHandle,
+          lib,
+          lifecycle,
+          bufferCache: replayBufferCache,
+        );
+        var status = hegel_status_t.HEGEL_STATUS_VALID.value;
+        Object? caughtError;
+        StackTrace? caughtStack;
+        List<(String, String)>? drawLog;
+
+        try {
+          if (setUpEach != null) await setUpEach();
+          final completer = Completer<void>();
+          unawaited(
+            runZonedGuarded(
+              () async {
+                try {
+                  await body(tc);
+                  if (!completer.isCompleted) completer.complete();
+                } catch (e, st) {
+                  if (!completer.isCompleted) completer.completeError(e, st);
+                }
+              },
+              (e, st) {
+                if (!completer.isCompleted) {
+                  completer.completeError(e, st);
+                }
+              },
+            ),
+          );
+          await completer.future;
+        } on HegelStopTest {
+          status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
+        } on HegelAssumptionViolated {
+          status = hegel_status_t.HEGEL_STATUS_INVALID.value;
+        } on HegelException {
+          tc.clearStagedObservations();
+        } catch (e, st) {
+          status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
+          caughtError = e;
+          caughtStack = st;
+        } finally {
+          if (tearDownEach != null) {
+            try {
+              await tearDownEach();
+            } catch (e, st) {
+              if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
+                status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
+                caughtError = e;
+                caughtStack = st;
+              }
+            }
+          }
+          drawLog = tc.drawLog;
+          tc.clearStagedObservations();
+          tc.invalidate();
+          lib.hegel_mark_complete(ctx, replayTcHandle, status, nullptr);
+          lib.hegel_test_case_free(ctx, replayTcHandle);
+        }
+
+        if (caughtError != null &&
+            caughtStack != null &&
+            (!_caughtExceptions.containsKey(originStr) ||
+                extractOrigin(caughtStack) == originStr)) {
+          _caughtExceptions[originStr] = (caughtError, caughtStack, drawLog);
+        }
+      }
+    } finally {
+      for (final ptr in replayBufferCache.values) {
+        calloc.free(ptr);
+      }
+      replayBufferCache.clear();
+    }
   }
 
   RunResult _extractRunResult(
