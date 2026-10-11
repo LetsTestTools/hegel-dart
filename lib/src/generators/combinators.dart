@@ -104,7 +104,9 @@ class NullableGenerator<T> extends Generator<T?> {
   final double nullProbability;
 
   NullableGenerator(this.gen, this.nullProbability) {
-    if (nullProbability < 0.0 || nullProbability > 1.0) {
+    if (nullProbability.isNaN ||
+        nullProbability < 0.0 ||
+        nullProbability > 1.0) {
       throw ArgumentError(
         'nullable: nullProbability ($nullProbability) must be in [0.0, 1.0]',
       );

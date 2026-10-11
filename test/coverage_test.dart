@@ -115,7 +115,39 @@ void main() {
         resultOver.failures.first.message,
         contains('Invalid argument (minPercentage)'),
       );
+
+      final resultNan = await runHegelTest((tc) {
+        tc.cover(double.nan, true, 'nan-percentage');
+      }, testCases: 5);
+      expect(resultNan.status, equals(RunStatus.failed));
+      expect(
+        resultNan.failures.first.message,
+        contains('Invalid argument (minPercentage)'),
+      );
     });
+
+    test(
+      'deduplicates repeated cover calls for the same label within a single iteration',
+      () async {
+        var iter = 0;
+        final result = await runHegelTest((tc) {
+          tc.draw(integers());
+          iter++;
+          // Only satisfy on the first iteration, but call tc.cover 10 times in a loop.
+          // Without per-iteration deduplication, 10 hits across 10 iterations would
+          // falsely report 100% coverage instead of 10%.
+          for (var i = 0; i < 10; i++) {
+            tc.cover(50.0, iter == 1, 'repeated-in-loop');
+          }
+        }, testCases: 10);
+
+        expect(result.status, equals(RunStatus.failed));
+        expect(
+          result.failures.first.exception,
+          isA<InsufficientCoverageException>(),
+        );
+      },
+    );
 
     test(
       'calculates coverage based only on valid test cases (respects assume)',
@@ -129,6 +161,23 @@ void main() {
         }, testCases: 50);
 
         expect(result.status, equals(RunStatus.passed));
+      },
+    );
+  });
+
+  group('Parameter validation guards', () {
+    test(
+      'rejects NaN in booleans and nullable and non-positive maxAttempts in where',
+      () {
+        expect(() => booleans(p: double.nan), throwsArgumentError);
+        expect(
+          () => nullable(integers(), nullProbability: double.nan),
+          throwsArgumentError,
+        );
+        expect(
+          () => integers().where((x) => x > 0, maxAttempts: 0),
+          throwsArgumentError,
+        );
       },
     );
   });

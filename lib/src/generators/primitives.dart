@@ -143,7 +143,7 @@ class BooleanGenerator extends Generator<bool> {
   final double p;
 
   BooleanGenerator(this.p) {
-    if (p < 0.0 || p > 1.0) {
+    if (p.isNaN || p < 0.0 || p > 1.0) {
       throw ArgumentError('booleans: probability p ($p) must be in [0.0, 1.0]');
     }
   }
