@@ -6,6 +6,10 @@
 - **Fix**: Propagate `machine.tearDown()` exceptions in `hegelStatefulTest` when the stateful body succeeded.
 - **Fix**: Add package-URI and `.dart_tool/package_config.json` fallback to `loadHegelLibrary()` so `flutter test` resolves the bundled native binary when `.dart_tool/lib/` is not populated.
 - **Fix**: Deduplicate repeated `tc.cover()` calls for the same label within a single iteration and reject `NaN` in `tc.cover()`, `tc.target()`, `booleans()`, and `nullable()`, as well as non-positive `maxAttempts` in `Generator.where()`.
+- **Fix**: Encode sub-second `DateTimeGenerator` bounds as `millisecond * 1000 + microsecond`, normalize `min`/`max` bounds to UTC via `.toUtc()`, fix default `dateTimes()` `max` bound, and validate bounds/sizes in `DateGenerator`, `TimeGenerator`, `DateTimeGenerator`, and `BytesGenerator`.
+- **Fix**: Support nullable `Pool<T?>` values in stateful testing by checking `!_pool.values.containsKey(varId)` instead of `value == null`.
+- **Fix**: Skip `package:flutter_test/`, `package:flutter/`, and `package:hegeltest_flutter/` frames and strip surrounding parentheses in `extractOrigin`.
+- **Fix**: Replay winning shrunk failure reproduction blobs at the end of `HegelRunner.runWithResult` when more than one test case ran, clear `_caughtExceptions` per run, and record qualifying replay exceptions so reports can use the winning replay instead of a rejected shrink probe.
 - **API**: Export `runStateMachine` from `package:hegeltest/hegeltest.dart`.
 
 ## 0.9.0
