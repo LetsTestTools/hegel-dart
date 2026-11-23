@@ -121,7 +121,10 @@ class TestCase {
   final List<(String label, Object? value)> _drawLog = [];
 
   /// Diagnostic notes recorded via [note] during this iteration.
-  final List<String> _notes = [];
+  ///
+  /// Shared between the primary test case and any clones created from it so
+  /// notes recorded on clones remain visible in failure reports.
+  final List<String> _notes;
 
   /// Creates a test case wrapper.
   ///
@@ -134,8 +137,10 @@ class TestCase {
     this._lifecycle, {
     bool isOwned = false,
     Map<String, Pointer<Void>>? bufferCache,
+    List<String>? sharedNotes,
   }) : _isOwned = isOwned,
-       _bufferCache = bufferCache ?? {};
+       _bufferCache = bufferCache ?? {},
+       _notes = sharedNotes ?? [];
 
   /// Internal accessors used by generators and stateful runners.
   @internal
@@ -215,8 +220,8 @@ class TestCase {
     String s;
     try {
       s = value.toString();
-    } catch (e) {
-      s = '<toString() threw: ${e.runtimeType}>';
+    } catch (_) {
+      s = '<value: toString() threw>';
     }
     if (s.length <= 200) return s;
     final truncated = String.fromCharCodes(s.runes.take(200));
@@ -340,6 +345,7 @@ class TestCase {
         outTestCase.value,
         _lifecycle,
         isOwned: true,
+        sharedNotes: _notes,
       );
       // Attach GC finalizer as safety net.
       final resource = _OwnedTestCaseResource(
@@ -377,7 +383,9 @@ class TestCase {
   /// zombie usage from captured closures.
   void invalidate() {
     _drawLog.clear();
-    _notes.clear();
+    if (!_isOwned) {
+      _notes.clear();
+    }
     _isDisposed = true;
     // NOTE: buffer cache is NOT freed here — it's owned by the runner
     // and shared across iterations for performance.

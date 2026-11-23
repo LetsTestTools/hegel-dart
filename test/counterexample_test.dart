@@ -163,6 +163,7 @@ void main() {
     'nested runWithResult on shared HegelRunner preserves outer diagnostics',
     () async {
       final runner = HegelRunner();
+      final innerStatuses = <RunStatus>[];
       final outerResult = await runner.runWithResult(
         (tc) {
           final v = tc.draw(integers(min: 1, max: 100));
@@ -180,19 +181,59 @@ void main() {
             testCases: 1,
             database: false,
           );
-          expect(innerResult.status, equals(RunStatus.passed));
+          innerStatuses.add(innerResult.status);
         },
       );
+      expect(innerStatuses, isNotEmpty);
+      expect(innerStatuses, everyElement(equals(RunStatus.passed)));
       expect(outerResult.status, equals(RunStatus.failed));
       expect(outerResult.failures.first.message, contains('outer boom'));
       expect(outerResult.failures.first.message, contains('Counterexample'));
     },
   );
+
+  test(
+    'quiet failure report preserves tc.note() added during tearDownEach',
+    () async {
+      TestCase? currentTc;
+      final result = await HegelRunner().runWithResult(
+        (tc) {
+          currentTc = tc;
+          tc.draw(integers(min: 0, max: 0));
+          throw StateError('body boom');
+        },
+        verbosity: Verbosity.quiet,
+        testCases: 1,
+        database: false,
+        tearDownEach: () {
+          currentTc?.note('teardown diagnostic');
+          throw StateError('secondary teardown boom');
+        },
+      );
+      expect(result.status, equals(RunStatus.failed));
+      expect(
+        result.failures.first.message,
+        allOf(
+          contains('body boom'),
+          contains('Notes:'),
+          contains('teardown diagnostic'),
+        ),
+      );
+    },
+  );
+}
+
+class _ThrowingRuntimeTypeError implements Exception {
+  @override
+  Type get runtimeType => throw StateError('cannot read runtimeType');
 }
 
 class _UnprintableError implements Exception {
   @override
-  String toString() => throw StateError('cannot format');
+  Type get runtimeType => throw StateError('cannot read runtimeType');
+
+  @override
+  String toString() => throw _ThrowingRuntimeTypeError();
 }
 
 class _SecondCallThrowsError implements Exception {

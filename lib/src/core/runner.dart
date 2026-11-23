@@ -254,17 +254,6 @@ class HegelRunner {
             originStr = _nonEmptyOrigin(extractOrigin(st));
             caughtErrorText = _safeFormatError(e);
             caughtStack = st;
-            if (wantsOutput || !caughtExceptions.containsKey(originStr)) {
-              caughtExceptions[originStr] = (
-                errorText: caughtErrorText,
-                stackTrace: st,
-                drawLog: tc.drawLog,
-                notes: tc.notes,
-              );
-            }
-            if (wantsOutput) {
-              stampedOrigins.add(originStr);
-            }
           } finally {
             if (tearDownEach != null) {
               try {
@@ -275,23 +264,29 @@ class HegelRunner {
                   originStr = _nonEmptyOrigin(extractOrigin(st));
                   caughtErrorText = _safeFormatError(e);
                   caughtStack = st;
-                  if (wantsOutput || !caughtExceptions.containsKey(originStr)) {
-                    caughtExceptions[originStr] = (
-                      errorText: caughtErrorText,
-                      stackTrace: st,
-                      drawLog: tc.drawLog,
-                      notes: tc.notes,
-                    );
-                  }
-                  if (wantsOutput) {
-                    stampedOrigins.add(originStr);
-                  }
                 } else {
                   stderr.writeln(
                     '[hegeltest] tearDownEach threw: ${_safeFormatError(e)}\n'
                     '${_safeFormatStackTrace(st)}',
                   );
                 }
+              }
+            }
+
+            if (status == hegel_status_t.HEGEL_STATUS_INTERESTING.value &&
+                originStr != null &&
+                caughtErrorText != null &&
+                caughtStack != null) {
+              if (wantsOutput || !caughtExceptions.containsKey(originStr)) {
+                caughtExceptions[originStr] = (
+                  errorText: caughtErrorText,
+                  stackTrace: caughtStack,
+                  drawLog: tc.drawLog,
+                  notes: tc.notes,
+                );
+              }
+              if (wantsOutput) {
+                stampedOrigins.add(originStr);
               }
             }
 
@@ -379,18 +374,20 @@ class HegelRunner {
             hegel_run_result_free(ctx, resultHandle);
           }
         }
-        final coverageFailures = _checkCoverage(
-          validCasesRun,
-          statistics,
-          coverageTargets,
-        );
-        if (coverageFailures.isNotEmpty) {
-          return RunResult(
-            status: RunStatus.failed,
-            testCasesRun: testCasesRun,
-            failures: coverageFailures,
-            statistics: _freezeStatistics(statistics),
+        if (reproduceBlob == null) {
+          final coverageFailures = _checkCoverage(
+            validCasesRun,
+            statistics,
+            coverageTargets,
           );
+          if (coverageFailures.isNotEmpty) {
+            return RunResult(
+              status: RunStatus.failed,
+              testCasesRun: testCasesRun,
+              failures: coverageFailures,
+              statistics: _freezeStatistics(statistics),
+            );
+          }
         }
         return RunResult(
           status: RunStatus.passed,
@@ -492,8 +489,8 @@ class HegelRunner {
     if (error == null) return 'Property failed';
     try {
       return error.toString();
-    } catch (formatError) {
-      return '<${error.runtimeType}: toString() threw ${formatError.runtimeType}>';
+    } catch (_) {
+      return '<error: toString() threw>';
     }
   }
 
@@ -501,8 +498,8 @@ class HegelRunner {
     if (stackTrace == null) return '';
     try {
       return stackTrace.toString();
-    } catch (formatError) {
-      return '<${stackTrace.runtimeType}: toString() threw ${formatError.runtimeType}>';
+    } catch (_) {
+      return '<stack trace: toString() threw>';
     }
   }
 
@@ -872,18 +869,20 @@ class HegelRunner {
       );
     }
 
-    final coverageFailures = _checkCoverage(
-      validCasesRun,
-      statistics,
-      coverageTargets,
-    );
-    if (coverageFailures.isNotEmpty) {
-      return RunResult(
-        status: RunStatus.failed,
-        testCasesRun: testCasesRun,
-        failures: coverageFailures,
-        statistics: frozenStats,
+    if (reproduceBlob == null) {
+      final coverageFailures = _checkCoverage(
+        validCasesRun,
+        statistics,
+        coverageTargets,
       );
+      if (coverageFailures.isNotEmpty) {
+        return RunResult(
+          status: RunStatus.failed,
+          testCasesRun: testCasesRun,
+          failures: coverageFailures,
+          statistics: frozenStats,
+        );
+      }
     }
 
     return RunResult(

@@ -87,4 +87,37 @@ void main() {
       allOf(contains('replayed flaky failure'), contains('Caveat:')),
     );
   });
+
+  test(
+    'non-reproducing blob replay ignores coverage variation across replay attempts',
+    () async {
+      final failResult = await HegelRunner().runWithResult(
+        (tc) {
+          final v = tc.draw(integers(min: 0, max: 100));
+          if (v >= 50) {
+            throw StateError('boom');
+          }
+        },
+        testCases: 50,
+        seed: 7,
+        database: false,
+      );
+      expect(failResult.status, equals(RunStatus.failed));
+      final blob = failResult.failures.first.reproductionBlob;
+      expect(blob, isNotEmpty);
+
+      var replayCalls = 0;
+      final replayResult = await HegelRunner().runWithResult(
+        (tc) {
+          replayCalls++;
+          tc.draw(integers(min: 0, max: 100));
+          tc.cover(100.0, replayCalls == 1, 'only-first-attempt');
+        },
+        reproduceBlob: blob,
+        database: false,
+      );
+      expect(replayResult.status, equals(RunStatus.passed));
+      expect(replayResult.failures, isEmpty);
+    },
+  );
 }

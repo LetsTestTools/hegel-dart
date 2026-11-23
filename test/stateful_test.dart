@@ -274,6 +274,53 @@ void main() {
       expect(result.status, equals(RunStatus.passed));
     },
   );
+
+  test(
+    'quiet failing stateful run retains cloned test case note in failure report',
+    () async {
+      final result = await runHegelTest(
+        (tc) => runStateMachine(tc, _QuietFailingNoteCloneMachine()),
+        verbosity: Verbosity.quiet,
+        testCases: 5,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.failed));
+      expect(
+        result.failures.first.message,
+        allOf(
+          contains('invariant failed'),
+          contains('Notes:'),
+          contains('quiet clone invariant note'),
+        ),
+      );
+    },
+  );
+}
+
+class _QuietFailingNoteCloneMachine extends StateMachine {
+  @override
+  int get stepCount => 4;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('step', execute: (tc) => tc.draw(integers(min: 0, max: 10))),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'clone note before failing',
+      check: (tc) {
+        final cloned = tc.clone();
+        try {
+          cloned.note('quiet clone invariant note');
+        } finally {
+          cloned.dispose();
+        }
+        throw StateError('invariant failed');
+      },
+    ),
+  ];
 }
 
 class _VerboseNoteCloneMachine extends StateMachine {
