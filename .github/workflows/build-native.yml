@@ -11,6 +11,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   fetch:
     name: Fetch libhegel binaries
@@ -38,6 +41,7 @@ jobs:
         with:
           name: native-all-platforms
           path: native/
+          include-hidden-files: true
 
   verify:
     name: Verify (${{ matrix.os }})
@@ -46,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
 

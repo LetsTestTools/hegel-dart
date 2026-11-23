@@ -33,12 +33,15 @@ void _outputCallback(Pointer<Void> userData, Pointer<Char> line, int len) {
   }
 }
 
+typedef _CapturedFailure = ({
+  String errorText,
+  StackTrace stackTrace,
+  List<(String, String)> drawLog,
+  List<String> notes,
+});
+
 class HegelRunner {
   HegelRunner();
-
-  /// Map of origin strings to (exception, stack trace, draw log) for reporting.
-  final Map<String, (Object, StackTrace, List<(String, String)>)>
-  _caughtExceptions = {};
 
   Future<RunResult> runWithResult(
     FutureOr<void> Function(TestCase) body, {
@@ -57,7 +60,7 @@ class HegelRunner {
     FutureOr<void> Function()? tearDownEach,
   }) async {
     ensureHegelLibraryVerified();
-    _caughtExceptions.clear();
+    final caughtExceptions = <String, _CapturedFailure>{};
     final ctx = hegel_context_new();
     if (ctx == nullptr) {
       throw StateError('Failed to allocate libhegel context.');
@@ -117,195 +120,46 @@ class HegelRunner {
         _outputCallback,
       );
 
-      if (reproduceBlob != null) {
-        if (reproduceBlob.contains('\x00')) {
-          throw ArgumentError('reproduce blob must not contain NUL bytes');
-        }
-        using((Arena arena) {
-          final blobStr = makeHegelString(arena, reproduceBlob);
-          final outTestCase = arena<Pointer<hegel_test_case_t>>();
-          final res = hegel_test_case_from_blob(
+      // 2. Start Run
+      final outRun = calloc<Pointer<hegel_run_t>>();
+      try {
+        final hegel_result_t res;
+        if (reproduceBlob != null) {
+          if (reproduceBlob.contains('\x00')) {
+            throw ArgumentError('reproduce blob must not contain NUL bytes');
+          }
+          res = using((Arena arena) {
+            return hegel_run_start_blob(
+              ctx,
+              settings,
+              makeHegelString(arena, reproduceBlob),
+              callback!.nativeFunction,
+              nullptr,
+              outRun,
+            );
+          });
+          if (res != hegel_result_t.HEGEL_OK) {
+            throw hegelExceptionWithDetail(
+              ctx,
+              'Failed to start blob replay run',
+              res.value,
+            );
+          }
+        } else {
+          res = hegel_run_start(
             ctx,
             settings,
-            blobStr,
-            callback!.nativeFunction,
+            callback.nativeFunction,
             nullptr,
-            outTestCase,
+            outRun,
           );
           if (res != hegel_result_t.HEGEL_OK) {
             throw hegelExceptionWithDetail(
               ctx,
-              'Failed to load test case from blob',
+              'Failed to start run',
               res.value,
             );
           }
-          tcHandle = outTestCase.value;
-        });
-
-        final (wantsOutput, wantsDetail) = _queryOutputFlags(ctx, tcHandle);
-        final tc = TestCase(ctx, tcHandle, lifecycle);
-        var status = hegel_status_t.HEGEL_STATUS_VALID.value;
-        String? originStr;
-        Object? caughtError;
-        StackTrace? caughtStack;
-
-        try {
-          if (setUpEach != null) await setUpEach();
-
-          final completer = Completer<void>();
-          unawaited(
-            runZonedGuarded(
-              () async {
-                try {
-                  await body(tc);
-                  if (!completer.isCompleted) completer.complete();
-                } catch (e, st) {
-                  if (!completer.isCompleted) completer.completeError(e, st);
-                }
-              },
-              (e, st) {
-                if (!completer.isCompleted) {
-                  completer.completeError(e, st);
-                } else {
-                  stderr.writeln(
-                    '[hegeltest] Late async error (after iteration completed): $e',
-                  );
-                  stderr.writeln(st);
-                }
-              },
-            ),
-          );
-
-          await completer.future;
-        } on HegelStopTest {
-          status = hegel_status_t.HEGEL_STATUS_OVERRUN.value;
-        } on HegelAssumptionViolated {
-          status = hegel_status_t.HEGEL_STATUS_INVALID.value;
-        } on HegelException {
-          tc.clearStagedObservations();
-          rethrow;
-        } catch (e, st) {
-          status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
-          originStr = _nonEmptyOrigin(extractOrigin(st));
-          caughtError = e;
-          caughtStack = st;
-        } finally {
-          if (tearDownEach != null) {
-            try {
-              await tearDownEach();
-            } catch (e, st) {
-              if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
-                status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
-                originStr = _nonEmptyOrigin(extractOrigin(st));
-                caughtError = e;
-                caughtStack = st;
-              } else {
-                stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
-              }
-            }
-          }
-
-          if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
-            validCasesRun++;
-            coverageTargets.addAll(tc.coverageTargets);
-            final staged = tc.takeStagedObservations();
-            for (final entry in staged.entries) {
-              final labelMap = statistics.putIfAbsent(entry.key, () => {});
-              for (final obs in entry.value) {
-                labelMap[obs] = (labelMap[obs] ?? 0) + 1;
-              }
-            }
-          } else {
-            coverageTargets.addAll(tc.coverageTargets);
-            tc.clearStagedObservations();
-          }
-        }
-
-        final drawLogCopy =
-            status == hegel_status_t.HEGEL_STATUS_INTERESTING.value
-            ? tc.drawLog
-            : const <(String, String)>[];
-        final notesCopy =
-            status == hegel_status_t.HEGEL_STATUS_INTERESTING.value
-            ? tc.notes
-            : const <String>[];
-        tc.invalidate();
-
-        _markComplete(
-          ctx,
-          tcHandle,
-          status,
-          origin: originStr,
-          error: caughtError,
-          stackTrace: caughtStack,
-          wantsOutput: wantsOutput,
-          wantsDetail: wantsDetail,
-        );
-
-        if (status == hegel_status_t.HEGEL_STATUS_INTERESTING.value) {
-          final notesStr = notesCopy.isNotEmpty
-              ? '\n\nNotes:\n${notesCopy.join('\n')}'
-              : '';
-          String message =
-              'Property failed during blob replay. Origin: $originStr$notesStr';
-          if (caughtError != null && caughtStack != null) {
-            final drawLogStr = drawLogCopy.isNotEmpty
-                ? '\nCounterexample:\n${drawLogCopy.indexed.map((e) => '  draw #${e.$1 + 1} (${e.$2.$1}): ${e.$2.$2}').join('\n')}'
-                : '';
-            message =
-                'Property failed during blob replay. Origin: $originStr\n'
-                '\nCaused by: $caughtError'
-                '\n$caughtStack'
-                '$drawLogStr'
-                '$notesStr';
-          }
-          return RunResult(
-            status: RunStatus.failed,
-            testCasesRun: 1,
-            failures: [
-              Failure(
-                message: message,
-                origin: originStr ?? '',
-                reproductionBlob: reproduceBlob,
-              ),
-            ],
-            statistics: _freezeStatistics(statistics),
-          );
-        }
-
-        final coverageFailures = _checkCoverage(
-          validCasesRun,
-          statistics,
-          coverageTargets,
-        );
-        if (coverageFailures.isNotEmpty) {
-          return RunResult(
-            status: RunStatus.failed,
-            testCasesRun: 1,
-            failures: coverageFailures,
-            statistics: _freezeStatistics(statistics),
-          );
-        }
-
-        return RunResult(
-          status: RunStatus.passed,
-          testCasesRun: 1,
-          statistics: _freezeStatistics(statistics),
-        );
-      }
-
-      // 2. Start Run
-      final outRun = calloc<Pointer<hegel_run_t>>();
-      try {
-        final res = hegel_run_start(
-          ctx,
-          settings,
-          callback.nativeFunction,
-          nullptr,
-          outRun,
-        );
-        if (res != hegel_result_t.HEGEL_OK) {
-          throw hegelExceptionWithDetail(ctx, 'Failed to start run', res.value);
         }
         runHandle = outRun.value;
       } finally {
@@ -354,7 +208,7 @@ class HegelRunner {
           );
           var status = hegel_status_t.HEGEL_STATUS_VALID.value;
           String? originStr;
-          Object? caughtError;
+          String? caughtErrorText;
           StackTrace? caughtStack;
 
           try {
@@ -378,9 +232,10 @@ class HegelRunner {
                     completer.completeError(e, st);
                   } else {
                     stderr.writeln(
-                      '[hegeltest] Late async error (after iteration completed): $e',
+                      '[hegeltest] Late async error (after iteration completed): '
+                      '${_safeFormatError(e)}',
                     );
-                    stderr.writeln(st);
+                    stderr.writeln(_safeFormatStackTrace(st));
                   }
                 },
               ),
@@ -397,10 +252,15 @@ class HegelRunner {
           } catch (e, st) {
             status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
             originStr = _nonEmptyOrigin(extractOrigin(st));
-            caughtError = e;
+            caughtErrorText = _safeFormatError(e);
             caughtStack = st;
-            if (wantsOutput || !_caughtExceptions.containsKey(originStr)) {
-              _caughtExceptions[originStr] = (e, st, tc.drawLog);
+            if (wantsOutput || !caughtExceptions.containsKey(originStr)) {
+              caughtExceptions[originStr] = (
+                errorText: caughtErrorText,
+                stackTrace: st,
+                drawLog: tc.drawLog,
+                notes: tc.notes,
+              );
             }
             if (wantsOutput) {
               stampedOrigins.add(originStr);
@@ -413,17 +273,24 @@ class HegelRunner {
                 if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
                   status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
                   originStr = _nonEmptyOrigin(extractOrigin(st));
-                  caughtError = e;
+                  caughtErrorText = _safeFormatError(e);
                   caughtStack = st;
-                  if (wantsOutput ||
-                      !_caughtExceptions.containsKey(originStr)) {
-                    _caughtExceptions[originStr] = (e, st, tc.drawLog);
+                  if (wantsOutput || !caughtExceptions.containsKey(originStr)) {
+                    caughtExceptions[originStr] = (
+                      errorText: caughtErrorText,
+                      stackTrace: st,
+                      drawLog: tc.drawLog,
+                      notes: tc.notes,
+                    );
                   }
                   if (wantsOutput) {
                     stampedOrigins.add(originStr);
                   }
                 } else {
-                  stderr.writeln('[hegeltest] tearDownEach threw: $e\n$st');
+                  stderr.writeln(
+                    '[hegeltest] tearDownEach threw: ${_safeFormatError(e)}\n'
+                    '${_safeFormatStackTrace(st)}',
+                  );
                 }
               }
             }
@@ -451,7 +318,7 @@ class HegelRunner {
             tcHandle,
             status,
             origin: originStr,
-            error: caughtError,
+            errorText: caughtErrorText,
             stackTrace: caughtStack,
             wantsOutput: wantsOutput,
             wantsDetail: wantsDetail,
@@ -484,7 +351,7 @@ class HegelRunner {
         final resultHandle = outResult.value;
         if (resultHandle != nullptr) {
           try {
-            if (testCasesRun > 1) {
+            if (reproduceBlob == null && testCasesRun > 1) {
               await _replayWinningFailures(
                 ctx,
                 settings,
@@ -493,6 +360,7 @@ class HegelRunner {
                 lifecycle,
                 body,
                 stampedOrigins: stampedOrigins,
+                caughtExceptions: caughtExceptions,
                 setUpEach: setUpEach,
                 tearDownEach: tearDownEach,
               );
@@ -502,6 +370,8 @@ class HegelRunner {
               resultHandle,
               testCasesRun,
               statistics,
+              caughtExceptions,
+              reproduceBlob: reproduceBlob,
               coverageTargets: coverageTargets,
               validCasesRun: validCasesRun,
             );
@@ -618,11 +488,29 @@ class HegelRunner {
     }
   }
 
+  static String _safeFormatError(Object? error) {
+    if (error == null) return 'Property failed';
+    try {
+      return error.toString();
+    } catch (formatError) {
+      return '<${error.runtimeType}: toString() threw ${formatError.runtimeType}>';
+    }
+  }
+
+  static String _safeFormatStackTrace(StackTrace? stackTrace) {
+    if (stackTrace == null) return '';
+    try {
+      return stackTrace.toString();
+    } catch (formatError) {
+      return '<${stackTrace.runtimeType}: toString() threw ${formatError.runtimeType}>';
+    }
+  }
+
   static String _nonEmptyOrigin(String origin) =>
       origin.isEmpty ? 'unknown' : origin;
 
-  static String _buildFailureSummary(String origin, Object? error) {
-    final raw = (error?.toString() ?? 'Property failed')
+  static String _buildFailureSummary(String origin, String? errorText) {
+    final raw = (errorText ?? 'Property failed')
         .replaceAll('\r\n', '\n')
         .replaceAll('\r', '\n')
         .trim();
@@ -641,14 +529,15 @@ class HegelRunner {
 
   static String _buildFailureDetail(
     String origin,
-    Object? error,
+    String? errorText,
     StackTrace? stackTrace,
   ) {
-    if (error != null && stackTrace != null) {
-      final detail = '$error\n$stackTrace'.trim();
+    final stackText = _safeFormatStackTrace(stackTrace).trim();
+    if (errorText != null && stackText.isNotEmpty) {
+      final detail = '$errorText\n$stackText'.trim();
       if (detail.isNotEmpty) return detail;
     }
-    final fallback = (error?.toString() ?? origin).trim();
+    final fallback = (errorText ?? origin).trim();
     return fallback.isEmpty ? 'Property failed' : fallback;
   }
 
@@ -657,7 +546,7 @@ class HegelRunner {
     Pointer<hegel_test_case_t> tcHandle,
     int status, {
     String? origin,
-    Object? error,
+    String? errorText,
     StackTrace? stackTrace,
     required bool wantsOutput,
     required bool wantsDetail,
@@ -688,13 +577,13 @@ class HegelRunner {
       final summaryPtr = wantsOutput
           ? allocHegelString(
               arena,
-              _buildFailureSummary(effectiveOrigin, error),
+              _buildFailureSummary(effectiveOrigin, errorText),
             )
           : nullptr;
       final detailPtr = wantsDetail
           ? allocHegelString(
               arena,
-              _buildFailureDetail(effectiveOrigin, error, stackTrace),
+              _buildFailureDetail(effectiveOrigin, errorText, stackTrace),
             )
           : nullptr;
 
@@ -737,6 +626,7 @@ class HegelRunner {
     RunLifecycle lifecycle,
     FutureOr<void> Function(TestCase) body, {
     required Set<String> stampedOrigins,
+    required Map<String, _CapturedFailure> caughtExceptions,
     FutureOr<void> Function()? setUpEach,
     FutureOr<void> Function()? tearDownEach,
   }) async {
@@ -843,9 +733,10 @@ class HegelRunner {
           bufferCache: replayBufferCache,
         );
         var status = hegel_status_t.HEGEL_STATUS_VALID.value;
-        Object? caughtError;
+        String? caughtErrorText;
         StackTrace? caughtStack;
         List<(String, String)>? drawLog;
+        List<String>? notes;
 
         try {
           if (setUpEach != null) await setUpEach();
@@ -876,7 +767,7 @@ class HegelRunner {
           tc.clearStagedObservations();
         } catch (e, st) {
           status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
-          caughtError = e;
+          caughtErrorText = _safeFormatError(e);
           caughtStack = st;
         } finally {
           if (tearDownEach != null) {
@@ -885,12 +776,13 @@ class HegelRunner {
             } catch (e, st) {
               if (status == hegel_status_t.HEGEL_STATUS_VALID.value) {
                 status = hegel_status_t.HEGEL_STATUS_INTERESTING.value;
-                caughtError = e;
+                caughtErrorText = _safeFormatError(e);
                 caughtStack = st;
               }
             }
           }
           drawLog = tc.drawLog;
+          notes = tc.notes;
           tc.clearStagedObservations();
           tc.invalidate();
           _markComplete(
@@ -900,7 +792,7 @@ class HegelRunner {
             origin: status == hegel_status_t.HEGEL_STATUS_INTERESTING.value
                 ? originStr
                 : null,
-            error: caughtError,
+            errorText: caughtErrorText,
             stackTrace: caughtStack,
             wantsOutput: wantsOutput,
             wantsDetail: wantsDetail,
@@ -908,11 +800,16 @@ class HegelRunner {
           hegel_test_case_free(ctx, replayTcHandle);
         }
 
-        if (caughtError != null &&
+        if (caughtErrorText != null &&
             caughtStack != null &&
-            (!_caughtExceptions.containsKey(originStr) ||
-                extractOrigin(caughtStack) == originStr)) {
-          _caughtExceptions[originStr] = (caughtError, caughtStack, drawLog);
+            (!caughtExceptions.containsKey(originStr) ||
+                _nonEmptyOrigin(extractOrigin(caughtStack)) == originStr)) {
+          caughtExceptions[originStr] = (
+            errorText: caughtErrorText,
+            stackTrace: caughtStack,
+            drawLog: drawLog,
+            notes: notes,
+          );
         }
       }
     } finally {
@@ -927,7 +824,9 @@ class HegelRunner {
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
     int testCasesRun,
-    Map<String, Map<String, int>> statistics, {
+    Map<String, Map<String, int>> statistics,
+    Map<String, _CapturedFailure> caughtExceptions, {
+    String? reproduceBlob,
     Map<String, double> coverageTargets = const {},
     int validCasesRun = 0,
   }) {
@@ -949,7 +848,12 @@ class HegelRunner {
 
     final frozenStats = _freezeStatistics(statistics);
     if (statusValue == hegel_run_status_t.HEGEL_RUN_STATUS_FAILED.value) {
-      final failures = _extractFailures(ctx, resultHandle);
+      final failures = _extractFailures(
+        ctx,
+        resultHandle,
+        caughtExceptions,
+        reproduceBlob: reproduceBlob,
+      );
       return RunResult(
         status: RunStatus.failed,
         testCasesRun: testCasesRun,
@@ -1055,7 +959,9 @@ class HegelRunner {
   List<Failure> _extractFailures(
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_run_result_t> resultHandle,
-  ) {
+    Map<String, _CapturedFailure> caughtExceptions, {
+    String? reproduceBlob,
+  }) {
     final countPtr = calloc<Size>();
     try {
       final countRes = hegel_run_result_failure_count(
@@ -1093,7 +999,11 @@ class HegelRunner {
           final failure = failOut.value;
           if (failure != nullptr) {
             try {
-              final message = _extractFailureMessage(ctx, failure);
+              final message = _extractFailureMessage(
+                ctx,
+                failure,
+                caughtExceptions,
+              );
 
               var originStr = '';
               final originOut = calloc<hegel_string_t>();
@@ -1121,7 +1031,9 @@ class HegelRunner {
                 Failure(
                   message: message,
                   origin: originStr,
-                  reproductionBlob: blobStr,
+                  reproductionBlob: blobStr.isNotEmpty
+                      ? blobStr
+                      : (reproduceBlob ?? ''),
                 ),
               );
             } finally {
@@ -1154,6 +1066,7 @@ class HegelRunner {
   String _extractFailureMessage(
     Pointer<hegel_context_t> ctx,
     Pointer<hegel_failure_t> failure,
+    Map<String, _CapturedFailure> caughtExceptions,
   ) {
     final buf = StringBuffer('Property failed.');
 
@@ -1172,15 +1085,18 @@ class HegelRunner {
       calloc.free(originOut);
     }
 
-    if (originStr != null && _caughtExceptions.containsKey(originStr)) {
-      final (error, stackTrace, drawLog) = _caughtExceptions[originStr]!;
-      buf.write('\n\nCaused by: $error');
-      buf.write('\n$stackTrace');
+    final captured = originStr != null ? caughtExceptions[originStr] : null;
+    if (captured != null) {
+      buf.write('\n\nCaused by: ${captured.errorText}');
+      final stackText = _safeFormatStackTrace(captured.stackTrace);
+      if (stackText.isNotEmpty) {
+        buf.write('\n$stackText');
+      }
 
-      if (drawLog.isNotEmpty) {
+      if (captured.drawLog.isNotEmpty) {
         buf.write('\nCounterexample:');
-        for (var i = 0; i < drawLog.length; i++) {
-          final (label, value) = drawLog[i];
+        for (var i = 0; i < captured.drawLog.length; i++) {
+          final (label, value) = captured.drawLog[i];
           buf.write('\n  draw #${i + 1} ($label): $value');
         }
       }
@@ -1199,17 +1115,33 @@ class HegelRunner {
       }
     }
 
+    String? nativeOutput;
     final outputOut = calloc<Pointer<hegel_string_t>>();
     try {
       if (hegel_failure_output(ctx, failure, outputOut) ==
           hegel_result_t.HEGEL_OK) {
-        final output = readHegelStringPtr(outputOut.value);
-        if (output != null && output.isNotEmpty) {
-          buf.write('\n\nNotes:\n$output');
-        }
+        nativeOutput = readHegelStringPtr(outputOut.value);
       }
     } finally {
       calloc.free(outputOut);
+    }
+    if (nativeOutput != null && nativeOutput.isNotEmpty) {
+      buf.write('\n\nNotes:\n$nativeOutput');
+    } else if (captured != null && captured.notes.isNotEmpty) {
+      buf.write('\n\nNotes:\n${captured.notes.join('\n')}');
+    }
+
+    final caveatOut = calloc<Pointer<hegel_string_t>>();
+    try {
+      if (hegel_failure_caveat(ctx, failure, caveatOut) ==
+          hegel_result_t.HEGEL_OK) {
+        final caveat = readHegelStringPtr(caveatOut.value);
+        if (caveat != null && caveat.isNotEmpty) {
+          buf.write('\n\nCaveat:\n$caveat');
+        }
+      }
+    } finally {
+      calloc.free(caveatOut);
     }
 
     final blobOut = calloc<Pointer<hegel_string_t>>();

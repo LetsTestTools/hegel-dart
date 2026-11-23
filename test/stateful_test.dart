@@ -261,6 +261,44 @@ void main() {
     testCases: 20,
     database: false,
   );
+
+  test(
+    'verbose stateful run with cloned test case note completes without aborting',
+    () async {
+      final result = await runHegelTest(
+        (tc) => runStateMachine(tc, _VerboseNoteCloneMachine()),
+        verbosity: Verbosity.verbose,
+        testCases: 5,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.passed));
+    },
+  );
+}
+
+class _VerboseNoteCloneMachine extends StateMachine {
+  @override
+  int get stepCount => 4;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('step', execute: (tc) => tc.draw(integers(min: 0, max: 10))),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'clone note in verbose run',
+      check: (tc) {
+        final cloned = tc.clone();
+        try {
+          cloned.note('invariant note');
+        } finally {
+          cloned.dispose();
+        }
+      },
+    ),
+  ];
 }
 
 class _InvalidStepCountMachine extends StateMachine {

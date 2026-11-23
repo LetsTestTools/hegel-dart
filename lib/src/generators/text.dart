@@ -145,15 +145,7 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   final String pattern;
   final bool fullmatch;
 
-  RegexGenerator(this.pattern, this.fullmatch) {
-    if (pattern.contains('\x00')) {
-      throw ArgumentError.value(
-        pattern,
-        'pattern',
-        'must not contain null bytes — they cause silent truncation at the FFI boundary',
-      );
-    }
-  }
+  const RegexGenerator(this.pattern, this.fullmatch);
 
   @override
   Object get _cacheKey => (RegexGenerator, pattern, fullmatch);

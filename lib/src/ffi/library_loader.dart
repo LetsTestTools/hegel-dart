@@ -8,11 +8,12 @@ import 'string_helpers.dart';
 
 String? _verifiedVersion;
 
-/// The minimum libhegel major.minor version this Dart package is compatible with.
+/// The minimum libhegel major.minor.patch version this Dart package is compatible with.
 ///
-/// Bumped whenever the C API has breaking changes.
+/// Bumped whenever the C API or minimum engine behavior has breaking changes.
 const _minMajor = 0;
 const _minMinor = 53;
+const _minPatch = 1;
 
 /// Verifies that the bundled `@Native` libhegel asset loads cleanly and
 /// satisfies the minimum ABI version required by `hegeltest`.
@@ -46,10 +47,19 @@ void ensureHegelLibraryVerified() {
     );
   }
 
+  final String verifiedVersion;
   try {
     final outVersion = calloc<hegel_string_t>();
     try {
-      final result = hegel_version(ctx, outVersion);
+      final hegel_result_t result;
+      try {
+        result = hegel_version(ctx, outVersion);
+      } on ArgumentError catch (e) {
+        throw StateError(
+          '[hegeltest] Failed to look up libhegel version symbol: $e\n'
+          'Cannot verify ABI compatibility. The native binary may be corrupt or incompatible.',
+        );
+      }
       if (result != hegel_result_t.HEGEL_OK) {
         throw StateError(
           '[hegeltest] hegel_version() failed (${result.value}).\n'
@@ -76,24 +86,35 @@ void ensureHegelLibraryVerified() {
 
       final major = int.parse(parts[0]);
       final minor = int.parse(parts[1]);
+      final patch = int.parse(parts[2]);
 
-      if (major != _minMajor || minor < _minMinor) {
+      if (major != _minMajor ||
+          minor < _minMinor ||
+          (minor == _minMinor && patch < _minPatch)) {
         throw StateError(
           'Incompatible libhegel version: $versionStr\n'
-          'This hegeltest package requires libhegel >= $_minMajor.$_minMinor.0 '
+          'This hegeltest package requires libhegel >= $_minMajor.$_minMinor.$_minPatch '
           '(and < ${_minMajor + 1}.0.0).\n'
           '\n'
           'Update the native library or reinstall hegeltest from pub.dev.',
         );
       }
 
-      _verifiedVersion = versionStr;
+      verifiedVersion = versionStr;
     } finally {
       calloc.free(outVersion);
     }
   } finally {
-    hegel_context_free(ctx);
+    try {
+      hegel_context_free(ctx);
+    } on ArgumentError catch (e) {
+      throw StateError(
+        '[hegeltest] Failed to resolve libhegel cleanup symbol: $e\n'
+        'The native binary may be corrupt or incompatible.',
+      );
+    }
   }
+  _verifiedVersion = verifiedVersion;
 }
 
 /// Returns the version string of the loaded native `libhegel` library.

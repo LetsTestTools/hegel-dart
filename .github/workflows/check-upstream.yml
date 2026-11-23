@@ -12,6 +12,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Check for new release
@@ -27,7 +30,24 @@ jobs:
           if [ -n "${{ inputs.libhegel_version }}" ]; then
             VERSION="${{ inputs.libhegel_version }}"
           else
-            TAG=$(gh release list -R hegeldev/hegel --limit 30 --json tagName -q '[.[] | select(.tagName | startswith("libhegel/"))][0].tagName')
+            TAG=""
+            PAGE=1
+            while true; do
+              RESP=$(gh api "repos/hegeldev/hegel/releases?per_page=100&page=$PAGE")
+              COUNT=$(printf '%s' "$RESP" | jq 'length')
+              if [ "$COUNT" -eq 0 ]; then
+                break
+              fi
+              TAG=$(printf '%s' "$RESP" | jq -r '[.[] | select((.draft | not) and (.prerelease | not) and (.tag_name | startswith("libhegel/")))][0].tag_name // empty')
+              if [ -n "$TAG" ]; then
+                break
+              fi
+              PAGE=$((PAGE + 1))
+            done
+            if [ -z "$TAG" ]; then
+              echo "::error::No libhegel/* release found in hegeldev/hegel"
+              exit 1
+            fi
             VERSION="${TAG#libhegel/}"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

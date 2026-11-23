@@ -4778,7 +4778,7 @@ hegel_result_t hegel_settings_get_verbosity(
     ffi.Pointer<hegel_context_t>,
     ffi.Pointer<ffi.Pointer<hegel_settings_t>>,
   )
->(symbol: 'hegel_settings_new', isLeaf: true)
+>(symbol: 'hegel_settings_new')
 external int _hegel_settings_new(
   ffi.Pointer<hegel_context_t> ctx,
   ffi.Pointer<ffi.Pointer<hegel_settings_t>> out_settings,
@@ -5789,7 +5789,7 @@ hegel_result_t hegel_state_machine_free(
     ffi.Pointer<ffi.Int64>,
     ffi.Pointer<ffi.Int64>,
   )
->(symbol: 'hegel_state_machine_next_group', isLeaf: true)
+>(symbol: 'hegel_state_machine_next_group')
 external int _hegel_state_machine_next_group(
   ffi.Pointer<hegel_context_t> ctx,
   ffi.Pointer<hegel_test_case_t> tc,
@@ -6439,7 +6439,7 @@ hegel_result_t hegel_test_case_clone(
 /// handle to it.
 @ffi.Native<
   ffi.Int Function(ffi.Pointer<hegel_context_t>, ffi.Pointer<hegel_test_case_t>)
->(symbol: 'hegel_test_case_free', isLeaf: true)
+>(symbol: 'hegel_test_case_free')
 external int _hegel_test_case_free(
   ffi.Pointer<hegel_context_t> ctx,
   ffi.Pointer<hegel_test_case_t> tc,

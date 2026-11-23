@@ -377,6 +377,7 @@ class TestCase {
   /// zombie usage from captured closures.
   void invalidate() {
     _drawLog.clear();
+    _notes.clear();
     _isDisposed = true;
     // NOTE: buffer cache is NOT freed here — it's owned by the runner
     // and shared across iterations for performance.

@@ -54,13 +54,13 @@ class ListGenerator<T> extends Generator<List<T>> {
       }
 
       final collection = outCollection.value;
-      final list = <T>[];
-      final outMore = tc.reuseBuffer<ffi.Bool>(
-        'listMore',
-        () => calloc<ffi.Bool>(),
-      );
-
       try {
+        final list = <T>[];
+        final outMore = tc.reuseBuffer<ffi.Bool>(
+          'listMore',
+          () => calloc<ffi.Bool>(),
+        );
+
         while (true) {
           final moreRes = hegel_collection_more(
             ctx,
@@ -147,14 +147,14 @@ class SetGenerator<T> extends Generator<Set<T>> {
       }
 
       final collection = outCollection.value;
-      final set = <T>{};
-      final outMore = tc.reuseBuffer<ffi.Bool>(
-        'setMore',
-        () => calloc<ffi.Bool>(),
-      );
-      var consecutiveRejects = 0;
-
       try {
+        final set = <T>{};
+        final outMore = tc.reuseBuffer<ffi.Bool>(
+          'setMore',
+          () => calloc<ffi.Bool>(),
+        );
+        var consecutiveRejects = 0;
+
         while (true) {
           final moreRes = hegel_collection_more(
             ctx,
@@ -265,14 +265,14 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
       }
 
       final collection = outCollection.value;
-      final map = <K, V>{};
-      final outMore = tc.reuseBuffer<ffi.Bool>(
-        'mapMore',
-        () => calloc<ffi.Bool>(),
-      );
-      var consecutiveRejects = 0;
-
       try {
+        final map = <K, V>{};
+        final outMore = tc.reuseBuffer<ffi.Bool>(
+          'mapMore',
+          () => calloc<ffi.Bool>(),
+        );
+        var consecutiveRejects = 0;
+
         while (true) {
           final moreRes = hegel_collection_more(
             ctx,

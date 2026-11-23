@@ -56,7 +56,6 @@ functions:
       - hegel_state_machine_add_rule
       - hegel_state_machine_add_invariant
       - hegel_state_machine_start
-      - hegel_state_machine_next_group
       - hegel_state_machine_next_rule
       - hegel_state_machine_rule_rejected
       - hegel_state_machine_should_check_invariant
@@ -64,7 +63,6 @@ functions:
       - hegel_context_new
       - hegel_context_free
       - hegel_context_last_error
-      - hegel_settings_new
       - hegel_settings_free
       - hegel_settings_set_backend
       - hegel_settings_set_test_cases
@@ -79,7 +77,6 @@ functions:
       - hegel_settings_set_phases
       - hegel_settings_set_suppress_health_check
       - hegel_settings_set_print_blob
-      - hegel_test_case_free
       - hegel_test_case_clone
       - hegel_test_case_wants_output
       - hegel_test_case_wants_detail

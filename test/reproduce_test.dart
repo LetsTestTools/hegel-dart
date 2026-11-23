@@ -44,4 +44,47 @@ void main() {
       expect(e.message, contains('Counterexample'));
     }
   });
+
+  test('nondeterministic blob replay retries and reports caveat', () async {
+    var attempts = 0;
+    final result = await HegelRunner().runWithResult(
+      (tc) {
+        attempts++;
+        final v = tc.draw(integers(min: 0, max: 100));
+        if (v >= 10 && attempts.isEven) {
+          throw StateError('flaky failure');
+        }
+      },
+      verbosity: Verbosity.quiet,
+      testCases: 50,
+      seed: 42,
+      database: false,
+    );
+
+    expect(result.status, equals(RunStatus.failed));
+    final blob = result.failures.first.reproductionBlob;
+    expect(blob, isNotEmpty);
+    expect(result.failures.first.message, contains('Caveat:'));
+
+    var replayAttempts = 0;
+    final replayResult = await HegelRunner().runWithResult(
+      (tc) {
+        replayAttempts++;
+        final v = tc.draw(integers(min: 0, max: 100));
+        if (v >= 10 && replayAttempts >= 2) {
+          throw StateError('replayed flaky failure');
+        }
+      },
+      reproduceBlob: blob,
+      database: false,
+    );
+
+    expect(replayResult.status, equals(RunStatus.failed));
+    expect(replayResult.testCasesRun, greaterThanOrEqualTo(2));
+    expect(replayResult.failures.first.reproductionBlob, equals(blob));
+    expect(
+      replayResult.failures.first.message,
+      allOf(contains('replayed flaky failure'), contains('Caveat:')),
+    );
+  });
 }
