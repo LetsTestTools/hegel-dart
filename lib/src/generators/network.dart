@@ -14,7 +14,7 @@ class Ipv4Generator extends Generator<InternetAddress> {
   InternetAddress generate(TestCase tc) {
     return using((Arena arena) {
       final outBytes = arena<ffi.Uint8>(4);
-      final result = tc.lib.hegel_generate_ipv4(tc.ctx, tc.handle, outBytes);
+      final result = hegel_generate_ipv4(tc.ctx, tc.handle, outBytes);
 
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();
@@ -46,7 +46,7 @@ class Ipv6Generator extends Generator<InternetAddress> {
   InternetAddress generate(TestCase tc) {
     return using((Arena arena) {
       final outBytes = arena<ffi.Uint8>(16);
-      final result = tc.lib.hegel_generate_ipv6(tc.ctx, tc.handle, outBytes);
+      final result = hegel_generate_ipv6(tc.ctx, tc.handle, outBytes);
 
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();

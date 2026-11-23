@@ -6,30 +6,39 @@ import 'package:ffi/ffi.dart';
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/string_helpers.dart';
 import 'state_machine.dart';
+
+/// Sentinel value returned by `hegel_state_machine_next_group` and
+/// `hegel_state_machine_next_rule` (`INT64_MIN`) when execution is complete.
+const int hegelStateMachineDone = -9223372036854775808;
 
 /// Runs a [StateMachine] against the hegel engine for a single test case.
 ///
 /// This is the core loop that:
-/// 1. Registers rules/invariants with the engine
-/// 2. Creates engine pools for the machine's pools
-/// 3. Loops: engine selects rule → check precondition → execute → invariants
-/// 4. Cleans up FFI resources
-Future<void> runStateMachine(
-  LibHegel lib,
-  Pointer<hegel_context_t> ctx,
-  Pointer<hegel_test_case_t> tc,
-  StateMachine machine,
-  TestCase dartTc,
-) async {
+/// 1. Validates rules, invariants, and [StateMachine.stepCount]
+/// 2. Registers rules and invariants with `libhegel`, then starts the machine
+/// 3. Allocates native pools for the machine's [Pool] instances
+/// 4. Runs initial invariants unconditionally
+/// 5. Loops rounds via `hegel_state_machine_next_group` and rules via
+///    `hegel_state_machine_next_rule` (reporting rejections via
+///    `hegel_state_machine_rule_rejected`)
+/// 6. Checks sampled/unconditional invariants and runs final invariants
+/// 7. Frees all native pool and state machine handles
+Future<void> runStateMachine(TestCase tc, StateMachine machine) async {
   final rules = machine.rules;
   final invariants = machine.invariants;
+  final stepCount = machine.stepCount;
 
   if (rules.isEmpty) {
     throw ArgumentError(
       'StateMachine has no rules. '
       'Override the `rules` getter to provide at least one StateRule.',
     );
+  }
+
+  if (stepCount < 1) {
+    throw ArgumentError.value(stepCount, 'machine.stepCount', 'must be >= 1');
   }
 
   for (final rule in rules) {
@@ -39,6 +48,13 @@ Future<void> runStateMachine(
         'rule.name',
         'must not contain null bytes (\\x00) — they cause silent '
             'truncation at the FFI boundary',
+      );
+    }
+    if (!rule.weight.isFinite || rule.weight <= 0) {
+      throw ArgumentError.value(
+        rule.weight,
+        'rule.weight',
+        'must be finite and > 0',
       );
     }
   }
@@ -54,57 +70,87 @@ Future<void> runStateMachine(
     }
   }
 
-  // Convert rule/invariant names to C strings
-  final ruleNames = calloc<Pointer<Char>>(rules.length);
-  final invariantNames = calloc<Pointer<Char>>(invariants.length);
-  final ruleNameStrs = <Pointer<Utf8>>[];
-  final invariantNameStrs = <Pointer<Utf8>>[];
+  final ctx = tc.ctx;
+  final tcHandle = tc.handle;
+
+  final Pointer<hegel_state_machine_t> sm;
+  final outSm = calloc<Pointer<hegel_state_machine_t>>();
+  try {
+    final smResult = hegel_new_state_machine(
+      ctx,
+      tcHandle,
+      1,
+      1,
+      stepCount,
+      outSm,
+    );
+    _checkResult(ctx, smResult, 'hegel_new_state_machine');
+    sm = outSm.value;
+  } finally {
+    calloc.free(outSm);
+  }
 
   try {
-    for (var i = 0; i < rules.length; i++) {
-      final str = rules[i].name.toNativeUtf8();
-      ruleNameStrs.add(str);
-      ruleNames[i] = str.cast<Char>();
-    }
-    for (var i = 0; i < invariants.length; i++) {
-      final str = invariants[i].name.toNativeUtf8();
-      invariantNameStrs.add(str);
-      invariantNames[i] = str.cast<Char>();
-    }
-
-    // Register state machine with engine
-    final outSmId = calloc<Int64>();
-    try {
-      final smResult = lib.hegel_new_state_machine(
-        ctx,
-        tc,
-        ruleNames.cast(),
-        rules.length,
-        invariantNames.cast(),
-        invariants.length,
-        outSmId,
-      );
-      _checkResult(lib, ctx, smResult, 'hegel_new_state_machine');
-      final smId = outSmId.value;
-
-      // Create engine pools for each machine pool
-      for (final pool in machine.pools) {
-        final outPoolId = calloc<Int64>();
-        try {
-          final poolResult = lib.hegel_new_pool(ctx, tc, outPoolId);
-          _checkResult(lib, ctx, poolResult, 'hegel_new_pool');
-          pool.poolId = outPoolId.value;
-        } finally {
-          calloc.free(outPoolId);
-        }
+    using((Arena arena) {
+      final groupIdPtr = arena<Int64>()..value = 0;
+      for (final rule in rules) {
+        final addRuleRes = hegel_state_machine_add_rule(
+          ctx,
+          tcHandle,
+          sm,
+          makeHegelString(arena, rule.name),
+          rule.weight,
+          groupIdPtr,
+          1,
+        );
+        _checkResult(ctx, addRuleRes, 'hegel_state_machine_add_rule');
       }
 
-      // Wire up pool callbacks
+      for (final inv in invariants) {
+        final addInvRes = hegel_state_machine_add_invariant(
+          ctx,
+          tcHandle,
+          sm,
+          makeHegelString(arena, inv.name),
+          inv.alwaysCheck,
+        );
+        _checkResult(ctx, addInvRes, 'hegel_state_machine_add_invariant');
+      }
+
+      final outConcurrency = arena<Int64>();
+      final startRes = hegel_state_machine_start(
+        ctx,
+        tcHandle,
+        sm,
+        outConcurrency,
+      );
+      _checkResult(ctx, startRes, 'hegel_state_machine_start');
+    });
+
+    final nativePools = <Pointer<hegel_pool_t>>[];
+    try {
+      final outPool = calloc<Pointer<hegel_pool_t>>();
+      try {
+        for (var i = 0; i < machine.pools.length; i++) {
+          final poolResult = hegel_new_pool(ctx, tcHandle, outPool);
+          _checkResult(ctx, poolResult, 'hegel_new_pool');
+          nativePools.add(outPool.value);
+          machine.pools[i].poolId = i;
+        }
+      } finally {
+        calloc.free(outPool);
+      }
+
       machine.poolAddCallback = (int poolId) {
         final outVarId = calloc<Int64>();
         try {
-          final result = lib.hegel_pool_add(ctx, tc, poolId, outVarId);
-          _checkResult(lib, ctx, result, 'hegel_pool_add');
+          final result = hegel_pool_add(
+            ctx,
+            tcHandle,
+            nativePools[poolId],
+            outVarId,
+          );
+          _checkResult(ctx, result, 'hegel_pool_add');
           return outVarId.value;
         } finally {
           calloc.free(outVarId);
@@ -114,84 +160,147 @@ Future<void> runStateMachine(
       machine.poolGenerateCallback = (int poolId, bool consume) {
         final outVarId = calloc<Int64>();
         try {
-          final result = lib.hegel_pool_generate(
+          final result = hegel_pool_generate(
             ctx,
-            tc,
-            poolId,
+            tcHandle,
+            nativePools[poolId],
             consume,
             outVarId,
           );
           if (result == hegel_result_t.HEGEL_E_ASSUME) {
-            return null; // pool empty
+            return null;
           }
-          _checkResult(lib, ctx, result, 'hegel_pool_generate');
+          _checkResult(ctx, result, 'hegel_pool_generate');
           return outVarId.value;
         } finally {
           calloc.free(outVarId);
         }
       };
 
-      // Main execution loop
+      // Run initial invariants unconditionally before any rule.
+      for (final inv in invariants) {
+        await inv.check(tc);
+      }
+
+      const maxConsecutiveRejects = 200;
+      var consecutiveRejects = 0;
+
+      final outGroupId = calloc<Int64>();
+      final outRoundConcurrency = calloc<Int64>();
       final outRuleIndex = calloc<Int64>();
+      final outShouldCheck = calloc<Bool>();
       try {
         while (true) {
-          // Ask engine for next rule
-          final nextResult = lib.hegel_state_machine_next_rule(
+          final groupRes = hegel_state_machine_next_group(
             ctx,
-            tc,
-            smId,
-            outRuleIndex,
+            tcHandle,
+            sm,
+            outGroupId,
+            outRoundConcurrency,
           );
-          _checkResult(lib, ctx, nextResult, 'hegel_state_machine_next_rule');
+          _checkResult(ctx, groupRes, 'hegel_state_machine_next_group');
+          if (outGroupId.value == hegelStateMachineDone) break;
 
-          final ruleIndex = outRuleIndex.value;
-          if (ruleIndex == HEGEL_STATE_MACHINE_DONE) break;
-
-          if (ruleIndex < 0 || ruleIndex >= rules.length) {
-            throw StateError(
-              'Engine returned invalid rule index: $ruleIndex '
-              '(${rules.length} rules registered)',
+          var roundHadAcceptedRule = false;
+          while (true) {
+            final ruleRes = hegel_state_machine_next_rule(
+              ctx,
+              tcHandle,
+              sm,
+              0,
+              outRuleIndex,
             );
+            _checkResult(ctx, ruleRes, 'hegel_state_machine_next_rule');
+
+            final ruleIndex = outRuleIndex.value;
+            if (ruleIndex == hegelStateMachineDone) break;
+
+            if (ruleIndex < 0 || ruleIndex >= rules.length) {
+              throw StateError(
+                'Engine returned invalid rule index: $ruleIndex '
+                '(${rules.length} rules registered)',
+              );
+            }
+
+            final rule = rules[ruleIndex];
+            if (rule.precondition != null && !rule.precondition!()) {
+              final rejRes = hegel_state_machine_rule_rejected(
+                ctx,
+                tcHandle,
+                sm,
+                0,
+              );
+              _checkResult(ctx, rejRes, 'hegel_state_machine_rule_rejected');
+              consecutiveRejects++;
+              if (consecutiveRejects >= maxConsecutiveRejects) {
+                throw const HegelAssumptionViolated();
+              }
+              continue;
+            }
+
+            try {
+              await rule.execute(tc);
+              consecutiveRejects = 0;
+              roundHadAcceptedRule = true;
+            } on HegelAssumptionViolated {
+              final rejRes = hegel_state_machine_rule_rejected(
+                ctx,
+                tcHandle,
+                sm,
+                0,
+              );
+              _checkResult(ctx, rejRes, 'hegel_state_machine_rule_rejected');
+              consecutiveRejects++;
+              if (consecutiveRejects >= maxConsecutiveRejects) {
+                throw const HegelAssumptionViolated();
+              }
+              continue;
+            }
           }
 
-          final rule = rules[ruleIndex];
-
-          // Check precondition before executing
-          if (rule.precondition != null && !rule.precondition!()) {
-            // Precondition failed — signal assumption violation to engine
-            throw const HegelAssumptionViolated();
-          }
-
-          // Execute the rule
-          await rule.execute(dartTc);
-
-          // Run all invariants after successful rule
-          for (final inv in invariants) {
-            await inv.check(dartTc);
+          if (roundHadAcceptedRule) {
+            for (var i = 0; i < invariants.length; i++) {
+              final shouldRes = hegel_state_machine_should_check_invariant(
+                ctx,
+                tcHandle,
+                sm,
+                i,
+                outShouldCheck,
+              );
+              _checkResult(
+                ctx,
+                shouldRes,
+                'hegel_state_machine_should_check_invariant',
+              );
+              if (outShouldCheck.value) {
+                await invariants[i].check(tc);
+              }
+            }
           }
         }
+
+        // Run final invariants unconditionally after termination.
+        for (final inv in invariants) {
+          await inv.check(tc);
+        }
       } finally {
+        calloc.free(outGroupId);
+        calloc.free(outRoundConcurrency);
         calloc.free(outRuleIndex);
+        calloc.free(outShouldCheck);
       }
     } finally {
-      calloc.free(outSmId);
+      for (final poolPtr in nativePools) {
+        hegel_pool_free(ctx, poolPtr);
+      }
     }
   } finally {
-    // Free C strings
-    for (final str in ruleNameStrs) {
-      calloc.free(str);
-    }
-    for (final str in invariantNameStrs) {
-      calloc.free(str);
-    }
-    calloc.free(ruleNames);
-    calloc.free(invariantNames);
+    hegel_state_machine_free(ctx, sm);
   }
 }
 
 /// Checks the result of an FFI call and throws on error.
 void _checkResult(
-  LibHegel lib,
   Pointer<hegel_context_t> ctx,
   hegel_result_t result,
   String functionName,
@@ -203,10 +312,5 @@ void _checkResult(
   if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
     throw const HegelStopTest();
   }
-  throw hegelExceptionWithDetail(
-    lib,
-    ctx,
-    'Failed in $functionName',
-    result.value,
-  );
+  throw hegelExceptionWithDetail(ctx, 'Failed in $functionName', result.value);
 }

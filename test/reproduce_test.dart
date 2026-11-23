@@ -3,8 +3,6 @@ import 'package:hegeltest/hegeltest.dart';
 
 void main() {
   test('blob replay reproduces the same failure', () async {
-    final lib = loadHegelLibrary();
-
     String? reproduceBlob;
 
     // The body under test — extracted so both runs use the same function
@@ -16,7 +14,7 @@ void main() {
     }
 
     // Run a property that intentionally fails
-    final runner1 = HegelRunner(lib);
+    final runner1 = HegelRunner();
     try {
       await runner1.run(body, testCases: 100);
       fail('Expected test to fail');
@@ -36,7 +34,7 @@ void main() {
     }
 
     // Now replay using the blob — should fail with the same error
-    final runner2 = HegelRunner(lib);
+    final runner2 = HegelRunner();
     try {
       await runner2.run(body, reproduceBlob: reproduceBlob!);
       fail('Replay should also fail');

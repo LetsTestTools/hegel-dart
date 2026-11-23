@@ -20,18 +20,19 @@ export 'src/core/exceptions.dart'
         HegelAssumptionViolated,
         HegelTestFailure,
         InsufficientCoverageException;
-export 'src/core/result.dart' show RunStatus, RunResult, Failure;
+export 'src/core/result.dart' show RunStatus, RunErrorKind, RunResult, Failure;
 
 // Conditional export: use real implementation on VM, stub on web.
 export 'src/core/runner_stub.dart'
     if (dart.library.io) 'src/core/runner.dart'
     show hegelTest, runHegelTest, HegelRunner;
 
-export 'src/ffi/library_loader.dart' show loadHegelLibrary;
+export 'src/ffi/library_loader_stub.dart'
+    if (dart.library.io) 'src/ffi/library_loader.dart'
+    show ensureHegelLibraryVerified, hegelNativeVersion;
 
 export 'src/core/hegel_settings.dart' show HegelConfig;
-export 'src/core/settings.dart'
-    show Phase, Verbosity, Backend, HealthCheck, RunMode;
+export 'src/core/settings.dart' show Phase, Verbosity, Backend, HealthCheck;
 export 'src/core/test_case.dart' show TestCase;
 export 'src/generators/bytes.dart' show bytes;
 export 'src/generators/collections.dart' show lists, sets, maps;
@@ -50,7 +51,7 @@ export 'src/generators/generator.dart' show Generator;
 export 'src/generators/network.dart' show ipv4Addresses, ipv6Addresses;
 export 'src/generators/primitives.dart'
     show integers, doubles, booleans, bigIntegers;
-export 'src/generators/temporal.dart' show dates, times, dateTimes;
+export 'src/generators/temporal.dart' show dates, times, dateTimes, durations;
 export 'src/generators/text.dart'
     show text, fromRegex, emails, urls, domains, uuids;
 export 'src/stateful/state_machine.dart'

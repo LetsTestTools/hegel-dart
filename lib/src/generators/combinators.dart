@@ -1,6 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
@@ -22,7 +23,7 @@ class SampledGenerator<T> extends Generator<T> {
       'sampledIndex',
       () => calloc<ffi.Int64>(),
     );
-    final result = tc.lib.hegel_generate_integer(
+    final result = hegel_generate_integer(
       tc.ctx,
       tc.handle,
       0,
@@ -61,14 +62,14 @@ class OneOfGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+    tc.startSpan(SpanLabels.oneOf);
     bool success = false;
     try {
       final outIndex = tc.reuseBuffer<ffi.Int64>(
         'oneOfIndex',
         () => calloc<ffi.Int64>(),
       );
-      final result = tc.lib.hegel_generate_integer(
+      final result = hegel_generate_integer(
         tc.ctx,
         tc.handle,
         0,
@@ -115,14 +116,14 @@ class NullableGenerator<T> extends Generator<T?> {
 
   @override
   T? generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_OPTIONAL.value);
+    tc.startSpan(SpanLabels.optional);
     bool success = false;
     try {
       final outBool = tc.reuseBuffer<ffi.Bool>(
         'nullableBool',
         () => calloc<ffi.Bool>(),
       );
-      final result = tc.lib.hegel_generate_boolean(
+      final result = hegel_generate_boolean(
         tc.ctx,
         tc.handle,
         nullProbability,
@@ -169,7 +170,7 @@ class Tuple2Generator<A, B> extends Generator<(A, B)> {
 
   @override
   (A, B) generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+    tc.startSpan(SpanLabels.tuple);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -190,7 +191,7 @@ class Tuple3Generator<A, B, C> extends Generator<(A, B, C)> {
 
   @override
   (A, B, C) generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+    tc.startSpan(SpanLabels.tuple);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -213,7 +214,7 @@ class Tuple4Generator<A, B, C, D> extends Generator<(A, B, C, D)> {
 
   @override
   (A, B, C, D) generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_TUPLE.value);
+    tc.startSpan(SpanLabels.tuple);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -283,14 +284,14 @@ class FrequencyGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_ONE_OF.value);
+    tc.startSpan(SpanLabels.oneOf);
     bool success = false;
     try {
       final outIndex = tc.reuseBuffer<ffi.Int64>(
         'freqIndex',
         () => calloc<ffi.Int64>(),
       );
-      final result = tc.lib.hegel_generate_integer(
+      final result = hegel_generate_integer(
         tc.ctx,
         tc.handle,
         1,
@@ -376,7 +377,7 @@ class SampledWeightedGenerator<T> extends Generator<T> {
       'sampledWeightedIndex',
       () => calloc<ffi.Int64>(),
     );
-    final result = tc.lib.hegel_generate_integer(
+    final result = hegel_generate_integer(
       tc.ctx,
       tc.handle,
       1,

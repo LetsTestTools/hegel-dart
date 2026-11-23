@@ -24,16 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-14  # Apple Silicon
-            platform_dir: macos_arm64
-            lib_name: libhegel_c.dylib
-          - os: ubuntu-latest
-            platform_dir: linux_x64
-            lib_name: libhegel_c.so
-          - os: windows-latest
-            platform_dir: windows_x64
-            lib_name: hegel_c.dll
+        os: [macos-14, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1

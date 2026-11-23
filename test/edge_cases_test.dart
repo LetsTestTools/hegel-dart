@@ -126,8 +126,7 @@ void main() {
     });
 
     test('async exception fails test', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       await expectLater(
         runner.run((tc) async {
           tc.draw(integers());

@@ -19,26 +19,46 @@ class StateRule {
   /// If it returns `false`, the engine skips this rule for this step.
   final bool Function()? precondition;
 
+  /// Relative selection weight for this rule (must be finite and > 0).
+  final double weight;
+
   /// The rule body. Receives a [TestCase] for drawing random values.
   final FutureOr<void> Function(TestCase tc) execute;
 
   /// Creates a state rule.
-  const StateRule(this.name, {this.precondition, required this.execute});
+  StateRule(
+    this.name, {
+    this.precondition,
+    this.weight = 1.0,
+    required this.execute,
+  }) {
+    if (!weight.isFinite || weight <= 0) {
+      throw ArgumentError.value(weight, 'weight', 'must be finite and > 0');
+    }
+  }
 }
 
-/// An invariant checked after every successful rule execution.
+/// An invariant checked during stateful test execution.
 ///
-/// Invariants should assert properties that must always hold,
-/// regardless of which rules have been executed.
+/// Invariants are always checked at initial and final states, and
+/// unconditionally after each round when [alwaysCheck] is `true`
+/// (or sampled between rounds when `false`).
 class StateInvariant {
   /// Human-readable name, used in counterexample output.
   final String name;
+
+  /// Whether to check this invariant at every join point (`true`) or sample (`false`).
+  final bool alwaysCheck;
 
   /// The invariant check. Should throw (e.g. via `expect()`) on violation.
   final FutureOr<void> Function(TestCase tc) check;
 
   /// Creates a state invariant.
-  const StateInvariant(this.name, {required this.check});
+  const StateInvariant(
+    this.name, {
+    this.alwaysCheck = true,
+    required this.check,
+  });
 }
 
 /// A typed pool of values that rules can add to and draw from.
@@ -155,6 +175,9 @@ abstract class StateMachine {
 
   /// Override to provide invariants checked after every rule.
   List<StateInvariant> get invariants => [];
+
+  /// Target number of steps per test case (must be >= 1). Defaults to 50.
+  int get stepCount => 50;
 
   /// Called once before each test case to set up initial state.
   FutureOr<void> setUp() {}

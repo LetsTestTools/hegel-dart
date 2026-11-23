@@ -22,7 +22,7 @@ class IntegerGenerator extends Generator<int> {
       'int64',
       () => calloc<ffi.Int64>(),
     );
-    final result = tc.lib.hegel_generate_integer(
+    final result = hegel_generate_integer(
       tc.ctx,
       tc.handle,
       min,
@@ -87,7 +87,7 @@ class DoubleGenerator extends Generator<double> {
       'double',
       () => calloc<ffi.Double>(),
     );
-    final result = tc.lib.hegel_generate_float(
+    final result = hegel_generate_float(
       tc.ctx,
       tc.handle,
       64,
@@ -151,7 +151,7 @@ class BooleanGenerator extends Generator<bool> {
   @override
   bool generate(TestCase tc) {
     final outValue = tc.reuseBuffer<ffi.Bool>('bool', () => calloc<ffi.Bool>());
-    final result = tc.lib.hegel_generate_boolean(
+    final result = hegel_generate_boolean(
       tc.ctx,
       tc.handle,
       p,
@@ -216,7 +216,7 @@ class BigIntGenerator extends Generator<BigInt> {
       final outBuf = arena<ffi.Uint8>(outCap);
       final outLen = arena<ffi.Size>();
 
-      final result = tc.lib.hegel_generate_integer_big(
+      final result = hegel_generate_integer_big(
         tc.ctx,
         tc.handle,
         minBuf,

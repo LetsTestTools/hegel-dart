@@ -2,7 +2,7 @@ import 'dart:io';
 
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
-import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 
 abstract class Generator<T> {
   const Generator();
@@ -71,7 +71,7 @@ class FilteredGenerator<T> extends Generator<T> {
     // don't shift the fuzzer tape during shrinking. Rejected
     // spans are discarded, keeping tape positions stable.
     for (var attempt = 0; attempt < _maxAttempts; attempt++) {
-      tc.startSpan(hegel_label_t.HEGEL_LABEL_FILTER.value);
+      tc.startSpan(SpanLabels.filter);
       bool accepted = false;
       bool threw = false;
       try {
@@ -105,7 +105,7 @@ class FlatMappedGenerator<T, U> extends Generator<U> {
 
   @override
   U generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_FLAT_MAP.value);
+    tc.startSpan(SpanLabels.flatMap);
     bool success = false;
     try {
       final value = _generator.generate(tc);
@@ -125,7 +125,7 @@ class CompositeGenerator<T> extends Generator<T> {
 
   @override
   T generate(TestCase tc) {
-    tc.startSpan(hegel_label_t.HEGEL_LABEL_FIXED_DICT.value);
+    tc.startSpan(SpanLabels.composite);
     bool success = false;
     try {
       final result = _generateFn(tc);

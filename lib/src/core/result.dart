@@ -1,12 +1,15 @@
-enum RunStatus {
-  passed,
-  failed,
-  error,
+/// Status of a completed property test run.
+enum RunStatus { passed, failed, error }
 
-  // From hegel_run_status_t
-  // 0 => PASSED
-  // 1 => FAILED
-  // 2 => ERROR
+/// Structured classification for errored runs ([RunStatus.error]).
+enum RunErrorKind {
+  none,
+  healthCheck,
+  flaky,
+  nondeterministic,
+  unsatisfiable,
+  usage,
+  internal,
 }
 
 class Failure {
@@ -25,6 +28,7 @@ class Failure {
 
 class RunResult {
   final RunStatus status;
+  final RunErrorKind errorKind;
   final String? errorMessage;
   final List<Failure> failures;
   final int testCasesRun;
@@ -38,6 +42,7 @@ class RunResult {
   const RunResult({
     required this.status,
     required this.testCasesRun,
+    this.errorKind = RunErrorKind.none,
     this.errorMessage,
     this.failures = const [],
     this.statistics = const {},

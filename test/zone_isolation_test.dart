@@ -4,8 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('unawaited async errors are caught in zone', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     // This should fail because of the unawaited Future.error,
     // NOT crash the test runner.
@@ -22,8 +21,7 @@ void main() {
   });
 
   test('tearDownEach failure marks test as interesting', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     await expectLater(
       runner.run((tc) {

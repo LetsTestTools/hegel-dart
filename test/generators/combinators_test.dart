@@ -77,8 +77,7 @@ void main() {
 
   group('nullable', () {
     test('nullable produces both null and non-null', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       final values = <int?>[];
       await runner.run((tc) {
         values.add(tc.draw(nullable(integers(min: 0, max: 10))));

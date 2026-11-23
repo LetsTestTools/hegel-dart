@@ -4,8 +4,7 @@ import 'package:hegeltest/hegeltest.dart';
 void main() {
   group('TestCase lifecycle', () {
     test('draw after run completes throws StateError', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       TestCase? captured;
 
       await runner.run((tc) {
@@ -28,8 +27,7 @@ void main() {
     });
 
     test('target after run completes throws StateError', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       TestCase? captured;
 
       await runner.run((tc) {
@@ -43,8 +41,7 @@ void main() {
     });
 
     test('clone after run completes throws StateError', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       TestCase? captured;
 
       await runner.run((tc) {
@@ -55,8 +52,7 @@ void main() {
     });
 
     test('clone and dispose lifecycle works', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
 
       await runner.run((tc) {
         final v1 = tc.draw(integers(min: 0, max: 100));
@@ -73,8 +69,7 @@ void main() {
     });
 
     test('dispose is idempotent', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
 
       await runner.run((tc) {
         final cloned = tc.clone();
@@ -85,8 +80,7 @@ void main() {
     });
 
     test('draw on disposed clone throws StateError', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
 
       await runner.run((tc) {
         final cloned = tc.clone();
@@ -96,8 +90,7 @@ void main() {
     });
 
     test('captured clone is blocked after run ends', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       TestCase? capturedClone;
 
       await runner.run((tc) {
@@ -112,8 +105,7 @@ void main() {
     });
 
     test('undisposed clone is safe after run ends', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       TestCase? leakedClone;
 
       await runner.run((tc) {

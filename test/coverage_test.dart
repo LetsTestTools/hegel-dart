@@ -77,7 +77,7 @@ void main() {
     test(
       'runner.run throws InsufficientCoverageException on coverage failure',
       () async {
-        final runner = HegelRunner(loadHegelLibrary());
+        final runner = HegelRunner();
         expect(
           () => runner.run((tc) {
             final x = tc.draw(integers(min: 0, max: 100));
