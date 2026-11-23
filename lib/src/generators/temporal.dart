@@ -32,11 +32,12 @@ class DateGenerator extends Generator<DateTime> {
         ..ref.month = max.month
         ..ref.day = max.day;
 
-      final result = tc.lib.hegel_generate_date(
+      final result = hegel_generate_date(
         tc.ctx,
         tc.handle,
         minDateStruct.ref,
         maxDateStruct.ref,
+        ffi.nullptr,
         outValue,
       );
 
@@ -44,7 +45,11 @@ class DateGenerator extends Generator<DateTime> {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate date: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.ctx,
+          'Failed to generate date',
+          result.value,
+        );
       }
 
       return DateTime.utc(
@@ -113,19 +118,20 @@ class TimeGenerator extends Generator<TimeRecord> {
         ..ref.hour = min.hour
         ..ref.minute = min.minute
         ..ref.second = min.second
-        ..ref.microsecond = min.microsecond;
+        ..ref.nanosecond = min.microsecond * 1000;
 
       final maxTimeStruct = arena<hegel_time_t>()
         ..ref.hour = max.hour
         ..ref.minute = max.minute
         ..ref.second = max.second
-        ..ref.microsecond = max.microsecond;
+        ..ref.nanosecond = max.microsecond * 1000;
 
-      final result = tc.lib.hegel_generate_time(
+      final result = hegel_generate_time(
         tc.ctx,
         tc.handle,
         minTimeStruct.ref,
         maxTimeStruct.ref,
+        hegel_precision_t.HEGEL_PRECISION_MICROSECONDS.value,
         outValue,
       );
 
@@ -133,14 +139,18 @@ class TimeGenerator extends Generator<TimeRecord> {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate time: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.ctx,
+          'Failed to generate time',
+          result.value,
+        );
       }
 
       return (
         hour: outValue.ref.hour,
         minute: outValue.ref.minute,
         second: outValue.ref.second,
-        microsecond: outValue.ref.microsecond,
+        microsecond: outValue.ref.nanosecond ~/ 1000,
       );
     });
   }
@@ -187,7 +197,8 @@ class DateTimeGenerator extends Generator<DateTime> {
         ..ref.time.hour = min.hour
         ..ref.time.minute = min.minute
         ..ref.time.second = min.second
-        ..ref.time.microsecond = min.millisecond * 1000 + min.microsecond;
+        ..ref.time.nanosecond =
+            (min.millisecond * 1000 + min.microsecond) * 1000;
 
       final maxStruct = arena<hegel_datetime_t>()
         ..ref.date.year = max.year
@@ -196,13 +207,15 @@ class DateTimeGenerator extends Generator<DateTime> {
         ..ref.time.hour = max.hour
         ..ref.time.minute = max.minute
         ..ref.time.second = max.second
-        ..ref.time.microsecond = max.millisecond * 1000 + max.microsecond;
+        ..ref.time.nanosecond =
+            (max.millisecond * 1000 + max.microsecond) * 1000;
 
-      final result = tc.lib.hegel_generate_datetime(
+      final result = hegel_generate_datetime(
         tc.ctx,
         tc.handle,
         minStruct.ref,
         maxStruct.ref,
+        hegel_precision_t.HEGEL_PRECISION_MICROSECONDS.value,
         outValue,
       );
 
@@ -210,10 +223,14 @@ class DateTimeGenerator extends Generator<DateTime> {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
-        throw HegelException('Failed to generate datetime: ${result.value}');
+        throw hegelExceptionWithDetail(
+          tc.ctx,
+          'Failed to generate datetime',
+          result.value,
+        );
       }
 
-      final totalMicroseconds = outValue.ref.time.microsecond;
+      final totalMicroseconds = outValue.ref.time.nanosecond ~/ 1000;
       return DateTime.utc(
         outValue.ref.date.year,
         outValue.ref.date.month,
@@ -237,5 +254,71 @@ Generator<DateTime> dateTimes({DateTime? min, DateTime? max}) {
   return DateTimeGenerator(
     min ?? DateTime.utc(1, 1, 1),
     max ?? DateTime.utc(9999, 12, 31, 23, 59, 59, 999, 999),
+  );
+}
+
+class DurationGenerator extends Generator<Duration> {
+  final Duration min;
+  final Duration max;
+
+  DurationGenerator(this.min, this.max) {
+    if (min > max) {
+      throw ArgumentError('durations: min ($min) must be <= max ($max)');
+    }
+  }
+
+  @override
+  Duration generate(TestCase tc) {
+    return using((Arena arena) {
+      final outValue = arena<hegel_duration_t>();
+
+      final minMicros = min.inMicroseconds;
+      final minStruct = arena<hegel_duration_t>()
+        ..ref.seconds = minMicros ~/ 1000000
+        ..ref.nanoseconds = minMicros.remainder(1000000) * 1000;
+
+      final maxMicros = max.inMicroseconds;
+      final maxStruct = arena<hegel_duration_t>()
+        ..ref.seconds = maxMicros ~/ 1000000
+        ..ref.nanoseconds = maxMicros.remainder(1000000) * 1000;
+
+      final result = hegel_generate_duration(
+        tc.ctx,
+        tc.handle,
+        minStruct.ref,
+        maxStruct.ref,
+        hegel_precision_t.HEGEL_PRECISION_MICROSECONDS.value,
+        outValue,
+      );
+
+      if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
+        throw const HegelStopTest();
+      }
+      if (result != hegel_result_t.HEGEL_OK) {
+        throw hegelExceptionWithDetail(
+          tc.ctx,
+          'Failed to generate duration',
+          result.value,
+        );
+      }
+
+      final totalMicroseconds =
+          outValue.ref.seconds * 1000000 + (outValue.ref.nanoseconds ~/ 1000);
+      return Duration(microseconds: totalMicroseconds);
+    });
+  }
+}
+
+/// Generates [Duration] values between [min] and [max] (inclusive).
+///
+/// Defaults to ±36500 days (~±100 years) at microsecond precision.
+///
+/// ```dart
+/// tc.draw(durations(min: Duration.zero, max: const Duration(hours: 24)))
+/// ```
+Generator<Duration> durations({Duration? min, Duration? max}) {
+  return DurationGenerator(
+    min ?? const Duration(days: -36500),
+    max ?? const Duration(days: 36500),
   );
 }

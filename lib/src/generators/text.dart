@@ -1,7 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
-import 'dart:convert';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/string_helpers.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
@@ -18,8 +18,8 @@ abstract class _BaseNativeStringGenerator extends Generator<String> {
     final genHandle = tc.cacheStringGenerator(_cacheKey, () => _build(tc));
     // Handle is cached on RunLifecycle and freed by HegelRunner at end-of-run.
     return using((Arena arena) {
-      final outResult = arena<hegel_generate_string_result_t>();
-      final result = tc.lib.hegel_generate_string(
+      final outResult = arena<hegel_owned_string_t>();
+      final result = hegel_generate_string(
         tc.ctx,
         tc.handle,
         genHandle,
@@ -34,7 +34,6 @@ abstract class _BaseNativeStringGenerator extends Generator<String> {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to generate string',
           result.value,
@@ -42,13 +41,9 @@ abstract class _BaseNativeStringGenerator extends Generator<String> {
       }
 
       try {
-        final data = outResult.ref.data;
-        final len = outResult.ref.len;
-        if (len == 0) return '';
-        final uint8List = data.cast<ffi.Uint8>().asTypedList(len);
-        return utf8.decode(uint8List);
+        return readHegelString(outResult.ref);
       } finally {
-        tc.lib.hegel_generate_string_result_free(tc.ctx, outResult);
+        hegel_owned_string_free(tc.ctx, outResult);
       }
     });
   }
@@ -99,7 +94,7 @@ class TextGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final result = tc.lib.hegel_string_generator_text(
+      final result = hegel_string_generator_text(
         tc.ctx,
         minSize,
         maxSize,
@@ -110,10 +105,8 @@ class TextGenerator extends _BaseNativeStringGenerator {
         0,
         ffi.nullptr, // exclude categories
         0,
-        ffi.nullptr, // include characters
-        0,
-        ffi.nullptr, // exclude characters
-        0,
+        emptyHegelString(arena), // include characters
+        emptyHegelString(arena), // exclude characters
         outGen,
       );
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
@@ -121,7 +114,6 @@ class TextGenerator extends _BaseNativeStringGenerator {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to build text generator',
           result.value,
@@ -153,15 +145,7 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   final String pattern;
   final bool fullmatch;
 
-  RegexGenerator(this.pattern, this.fullmatch) {
-    if (pattern.contains('\x00')) {
-      throw ArgumentError.value(
-        pattern,
-        'pattern',
-        'must not contain null bytes — they cause silent truncation at the FFI boundary',
-      );
-    }
-  }
+  const RegexGenerator(this.pattern, this.fullmatch);
 
   @override
   Object get _cacheKey => (RegexGenerator, pattern, fullmatch);
@@ -170,12 +154,9 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final patternPtr = pattern
-          .toNativeUtf8(allocator: arena)
-          .cast<ffi.Char>();
-      final result = tc.lib.hegel_string_generator_regex(
+      final result = hegel_string_generator_regex(
         tc.ctx,
-        patternPtr,
+        makeHegelString(arena, pattern),
         fullmatch,
         ffi.nullptr,
         outGen,
@@ -185,7 +166,6 @@ class RegexGenerator extends _BaseNativeStringGenerator {
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to build regex generator',
           result.value,
@@ -215,13 +195,12 @@ class EmailGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final result = tc.lib.hegel_string_generator_email(tc.ctx, outGen);
+      final result = hegel_string_generator_email(tc.ctx, outGen);
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to build email generator',
           result.value,
@@ -249,13 +228,12 @@ class UrlGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final result = tc.lib.hegel_string_generator_url(tc.ctx, outGen);
+      final result = hegel_string_generator_url(tc.ctx, outGen);
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to build url generator',
           result.value,
@@ -284,17 +262,12 @@ class DomainGenerator extends _BaseNativeStringGenerator {
   ffi.Pointer<hegel_string_generator_t> _build(TestCase tc) {
     return using((Arena arena) {
       final outGen = arena<ffi.Pointer<hegel_string_generator_t>>();
-      final result = tc.lib.hegel_string_generator_domain(
-        tc.ctx,
-        maxLength,
-        outGen,
-      );
+      final result = hegel_string_generator_domain(tc.ctx, maxLength, outGen);
       if (result == hegel_result_t.HEGEL_E_STOP_TEST) {
         throw const HegelStopTest();
       }
       if (result != hegel_result_t.HEGEL_OK) {
         throw hegelExceptionWithDetail(
-          tc.lib,
           tc.ctx,
           'Failed to build domain generator',
           result.value,
@@ -319,7 +292,7 @@ class UuidGenerator extends Generator<String> {
   String generate(TestCase tc) {
     return using((Arena arena) {
       final outBytes = arena<ffi.Uint8>(16);
-      final result = tc.lib.hegel_generate_uuid(
+      final result = hegel_generate_uuid(
         tc.ctx,
         tc.handle,
         0, // version

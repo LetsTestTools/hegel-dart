@@ -3,8 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('failure message includes counterexample values', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     await expectLater(
       runner.run((tc) {
@@ -26,8 +25,7 @@ void main() {
   });
 
   test('failure message includes reproduce blob', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     await expectLater(
       runner.run((tc) {
@@ -43,4 +41,210 @@ void main() {
       ),
     );
   });
+
+  test('failure message includes tc.note() diagnostic notes', () async {
+    final runner = HegelRunner();
+
+    final result = await runner.runWithResult(
+      (tc) {
+        final v = tc.draw(integers(min: 0, max: 100));
+        tc.note('drawn v=$v');
+        if (v > 10) {
+          tc.note('failing diagnostic');
+          throw StateError('too big');
+        }
+      },
+      testCases: 100,
+      database: false,
+    );
+
+    expect(result.status, equals(RunStatus.failed));
+    final failure = result.failures.first;
+    expect(
+      failure.message,
+      allOf(contains('Notes:'), contains('failing diagnostic')),
+    );
+
+    // Also verify blob replay includes tc.note() output
+    final replayResult = await runner.runWithResult(
+      (tc) {
+        final v = tc.draw(integers(min: 0, max: 100));
+        tc.note('drawn v=$v');
+        if (v > 10) {
+          tc.note('failing diagnostic');
+          throw StateError('too big');
+        }
+      },
+      reproduceBlob: failure.reproductionBlob,
+      database: false,
+    );
+    expect(replayResult.status, equals(RunStatus.failed));
+    expect(
+      replayResult.failures.first.message,
+      allOf(contains('Notes:'), contains('failing diagnostic')),
+    );
+  });
+
+  test(
+    'failure message keeps tc.note() under quiet verbosity and avoids duplication under normal verbosity',
+    () async {
+      void body(TestCase tc) {
+        final v = tc.draw(integers(min: 0, max: 100));
+        tc.note('drawn v=$v');
+        if (v > 10) {
+          tc.note('failing diagnostic');
+          throw StateError('too big');
+        }
+      }
+
+      final quietResult = await HegelRunner().runWithResult(
+        body,
+        verbosity: Verbosity.quiet,
+        testCases: 100,
+        database: false,
+      );
+      expect(quietResult.status, equals(RunStatus.failed));
+      expect(
+        quietResult.failures.first.message,
+        allOf(contains('Notes:'), contains('failing diagnostic')),
+      );
+
+      final normalResult = await HegelRunner().runWithResult(
+        body,
+        verbosity: Verbosity.normal,
+        testCases: 100,
+        database: false,
+      );
+      expect(normalResult.status, equals(RunStatus.failed));
+      expect(
+        'failing diagnostic'
+            .allMatches(normalResult.failures.first.message)
+            .length,
+        equals(1),
+      );
+    },
+  );
+
+  test(
+    'debug run tolerates errors whose toString() throws and reports fallback',
+    () async {
+      final result = await HegelRunner().runWithResult(
+        (tc) {
+          tc.draw(integers(min: 0, max: 0));
+          throw _UnprintableError();
+        },
+        verbosity: Verbosity.debug,
+        testCases: 1,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.failed));
+      expect(result.failures, hasLength(1));
+      expect(result.failures.first.message, contains('toString() threw'));
+
+      final secondCallResult = await HegelRunner().runWithResult(
+        (tc) {
+          tc.draw(integers(min: 0, max: 0));
+          throw _SecondCallThrowsError();
+        },
+        verbosity: Verbosity.debug,
+        testCases: 1,
+        database: false,
+      );
+      expect(secondCallResult.status, equals(RunStatus.failed));
+      expect(secondCallResult.failures, hasLength(1));
+      expect(
+        secondCallResult.failures.first.message,
+        contains('first call ok'),
+      );
+    },
+  );
+
+  test(
+    'nested runWithResult on shared HegelRunner preserves outer diagnostics',
+    () async {
+      final runner = HegelRunner();
+      final innerStatuses = <RunStatus>[];
+      final outerResult = await runner.runWithResult(
+        (tc) {
+          final v = tc.draw(integers(min: 1, max: 100));
+          if (v >= 1) {
+            throw StateError('outer boom');
+          }
+        },
+        testCases: 5,
+        database: false,
+        tearDownEach: () async {
+          final innerResult = await runner.runWithResult(
+            (tc) {
+              tc.draw(integers(min: 0, max: 5));
+            },
+            testCases: 1,
+            database: false,
+          );
+          innerStatuses.add(innerResult.status);
+        },
+      );
+      expect(innerStatuses, isNotEmpty);
+      expect(innerStatuses, everyElement(equals(RunStatus.passed)));
+      expect(outerResult.status, equals(RunStatus.failed));
+      expect(outerResult.failures.first.message, contains('outer boom'));
+      expect(outerResult.failures.first.message, contains('Counterexample'));
+    },
+  );
+
+  test(
+    'quiet failure report preserves tc.note() added during tearDownEach',
+    () async {
+      TestCase? currentTc;
+      final result = await HegelRunner().runWithResult(
+        (tc) {
+          currentTc = tc;
+          tc.draw(integers(min: 0, max: 0));
+          throw StateError('body boom');
+        },
+        verbosity: Verbosity.quiet,
+        testCases: 1,
+        database: false,
+        tearDownEach: () {
+          currentTc?.note('teardown diagnostic');
+          throw StateError('secondary teardown boom');
+        },
+      );
+      expect(result.status, equals(RunStatus.failed));
+      expect(
+        result.failures.first.message,
+        allOf(
+          contains('body boom'),
+          contains('Notes:'),
+          contains('teardown diagnostic'),
+        ),
+      );
+    },
+  );
+}
+
+class _ThrowingRuntimeTypeError implements Exception {
+  @override
+  Type get runtimeType => throw StateError('cannot read runtimeType');
+}
+
+class _UnprintableError implements Exception {
+  @override
+  Type get runtimeType => throw StateError('cannot read runtimeType');
+
+  @override
+  String toString() => throw _ThrowingRuntimeTypeError();
+}
+
+class _SecondCallThrowsError implements Exception {
+  int _calls = 0;
+
+  @override
+  String toString() {
+    _calls++;
+    if (_calls > 1) {
+      throw StateError('cannot format twice');
+    }
+    return 'first call ok';
+  }
 }

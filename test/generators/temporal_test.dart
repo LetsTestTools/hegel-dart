@@ -108,5 +108,42 @@ void main() {
         expect(() => bytes(minSize: 10, maxSize: 5), throwsArgumentError);
       });
     });
+
+    group('durations', () {
+      hegelTest('generates valid Durations within default range', (tc) {
+        final d = tc.draw(durations());
+        expect(
+          d.inMicroseconds,
+          inInclusiveRange(
+            const Duration(days: -36500).inMicroseconds,
+            const Duration(days: 36500).inMicroseconds,
+          ),
+        );
+      });
+
+      hegelTest('respects custom bounds including negative durations', (tc) {
+        const min = Duration(milliseconds: -1500, microseconds: -250);
+        const max = Duration(milliseconds: 1500, microseconds: 750);
+        final d = tc.draw(durations(min: min, max: max));
+        expect(d >= min, isTrue);
+        expect(d <= max, isTrue);
+      });
+
+      hegelTest('handles single-point bounds (min == max)', (tc) {
+        const exact = Duration(seconds: -1, milliseconds: -500);
+        final d = tc.draw(durations(min: exact, max: exact));
+        expect(d, equals(exact));
+      });
+
+      test('rejects inverted bounds', () {
+        expect(
+          () => durations(
+            min: const Duration(seconds: 2),
+            max: const Duration(seconds: 1),
+          ),
+          throwsArgumentError,
+        );
+      });
+    });
   });
 }

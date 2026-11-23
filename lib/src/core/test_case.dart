@@ -1,9 +1,11 @@
 import 'dart:ffi';
 import 'dart:io';
+
 import 'package:ffi/ffi.dart';
 import 'package:meta/meta.dart';
 
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/string_helpers.dart';
 import '../generators/generator.dart';
 import 'exceptions.dart';
 
@@ -18,21 +20,19 @@ class RunLifecycle {
   bool isAlive = true;
 
   /// Native string generator handles allocated during this run, keyed by
-  /// generator configuration. Freed by [HegelRunner] before freeing the context.
+  /// generator configuration. Freed by `HegelRunner` before freeing the context.
   final Map<Object, Pointer<hegel_string_generator_t>> stringGeneratorCache =
       {};
 }
 
 /// Resource handle for GC-based cleanup of cloned test cases.
 class _OwnedTestCaseResource {
-  final LibHegel lib;
   final Pointer<hegel_context_t> ctx;
   final Pointer<hegel_test_case_t> handle;
   final RunLifecycle lifecycle;
   final Map<String, Pointer<Void>>? bufferCache;
 
   _OwnedTestCaseResource(
-    this.lib,
     this.ctx,
     this.handle,
     this.lifecycle, [
@@ -50,14 +50,14 @@ final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer = Finalizer((res) {
       'Call dispose() explicitly to ensure deterministic cleanup. '
       'GC-triggered disposal may cause non-deterministic behavior.',
     );
-    // Free the clone's private buffer cache
+    // Free the clone's private buffer cache.
     if (res.bufferCache != null) {
       for (final ptr in res.bufferCache!.values) {
         calloc.free(ptr);
       }
       res.bufferCache!.clear();
     }
-    res.lib.hegel_test_case_free(res.ctx, res.handle);
+    hegel_test_case_free(res.ctx, res.handle);
   }
   // If the run has ended, ctx is already freed — skip to avoid UAF.
 });
@@ -73,7 +73,6 @@ final Finalizer<_OwnedTestCaseResource> _testCaseFinalizer = Finalizer((res) {
 class TestCase {
   final Pointer<hegel_context_t> _ctx;
   final Pointer<hegel_test_case_t> _handle;
-  final LibHegel _lib;
   final bool _isOwned;
   final RunLifecycle _lifecycle;
   bool _isDisposed = false;
@@ -102,7 +101,7 @@ class TestCase {
 
   /// Get or create a cached native string generator handle for this run.
   ///
-  /// Handles are stored on [RunLifecycle] and freed by [HegelRunner]
+  /// Handles are stored on [RunLifecycle] and freed by `HegelRunner`
   /// before the native context is freed.
   @internal
   Pointer<hegel_string_generator_t> cacheStringGenerator(
@@ -121,22 +120,29 @@ class TestCase {
   /// Stores raw objects; formatting is deferred until failure.
   final List<(String label, Object? value)> _drawLog = [];
 
+  /// Diagnostic notes recorded via [note] during this iteration.
+  ///
+  /// Shared between the primary test case and any clones created from it so
+  /// notes recorded on clones remain visible in failure reports.
+  final List<String> _notes;
+
   /// Creates a test case wrapper.
   ///
-  /// This constructor is internal — only [HegelRunner] should
+  /// This constructor is internal — only `HegelRunner` should
   /// instantiate test cases.
   @internal
   TestCase(
     this._ctx,
     this._handle,
-    this._lib,
     this._lifecycle, {
     bool isOwned = false,
     Map<String, Pointer<Void>>? bufferCache,
+    List<String>? sharedNotes,
   }) : _isOwned = isOwned,
-       _bufferCache = bufferCache ?? {};
+       _bufferCache = bufferCache ?? {},
+       _notes = sharedNotes ?? [];
 
-  /// Internal accessors used by generators.
+  /// Internal accessors used by generators and stateful runners.
   @internal
   Pointer<hegel_context_t> get ctx {
     _checkNotDisposed();
@@ -147,12 +153,6 @@ class TestCase {
   Pointer<hegel_test_case_t> get handle {
     _checkNotDisposed();
     return _handle;
-  }
-
-  @internal
-  LibHegel get lib {
-    _checkNotDisposed();
-    return _lib;
   }
 
   void _checkNotDisposed() {
@@ -177,6 +177,29 @@ class TestCase {
     return value;
   }
 
+  /// Record a human-readable diagnostic note on the current test case.
+  ///
+  /// Notes are buffered by the native engine and surfaced alongside failing
+  /// test case outputs in verbose/debug runs and failure reports.
+  void note(String message) {
+    _checkNotDisposed();
+    using((Arena arena) {
+      final result = hegel_note(_ctx, _handle, makeHegelString(arena, message));
+      if (result != hegel_result_t.HEGEL_OK) {
+        throw hegelExceptionWithDetail(
+          _ctx,
+          'Failed to record note',
+          result.value,
+        );
+      }
+      _notes.add(message);
+    });
+  }
+
+  /// Notes recorded during this test case iteration via [note].
+  @internal
+  List<String> get notes => List.unmodifiable(_notes);
+
   /// The recorded draws for this test case iteration, formatted for display.
   ///
   /// Used by the runner to include counterexample values in failure messages.
@@ -189,6 +212,7 @@ class TestCase {
   @internal
   void resetDrawLog() {
     _drawLog.clear();
+    _notes.clear();
     _stagedObservations.clear();
   }
 
@@ -196,8 +220,8 @@ class TestCase {
     String s;
     try {
       s = value.toString();
-    } catch (e) {
-      s = '<toString() threw: ${e.runtimeType}>';
+    } catch (_) {
+      s = '<value: toString() threw>';
     }
     if (s.length <= 200) return s;
     final truncated = String.fromCharCodes(s.runes.take(200));
@@ -212,17 +236,6 @@ class TestCase {
   /// Observations are grouped by [label] (defaulting to empty string).
   /// If the current test iteration is discarded (e.g. via [assume]),
   /// observations recorded during that iteration are automatically discarded.
-  ///
-  /// ```dart
-  /// tc.collect(
-  ///   switch (items.length) {
-  ///     0 => 'empty',
-  ///     < 5 => 'short',
-  ///     _ => 'long',
-  ///   },
-  ///   label: 'length',
-  /// );
-  /// ```
   void collect(Object? observation, {String label = ''}) {
     _checkNotDisposed();
     final str = observation.toString();
@@ -231,11 +244,7 @@ class TestCase {
 
   /// Records [observation] in observation statistics if [condition] is true.
   ///
-  /// This is the QuickCheck/Hypothesis `classify` combinator:
-  /// ```dart
-  /// tc.classify(list.isEmpty, 'empty');
-  /// tc.classify(list.length > 50, 'large');
-  /// ```
+  /// This is the QuickCheck/Hypothesis `classify` combinator.
   void classify(bool condition, Object? observation, {String label = ''}) {
     if (condition) {
       collect(observation, label: label);
@@ -248,10 +257,6 @@ class TestCase {
   ///
   /// If the property run completes and the condition was satisfied in less than
   /// [minPercentage]% of iterations, the test fails with [InsufficientCoverageException].
-  ///
-  /// ```dart
-  /// tc.cover(15.0, list.isEmpty, 'empty lists');
-  /// ```
   void cover(double minPercentage, bool condition, String label) {
     _checkNotDisposed();
     if (minPercentage.isNaN || minPercentage <= 0.0 || minPercentage > 100.0) {
@@ -302,20 +307,19 @@ class TestCase {
   /// Record a numeric observation for the engine's targeting phase.
   void target(double value, {required String label}) {
     _checkNotDisposed();
-    if (value.isNaN) {
-      throw ArgumentError.value(value, 'value', 'must not be NaN');
+    if (!value.isFinite) {
+      throw ArgumentError.value(value, 'value', 'must be finite');
     }
     if (label.contains('\x00')) {
-      throw ArgumentError.value(
-        label,
-        'label',
-        'must not contain null bytes — they cause silent '
-            'truncation at the FFI boundary',
-      );
+      throw ArgumentError.value(label, 'label', 'must not contain null bytes');
     }
     using((Arena arena) {
-      final labelPtr = label.toNativeUtf8(allocator: arena).cast<Char>();
-      final result = _lib.hegel_target(_ctx, _handle, value, labelPtr);
+      final result = hegel_target(
+        _ctx,
+        _handle,
+        value,
+        makeHegelString(arena, label),
+      );
       if (result.value != hegel_result_t.HEGEL_OK.value) {
         throw StateError('Failed to record target: ${result.value}');
       }
@@ -332,20 +336,19 @@ class TestCase {
     _checkNotDisposed();
     return using((Arena arena) {
       final outTestCase = arena<Pointer<hegel_test_case_t>>();
-      final result = _lib.hegel_test_case_clone(_ctx, _handle, outTestCase);
+      final result = hegel_test_case_clone(_ctx, _handle, outTestCase);
       if (result.value != hegel_result_t.HEGEL_OK.value) {
         throw StateError('Failed to clone test case: ${result.value}');
       }
       final cloned = TestCase(
         _ctx,
         outTestCase.value,
-        _lib,
         _lifecycle,
         isOwned: true,
+        sharedNotes: _notes,
       );
-      // Attach GC finalizer as safety net
+      // Attach GC finalizer as safety net.
       final resource = _OwnedTestCaseResource(
-        _lib,
         _ctx,
         outTestCase.value,
         _lifecycle,
@@ -369,7 +372,7 @@ class TestCase {
     }
     if (_isOwned && _lifecycle.isAlive) {
       _testCaseFinalizer.detach(this);
-      _lib.hegel_test_case_free(_ctx, _handle);
+      hegel_test_case_free(_ctx, _handle);
     }
     _isDisposed = true;
   }
@@ -380,6 +383,9 @@ class TestCase {
   /// zombie usage from captured closures.
   void invalidate() {
     _drawLog.clear();
+    if (!_isOwned) {
+      _notes.clear();
+    }
     _isDisposed = true;
     // NOTE: buffer cache is NOT freed here — it's owned by the runner
     // and shared across iterations for performance.
@@ -397,7 +403,7 @@ class TestCase {
   @internal
   void startSpan(int label) {
     _checkNotDisposed();
-    final result = _lib.hegel_start_span(_ctx, _handle, label);
+    final result = hegel_start_span(_ctx, _handle, label);
     if (result.value != hegel_result_t.HEGEL_OK.value) {
       throw StateError('Failed to start span: ${result.value}');
     }
@@ -407,7 +413,7 @@ class TestCase {
   @internal
   void stopSpan({bool discard = false}) {
     _checkNotDisposed();
-    final result = _lib.hegel_stop_span(_ctx, _handle, discard);
+    final result = hegel_stop_span(_ctx, _handle, discard);
     if (result.value != hegel_result_t.HEGEL_OK.value) {
       throw StateError('Failed to stop span: ${result.value}');
     }

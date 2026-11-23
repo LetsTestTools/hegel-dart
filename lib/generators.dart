@@ -22,6 +22,6 @@ export 'src/generators/generator.dart' show Generator;
 export 'src/generators/network.dart' show ipv4Addresses, ipv6Addresses;
 export 'src/generators/primitives.dart'
     show integers, doubles, booleans, bigIntegers;
-export 'src/generators/temporal.dart' show dates, times, dateTimes;
+export 'src/generators/temporal.dart' show dates, times, dateTimes, durations;
 export 'src/generators/text.dart'
     show text, fromRegex, emails, urls, domains, uuids;

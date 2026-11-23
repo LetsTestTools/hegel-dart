@@ -38,8 +38,7 @@ void main() {
 
   group('failure detection', () {
     test('detects failure and provides origin + reproduce', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       await expectLater(
         runner.run((tc) {
           final v = tc.draw(integers());
@@ -56,8 +55,7 @@ void main() {
     });
 
     test('detects assertion failure', () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       await expectLater(
         runner.run((tc) {
           final v = tc.draw(integers(min: -100, max: 100));
@@ -102,12 +100,10 @@ void main() {
     }, testCases: 25);
 
     test('seed makes runs deterministic', () async {
-      final lib = loadHegelLibrary();
-
       int? firstVal1;
       int? firstVal2;
 
-      final runner1 = HegelRunner(lib);
+      final runner1 = HegelRunner();
       await runner1.run(
         (tc) {
           firstVal1 = tc.draw(integers());
@@ -116,7 +112,7 @@ void main() {
         testCases: 1,
       );
 
-      final runner2 = HegelRunner(lib);
+      final runner2 = HegelRunner();
       await runner2.run(
         (tc) {
           firstVal2 = tc.draw(integers());
@@ -127,6 +123,39 @@ void main() {
 
       expect(firstVal1, isNotNull);
       expect(firstVal1, equals(firstVal2));
+    });
+
+    test('Verbosity enum values match libhegel 0.53 ABI', () {
+      expect(Verbosity.normal.value, equals(0));
+      expect(Verbosity.quiet.value, equals(1));
+      expect(Verbosity.verbose.value, equals(2));
+      expect(Verbosity.debug.value, equals(3));
+    });
+
+    test('RunResult.errorKind classifies errored runs', () async {
+      final unsatisfiable = await runHegelTest(
+        (tc) {
+          tc.draw(integers(min: 0, max: 10));
+          tc.assume(false);
+        },
+        testCases: 5,
+        suppressHealthChecks: {HealthCheck.filterTooMuch},
+        database: false,
+      );
+      expect(unsatisfiable.status, equals(RunStatus.error));
+      expect(unsatisfiable.errorKind, equals(RunErrorKind.unsatisfiable));
+      expect(unsatisfiable.errorMessage, isNotEmpty);
+
+      final filterHealthCheck = await runHegelTest(
+        (tc) {
+          final x = tc.draw(integers(min: 0, max: 100));
+          tc.assume(x < -1);
+        },
+        testCases: 50,
+        database: false,
+      );
+      expect(filterHealthCheck.status, equals(RunStatus.error));
+      expect(filterHealthCheck.errorKind, equals(RunErrorKind.healthCheck));
     });
   });
 }

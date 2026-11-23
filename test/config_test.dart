@@ -3,8 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('HegelConfig testCases controls iterations', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
     var count = 0;
 
     final config = HegelConfig(testCases: 5);
@@ -19,8 +18,7 @@ void main() {
   });
 
   test('individual params override config', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
     var count = 0;
 
     // Config says 1000, but direct param says 5 — direct wins

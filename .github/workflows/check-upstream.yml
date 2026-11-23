@@ -1,16 +1,19 @@
-name: Check hegel-rust release
+name: Check libhegel release
 
-# Runs daily and checks if a newer hegel-rust release has binaries
-# that should be updated in this package.
+# Runs weekly and checks if a newer libhegel release in hegeldev/hegel
+# should be updated in this package.
 on:
   schedule:
     - cron: '0 8 * * 1'  # Every Monday at 8 AM UTC
   workflow_dispatch:
     inputs:
-      rust_version:
-        description: 'hegel-rust version to check (e.g. v0.33.0). Leave empty to check latest.'
+      libhegel_version:
+        description: 'libhegel version to check (e.g. 0.53.1). Leave empty to check latest.'
         required: false
         type: string
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -19,38 +22,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get latest hegel-rust release
+      - name: Get latest libhegel release
         id: latest
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "${{ inputs.rust_version }}" ]; then
-            TAG="${{ inputs.rust_version }}"
+          if [ -n "${{ inputs.libhegel_version }}" ]; then
+            VERSION="${{ inputs.libhegel_version }}"
           else
-            TAG=$(gh release view -R hegeldev/hegel-rust --json tagName -q '.tagName')
+            TAG=""
+            PAGE=1
+            while true; do
+              RESP=$(gh api "repos/hegeldev/hegel/releases?per_page=100&page=$PAGE")
+              COUNT=$(printf '%s' "$RESP" | jq 'length')
+              if [ "$COUNT" -eq 0 ]; then
+                break
+              fi
+              TAG=$(printf '%s' "$RESP" | jq -r '[.[] | select((.draft | not) and (.prerelease | not) and (.tag_name | startswith("libhegel/")))][0].tag_name // empty')
+              if [ -n "$TAG" ]; then
+                break
+              fi
+              PAGE=$((PAGE + 1))
+            done
+            if [ -z "$TAG" ]; then
+              echo "::error::No libhegel/* release found in hegeldev/hegel"
+              exit 1
+            fi
+            VERSION="${TAG#libhegel/}"
           fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Latest hegel-rust release: $TAG"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Latest libhegel release: libhegel/$VERSION"
 
       - name: Check bundled version
         id: bundled
         run: |
-          # The current bundled version is tracked in this file
-          if [ -f native/.hegel-rust-version ]; then
-            BUNDLED=$(cat native/.hegel-rust-version)
+          if [ -f native/.libhegel-version ]; then
+            BUNDLED=$(tr -d '[:space:]' < native/.libhegel-version)
           else
             BUNDLED="unknown"
           fi
           echo "version=$BUNDLED" >> "$GITHUB_OUTPUT"
-          echo "Bundled hegel-rust version: $BUNDLED"
+          echo "Bundled libhegel version: $BUNDLED"
 
       - name: Compare versions
         run: |
-          LATEST="${{ steps.latest.outputs.tag }}"
+          LATEST="${{ steps.latest.outputs.version }}"
           BUNDLED="${{ steps.bundled.outputs.version }}"
           if [ "$LATEST" = "$BUNDLED" ]; then
             echo "✅ Already up to date ($BUNDLED)"
           else
             echo "⚠️ New release available: $LATEST (bundled: $BUNDLED)"
-            echo "Run the 'Build Native Binaries' workflow to update."
+            echo "Run ./tool/fetch_libhegel.sh $LATEST or the 'Fetch Native Binaries' workflow to update."
           fi

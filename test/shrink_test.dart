@@ -3,8 +3,7 @@ import 'package:hegeltest/hegeltest.dart';
 
 void main() {
   test('failing test shrinks toward minimum counterexample', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     int lastFailingValue = -1;
 

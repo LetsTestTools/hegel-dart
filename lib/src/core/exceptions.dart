@@ -2,9 +2,11 @@
 library;
 
 import 'dart:ffi';
-import 'package:ffi/ffi.dart';
+
 import 'package:test/test.dart' show TestFailure;
+
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/string_helpers.dart';
 
 /// Thrown when the engine's choice budget is exhausted.
 ///
@@ -17,7 +19,7 @@ class HegelStopTest implements Exception {
   String toString() => 'HegelStopTest: choice budget exhausted';
 }
 
-/// Thrown when an [TestCase.assume] precondition fails.
+/// Thrown when a [TestCase.assume] precondition fails.
 ///
 /// The current test case is discarded and a new one is drawn.
 class HegelAssumptionViolated implements Exception {
@@ -75,28 +77,25 @@ class InsufficientCoverageException extends HegelTestFailure {
        );
 }
 
-/// Extract the last error message from the native engine context.
+/// Extracts the last error message from the native engine context.
 ///
-/// Returns `null` if the pointer is null or the string is empty.
-/// The returned pointer borrows `ctx`'s internal buffer and is
-/// invalidated by the next libhegel call — we copy to a Dart string
-/// immediately.
-String? nativeErrorDetail(LibHegel lib, Pointer<hegel_context_t> ctx) {
-  final errPtr = lib.hegel_context_last_error(ctx);
-  if (errPtr == nullptr) return null;
-  final msg = errPtr.cast<Utf8>().toDartString();
+/// Returns `null` if the error message is empty. The returned string is
+/// copied immediately into Dart memory before the next `libhegel` call
+/// invalidates the context's internal buffer.
+String? nativeErrorDetail(Pointer<hegel_context_t> ctx) {
+  final err = hegel_context_last_error(ctx);
+  final msg = readHegelString(err);
   return msg.isEmpty ? null : msg;
 }
 
-/// Create a [HegelException] enriched with the native engine's
+/// Creates a [HegelException] enriched with the native engine's
 /// last error diagnostic when available.
 HegelException hegelExceptionWithDetail(
-  LibHegel lib,
   Pointer<hegel_context_t> ctx,
   String message,
   int resultCode,
 ) {
-  final detail = nativeErrorDetail(lib, ctx);
+  final detail = nativeErrorDetail(ctx);
   final fullMessage = detail != null ? '$message ($detail)' : message;
   return HegelException(fullMessage, resultCode);
 }

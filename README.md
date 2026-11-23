@@ -14,7 +14,7 @@ Add `hegeltest` to your `pubspec.yaml` under `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  hegeltest: ^0.9.0
+  hegeltest: ^0.10.0
   test: ^1.25.0
 ```
 
@@ -43,7 +43,7 @@ void main() {
 | Text | `text()`, `fromRegex()`, `emails()`, `urls()`, `domains()`, `uuids()` |
 | Collections | `lists()`, `sets()`, `maps()` |
 | Combinators | `oneOf()`, `nullable()`, `sampled()`, `frequency()`, `tuples2/3/4()` |
-| Temporal | `dates()`, `times()`, `dateTimes()` |
+| Temporal | `dates()`, `times()`, `dateTimes()`, `durations()` |
 | Network | `ipv4Addresses()`, `ipv6Addresses()` |
 | Bytes | `bytes()` |
 
@@ -97,6 +97,14 @@ You can guide the engine's fuzzing towards specific edge cases using `tc.target(
 ```dart
 final items = tc.draw(lists(integers()), label: 'items');
 tc.target(items.length.toDouble(), label: 'list_length');
+```
+
+## Diagnostic Notes
+
+Attach debugging notes during test execution with `tc.note()`. Recorded notes are included in failing counterexample reports and blob replays:
+
+```dart
+tc.note('intermediate state: $state');
 ```
 
 ## Collecting Statistics & Coverage
@@ -293,8 +301,8 @@ For CI reproducibility without the database, you can set the `HEGEL_SEED` enviro
 You can fine-tune the engine's behavior using advanced settings:
 * `phases`: Control which phases to run — `Phase.explicit`, `Phase.reuse`, `Phase.generate`, `Phase.target`, `Phase.shrink`.
 * `verbosity`: Set output detail — `Verbosity.quiet`, `Verbosity.normal`, `Verbosity.verbose`, `Verbosity.debug`.
-* `backend`: Choose the randomness source — `Backend.auto_`, `Backend.default_`, `Backend.urandom`.
-* `suppressHealthChecks`: Disable specific engine health checks like `HealthCheck.tooSlow`, `HealthCheck.filterTooMuch`, `HealthCheck.returnsSlowly`, `HealthCheck.largeBaseExample`.
+* `backend`: Choose the randomness source — `Backend.default_`, `Backend.urandom`.
+* `suppressHealthChecks`: Disable specific engine health checks like `HealthCheck.tooSlow`, `HealthCheck.filterTooMuch`, `HealthCheck.testCasesTooLarge`, `HealthCheck.largeInitialTestCase`.
 * `derandomize`: Avoid randomizing generation if possible.
 * `reportMultipleFailures`: Report all failures instead of stopping at the first.
 
@@ -325,7 +333,7 @@ For Flutter apps, use [`hegeltest_flutter`](https://pub.dev/packages/hegeltest_f
 
 ```yaml
 dev_dependencies:
-  hegeltest_flutter: ^0.9.0
+  hegeltest_flutter: ^0.10.0
 ```
 
 ```dart
@@ -370,15 +378,22 @@ dart run benchmark/run_benchmarks.dart --format=json
 | Windows | x64 | ✅ Bundled |
 | Windows | arm64 | ✅ Bundled |
 
-All bundled binaries are verified via ABI version check at load time.
+All bundled binaries are verified via SHA256 at build time and ABI version check at runtime.
 
-Set `HEGEL_LIBHEGEL_PATH` to use a custom-built binary on unsupported platforms.
+To supply a custom binary on unsupported platforms, configure `hooks.user_defines.hegeltest.libhegel_path` in your `pubspec.yaml`:
+
+```yaml
+hooks:
+  user_defines:
+    hegeltest:
+      libhegel_path: /path/to/libhegel.so
+```
 
 ## Version Policy
 
 | Branch | Dart SDK | Status |
 |---|---|---|
-| `hegeltest ^0.9.0` | `>=3.10.0` | **Active** — all new features |
+| `hegeltest ^0.10.0` | `>=3.10.0` | **Active** — all new features |
 | `hegeltest ^0.4.0` | `>=3.4.0` | **Maintenance** — security fixes only |
 
 ## CI/CD Notes

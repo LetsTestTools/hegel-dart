@@ -47,12 +47,15 @@ This repository enforces formatting and static analysis on every commit via Left
 
 ### Native Binaries (libhegel)
 
-`hegel-dart` is powered by a native Rust engine (`libhegel`). For Dart-side contributions, **you do not need a Rust toolchain**. The native binaries are bundled with the repository and automatically loaded via FFI.
+`hegel-dart` is powered by a native Rust engine (`libhegel` from `hegeldev/hegel`). For Dart-side contributions, **you do not need a Rust toolchain**. The prebuilt binaries can be fetched with `./tool/fetch_libhegel.sh <version>` and are bundled in `native/` as `@Native` code assets via `hook/build.dart`.
 
-If you are developing custom native binaries (from `hegeldev/hegel-rust`) and want to test them with `hegel-dart`, you can override the loaded binary by setting the `HEGEL_LIBHEGEL_PATH` environment variable:
+If you are developing custom native binaries (from `hegeldev/hegel`) and want to test them with `hegel-dart`, configure `hooks.user_defines.hegeltest.libhegel_path` in `pubspec.yaml`:
 
-```bash
-export HEGEL_LIBHEGEL_PATH=/path/to/your/custom/libhegel.so
+```yaml
+hooks:
+  user_defines:
+    hegeltest:
+      libhegel_path: /path/to/your/custom/libhegel.so
 ```
 
 ## Making Changes

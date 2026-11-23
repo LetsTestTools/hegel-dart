@@ -1,137 +1,68 @@
-name: Build Native Binaries
+name: Fetch Native Binaries
 
-# Manual trigger — run this when you have access to the Rust source.
-# It compiles hegeltest-c for all platforms and uploads artifacts.
+# Fetches prebuilt libhegel release binaries and headers from hegeldev/hegel
+# using tool/fetch_libhegel.sh, bundles them, and verifies native assets on
+# macOS, Linux, and Windows.
 on:
   workflow_dispatch:
     inputs:
-      rust_repo:
-        description: 'Git URL for the hegel-rust repo'
-        required: true
-        type: string
-      rust_ref:
-        description: 'Git ref (branch/tag/sha) to build'
+      libhegel_version:
+        description: 'libhegel version to fetch (e.g. 0.53.1). Defaults to native/.libhegel-version.'
         required: false
-        default: 'main'
         type: string
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    name: Build (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-14
-            target: aarch64-apple-darwin
-            platform_dir: macos_arm64
-            lib_name: libhegel_c.dylib
-          - os: macos-13
-            target: x86_64-apple-darwin
-            platform_dir: macos_x64
-            lib_name: libhegel_c.dylib
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            platform_dir: linux_x64
-            lib_name: libhegel_c.so
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            platform_dir: linux_arm64
-            lib_name: libhegel_c.so
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            platform_dir: windows_x64
-            lib_name: hegel_c.dll
-    steps:
-      - name: Checkout Dart package
-        uses: actions/checkout@v4
-
-      - name: Clone Rust source
-        run: |
-          git clone --depth 1 --branch ${{ inputs.rust_ref }} ${{ inputs.rust_repo }} hegel-rust
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Build hegeltest-c
-        working-directory: hegel-rust
-        run: cargo build --release -p hegeltest-c --target ${{ matrix.target }}
-
-      - name: Copy binary to native/
-        run: |
-          mkdir -p native/${{ matrix.platform_dir }}
-          cp hegel-rust/target/${{ matrix.target }}/release/${{ matrix.lib_name }} \
-             native/${{ matrix.platform_dir }}/${{ matrix.lib_name }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.platform_dir }}
-          path: native/${{ matrix.platform_dir }}/
-
-  # After all builds complete, create a combined artifact
-  bundle:
-    name: Bundle all binaries
-    needs: build
+  fetch:
+    name: Fetch libhegel binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: native-artifacts/
-
-      - name: Assemble native/ directory
+      - name: Determine version
+        id: ver
         run: |
-          for dir in native-artifacts/native-*/; do
-            platform=$(basename "$dir" | sed 's/native-//')
-            mkdir -p native/$platform
-            cp "$dir"/* native/$platform/
-          done
-          ls -laR native/
+          if [ -n "${{ inputs.libhegel_version }}" ]; then
+            VERSION="${{ inputs.libhegel_version }}"
+          else
+            VERSION=$(tr -d '[:space:]' < native/.libhegel-version)
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Upload combined bundle
+      - name: Fetch and verify libhegel assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./tool/fetch_libhegel.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Upload native bundle
         uses: actions/upload-artifact@v4
         with:
           name: native-all-platforms
           path: native/
+          include-hidden-files: true
 
-  # Optional: run tests on each platform with the fresh binaries
   verify:
-    name: Verify (${{ matrix.platform_dir }})
-    needs: build
+    name: Verify (${{ matrix.os }})
+    needs: fetch
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-14
-            platform_dir: macos_arm64
-            lib_name: libhegel_c.dylib
-          - os: ubuntu-latest
-            platform_dir: linux_x64
-            lib_name: libhegel_c.so
-          - os: windows-latest
-            platform_dir: windows_x64
-            lib_name: hegel_c.dll
+        os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download native bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: native-all-platforms
+          path: native/
+
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+
       - run: dart pub get
-
-      - name: Download binary
-        uses: actions/download-artifact@v4
-        with:
-          name: native-${{ matrix.platform_dir }}
-          path: native/${{ matrix.platform_dir }}/
-
-      - name: Run tests
-        env:
-          HEGEL_LIBHEGEL_PATH: native/${{ matrix.platform_dir }}/${{ matrix.lib_name }}
-        run: dart test
+      - run: dart test

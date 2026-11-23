@@ -25,7 +25,7 @@ class BytesGenerator extends Generator<Uint8List> {
   Uint8List generate(TestCase tc) {
     return using((Arena arena) {
       final outResult = arena<hegel_generate_bytes_result_t>();
-      final result = tc.lib.hegel_generate_bytes(
+      final result = hegel_generate_bytes(
         tc.ctx,
         tc.handle,
         minSize,
@@ -48,7 +48,7 @@ class BytesGenerator extends Generator<Uint8List> {
         final uint8List = data.asTypedList(len);
         return Uint8List.fromList(uint8List);
       } finally {
-        tc.lib.hegel_generate_bytes_result_free(tc.ctx, outResult);
+        hegel_generate_bytes_result_free(tc.ctx, outResult);
       }
     });
   }

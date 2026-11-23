@@ -3,8 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   test('multiple draws of same type reuse buffers', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     await runner.run((tc) {
       // Draw multiple integers — should reuse the same native buffer
@@ -19,8 +18,7 @@ void main() {
   });
 
   test('mixed type draws work correctly', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
 
     await runner.run((tc) {
       final i = tc.draw(integers(min: 0, max: 100));

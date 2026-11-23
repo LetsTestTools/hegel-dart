@@ -5,7 +5,6 @@ import 'package:test/test.dart';
 import '../core/hegel_settings.dart';
 import '../core/runner.dart';
 import '../core/settings.dart';
-import '../ffi/library_loader.dart';
 import 'state_machine.dart';
 import 'stateful_runner.dart';
 
@@ -54,8 +53,7 @@ void hegelStatefulTest(
   test(
     description,
     () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
 
       await runner.run(
         (tc) async {
@@ -63,7 +61,7 @@ void hegelStatefulTest(
           var bodyThrew = false;
           try {
             await machine.setUp();
-            await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
+            await runStateMachine(tc, machine);
           } catch (_) {
             bodyThrew = true;
             rethrow;

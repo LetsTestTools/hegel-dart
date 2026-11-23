@@ -1,3 +1,17 @@
+## 0.10.0
+
+- **Engine Upgrade**: Upgraded bundled native library to upstream `hegeldev/hegel` `libhegel 0.53.1` (`macos_arm64`, `linux_x64`, `linux_arm64`, `windows_x64`, `windows_arm64`) with automated `./tool/fetch_libhegel.sh` fetcher and SHA256 sidecar verification.
+- **Native Assets**: Migrated FFI bindings (`ffigen` `ffi-native`) to Dart `@Native` code assets (`assetId: package:hegeltest/src/ffi/hegel_bindings.g.dart`), registered automatically via `hook/build.dart`. Replaced `HEGEL_LIBHEGEL_PATH` with build-hook configuration `hooks.user_defines.hegeltest.libhegel_path`.
+- **New**: Added `durations({Duration? min, Duration? max})` temporal generator (`min`/`max` defaults to ±36500 days at microsecond precision).
+- **New**: Added `tc.note(String message)` for attaching diagnostic notes to test cases, surfaced automatically under `Notes:` in failing counterexample reports and blob replays.
+- **New**: Added `RunErrorKind` (`RunResult.errorKind`) for structured classification of errored runs (`none`, `healthCheck`, `flaky`, `nondeterministic`, `unsatisfiable`, `usage`, `internal`).
+- **New**: Exported conditional `ensureHegelLibraryVerified()` and `hegelNativeVersion()` from `package:hegeltest/hegeltest.dart`.
+- **Stateful Testing**: Added `StateRule.weight` (default `1.0`), `StateInvariant.alwaysCheck` (default `true`, with initial and final checks always executed), `StateMachine.stepCount` (default `50`), precondition rejection feedback via `hegel_state_machine_rule_rejected`, and clean 2-arg `runStateMachine(TestCase tc, StateMachine machine)`.
+- **Breaking Changes**:
+  - Removed `loadHegelLibrary()`, `HegelRunner(LibHegel lib)` constructor argument (now zero-arg `HegelRunner()`), `RunMode`, `Backend.auto_`, and `HEGEL_LIBHEGEL_PATH`.
+  - Updated `Verbosity` enum values (`normal(0)`, `quiet(1)`, `verbose(2)`, `debug(3)`) and `RunStatus` (`passed`, `failed`, `error`) to match `libhegel 0.53.1`.
+  - Updated `runStateMachine` signature from 5 arguments to `runStateMachine(TestCase tc, StateMachine machine)`.
+
 ## 0.9.1
 
 - **Fix**: Free native `hegel_string_generator_t` handles at end-of-run (`hegel_string_generator_free`) and cache handles per-run by structural generator parameters on `RunLifecycle`.

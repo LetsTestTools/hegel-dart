@@ -41,6 +41,13 @@ void main() {
       expect(v, matches(RegExp(r'^[0-9]{3}$')));
     });
 
+    hegelTest('supports embedded NUL bytes in pattern', (tc) {
+      final v = tc.draw(fromRegex('a\x00b'));
+      expect(v, equals('a\x00b'));
+      expect(v.length, equals(3));
+      expect(v.codeUnits, equals([0x61, 0x00, 0x62]));
+    });
+
     test(
       'invalid regex pattern throws HegelException with native detail',
       () async {

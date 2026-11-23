@@ -141,15 +141,14 @@ void main() {
   hegelStatefulTest('map with pool tracking', () => MapMachine());
 
   test('stateful tearDown failure fails the test when rules succeed', () async {
-    final lib = loadHegelLibrary();
-    final runner = HegelRunner(lib);
+    final runner = HegelRunner();
     final result = await runner.runWithResult(
       (tc) async {
         final StateMachine machine = _FailingTearDownMachine();
         var bodyThrew = false;
         try {
           await machine.setUp();
-          await runStateMachine(lib, tc.ctx, tc.handle, machine, tc);
+          await runStateMachine(tc, machine);
         } catch (_) {
           bodyThrew = true;
           rethrow;
@@ -174,17 +173,10 @@ void main() {
   test(
     'runStateMachine rejects rule and invariant names with NUL bytes',
     () async {
-      final lib = loadHegelLibrary();
-      final runner = HegelRunner(lib);
+      final runner = HegelRunner();
       final badRuleResult = await runner.runWithResult(
         (tc) async {
-          await runStateMachine(
-            lib,
-            tc.ctx,
-            tc.handle,
-            _NullByteRuleMachine(),
-            tc,
-          );
+          await runStateMachine(tc, _NullByteRuleMachine());
         },
         testCases: 1,
         database: false,
@@ -203,6 +195,225 @@ void main() {
     testCases: 20,
     database: false,
   );
+
+  test('StateRule validates weight is finite and positive', () {
+    for (final invalid in [0.0, -1.0, double.nan, double.infinity]) {
+      expect(
+        () => StateRule('invalid', weight: invalid, execute: (_) {}),
+        throwsArgumentError,
+      );
+    }
+    final valid = StateRule('valid', weight: 2.5, execute: (_) {});
+    expect(valid.weight, equals(2.5));
+  });
+
+  test('runStateMachine rejects stepCount < 1', () async {
+    final runner = HegelRunner();
+    final result = await runner.runWithResult(
+      (tc) => runStateMachine(tc, _InvalidStepCountMachine()),
+      testCases: 1,
+      database: false,
+    );
+    expect(result.status, equals(RunStatus.failed));
+    expect(result.failures.first.message, contains('stepCount'));
+  });
+
+  test('custom stepCount limits executed steps per test case', () async {
+    final stepCounts = <int>[];
+    final runner = HegelRunner();
+    final result = await runner.runWithResult(
+      (tc) async {
+        final machine = _BoundedStepsMachine();
+        await runStateMachine(tc, machine);
+        stepCounts.add(machine.executedSteps);
+      },
+      testCases: 10,
+      database: false,
+    );
+    expect(result.status, equals(RunStatus.passed));
+    expect(stepCounts, isNotEmpty);
+    expect(stepCounts.every((s) => s >= 1 && s <= 5), isTrue);
+  });
+
+  test(
+    'StateInvariant(alwaysCheck: false) checks initial and final states',
+    () async {
+      final runner = HegelRunner();
+      final result = await runner.runWithResult(
+        (tc) async {
+          final checks = <int>[];
+          final machine = _SampledInvariantMachine(onCheck: checks.add);
+          await runStateMachine(tc, machine);
+          expect(checks, isNotEmpty);
+          expect(checks.first, equals(0));
+          expect(checks.last, equals(machine.steps));
+        },
+        testCases: 10,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.passed));
+    },
+  );
+
+  hegelStatefulTest(
+    'weighted rules and precondition rejections execute cleanly',
+    () => _WeightedRejectedRuleMachine(),
+    testCases: 20,
+    database: false,
+  );
+
+  test(
+    'verbose stateful run with cloned test case note completes without aborting',
+    () async {
+      final result = await runHegelTest(
+        (tc) => runStateMachine(tc, _VerboseNoteCloneMachine()),
+        verbosity: Verbosity.verbose,
+        testCases: 5,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.passed));
+    },
+  );
+
+  test(
+    'quiet failing stateful run retains cloned test case note in failure report',
+    () async {
+      final result = await runHegelTest(
+        (tc) => runStateMachine(tc, _QuietFailingNoteCloneMachine()),
+        verbosity: Verbosity.quiet,
+        testCases: 5,
+        database: false,
+      );
+      expect(result.status, equals(RunStatus.failed));
+      expect(
+        result.failures.first.message,
+        allOf(
+          contains('invariant failed'),
+          contains('Notes:'),
+          contains('quiet clone invariant note'),
+        ),
+      );
+    },
+  );
+}
+
+class _QuietFailingNoteCloneMachine extends StateMachine {
+  @override
+  int get stepCount => 4;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('step', execute: (tc) => tc.draw(integers(min: 0, max: 10))),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'clone note before failing',
+      check: (tc) {
+        final cloned = tc.clone();
+        try {
+          cloned.note('quiet clone invariant note');
+        } finally {
+          cloned.dispose();
+        }
+        throw StateError('invariant failed');
+      },
+    ),
+  ];
+}
+
+class _VerboseNoteCloneMachine extends StateMachine {
+  @override
+  int get stepCount => 4;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('step', execute: (tc) => tc.draw(integers(min: 0, max: 10))),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'clone note in verbose run',
+      check: (tc) {
+        final cloned = tc.clone();
+        try {
+          cloned.note('invariant note');
+        } finally {
+          cloned.dispose();
+        }
+      },
+    ),
+  ];
+}
+
+class _InvalidStepCountMachine extends StateMachine {
+  @override
+  int get stepCount => 0;
+
+  @override
+  List<StateRule> get rules => [StateRule('noop', execute: (_) {})];
+}
+
+class _BoundedStepsMachine extends StateMachine {
+  int executedSteps = 0;
+
+  @override
+  int get stepCount => 5;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('inc', execute: (_) => executedSteps++),
+  ];
+}
+
+class _SampledInvariantMachine extends StateMachine {
+  final void Function(int currentStep) onCheck;
+  int steps = 0;
+
+  _SampledInvariantMachine({required this.onCheck});
+
+  @override
+  int get stepCount => 10;
+
+  @override
+  List<StateRule> get rules => [StateRule('step', execute: (_) => steps++)];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant('sampled', alwaysCheck: false, check: (_) => onCheck(steps)),
+  ];
+}
+
+class _WeightedRejectedRuleMachine extends StateMachine {
+  bool ready = false;
+  int bRuns = 0;
+
+  @override
+  int get stepCount => 10;
+
+  @override
+  List<StateRule> get rules => [
+    StateRule('enable', weight: 2.0, execute: (_) => ready = true),
+    StateRule(
+      'requiresReady',
+      weight: 5.0,
+      precondition: () => ready,
+      execute: (_) {
+        expect(ready, isTrue);
+        bRuns++;
+      },
+    ),
+  ];
+
+  @override
+  List<StateInvariant> get invariants => [
+    StateInvariant(
+      'valid count',
+      check: (_) => expect(bRuns, greaterThanOrEqualTo(0)),
+    ),
+  ];
 }
 
 class _FailingTearDownMachine extends StateMachine {
