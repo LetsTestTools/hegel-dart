@@ -14,6 +14,7 @@ enum Phase {
   target(8),
   shrink(16);
 
+  /// Native engine bitmask flag for this test phase.
   final int value;
   const Phase(this.value);
 }
@@ -25,6 +26,7 @@ enum Verbosity {
   verbose(2),
   debug(3);
 
+  /// Native engine integer level for this verbosity setting.
   final int value;
   const Verbosity(this.value);
 }
@@ -34,6 +36,7 @@ enum Backend {
   default_(1),
   urandom(2);
 
+  /// Native engine integer identifier for this randomness backend.
   final int value;
   const Backend(this.value);
 }
@@ -45,6 +48,7 @@ enum HealthCheck {
   testCasesTooLarge(4),
   largeInitialTestCase(8);
 
+  /// Native engine bitmask flag for this health check.
   final int value;
   const HealthCheck(this.value);
 }

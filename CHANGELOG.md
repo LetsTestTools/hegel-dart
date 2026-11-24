@@ -1,3 +1,8 @@
+## 0.10.1
+
+- **Dependencies**: Widen `code_assets` constraint to `>=1.2.0 <3.0.0` to support `code_assets` `2.x` (`2.2.0`).
+- **Docs**: Add dartdoc comments for `Failure`, `RunResult`, and settings enum `value` fields.
+
 ## 0.10.0
 
 - **Engine Upgrade**: Upgraded bundled native library to upstream `hegeldev/hegel` `libhegel 0.53.1` (`macos_arm64`, `linux_x64`, `linux_arm64`, `windows_x64`, `windows_arm64`) with automated `./tool/fetch_libhegel.sh` fetcher and SHA256 sidecar verification.
