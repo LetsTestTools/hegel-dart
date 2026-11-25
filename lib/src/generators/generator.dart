@@ -49,11 +49,14 @@ class MappedGenerator<T, U> extends Generator<U> {
   const MappedGenerator(this._generator, this._mapper);
 
   @override
-  int get spanLabel => SpanLabels.combine3(
-    SpanLabels.mapped,
-    _generator.spanLabel,
-    SpanLabels.fromName(U.toString()),
-  );
+  int get spanLabel => SpanLabels.resolveGuard(
+    this,
+    () => SpanLabels.combine3(
+      SpanLabels.mapped,
+      _generator.spanLabel,
+      SpanLabels.fromName(U.toString()),
+    ),
+  ).$1;
 
   @override
   U generate(TestCase tc) {
@@ -65,10 +68,7 @@ class FilteredGenerator<T> extends Generator<T> {
   final Generator<T> _generator;
   final bool Function(T value) _predicate;
   final int _maxAttempts;
-  late final int _spanLabel = SpanLabels.combine2(
-    SpanLabels.filter,
-    _generator.spanLabel,
-  );
+  int? _cachedSpanLabel;
 
   FilteredGenerator(this._generator, this._predicate, {int maxAttempts = 100})
     : _maxAttempts = maxAttempts {
@@ -78,7 +78,16 @@ class FilteredGenerator<T> extends Generator<T> {
   }
 
   @override
-  int get spanLabel => _spanLabel;
+  int get spanLabel {
+    final cached = _cachedSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.filter, _generator.spanLabel),
+    );
+    if (shouldCache) _cachedSpanLabel = label;
+    return label;
+  }
 
   @override
   T generate(TestCase tc) {
@@ -91,7 +100,7 @@ class FilteredGenerator<T> extends Generator<T> {
     // don't shift the fuzzer tape during shrinking. Rejected
     // spans are discarded, keeping tape positions stable.
     for (var attempt = 0; attempt < _maxAttempts; attempt++) {
-      tc.startSpan(_spanLabel);
+      tc.startSpan(spanLabel);
       bool accepted = false;
       bool threw = false;
       try {
@@ -124,11 +133,14 @@ class FlatMappedGenerator<T, U> extends Generator<U> {
   const FlatMappedGenerator(this._generator, this._mapper);
 
   @override
-  int get spanLabel => SpanLabels.combine3(
-    SpanLabels.flatMap,
-    _generator.spanLabel,
-    SpanLabels.fromName(U.toString()),
-  );
+  int get spanLabel => SpanLabels.resolveGuard(
+    this,
+    () => SpanLabels.combine3(
+      SpanLabels.flatMap,
+      _generator.spanLabel,
+      SpanLabels.fromName(U.toString()),
+    ),
+  ).$1;
 
   @override
   U generate(TestCase tc) {

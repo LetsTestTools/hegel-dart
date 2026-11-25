@@ -16,6 +16,39 @@ final class SpanLabels {
   static final Map<(int, int), int> _combine2Cache = {};
   static final Map<(int, int, int), int> _combine3Cache = {};
   static final Map<_LabelListKey, int> _combineListCache = {};
+  static final Set<Object> _resolving = Set<Object>.identity();
+  static bool _sawCycleInTraversal = false;
+
+  /// Computes a span label for [node] while breaking cyclic generator graphs.
+  ///
+  /// Returns `(label, shouldCache)`: if [node] is already being resolved,
+  /// returns `(cycle, false)` instead of re-entering. Otherwise runs [compute];
+  /// `shouldCache` is `true` for acyclic traversals and for the root of a
+  /// cyclic traversal (so intermediate nodes are not polluted by a parent's
+  /// cycle break).
+  static (int label, bool shouldCache) resolveGuard(
+    Object node,
+    int Function() compute,
+  ) {
+    if (!_resolving.add(node)) {
+      _sawCycleInTraversal = true;
+      return (cycle, false);
+    }
+    final isRoot = _resolving.length == 1;
+    if (isRoot) {
+      _sawCycleInTraversal = false;
+    }
+    try {
+      final label = compute();
+      final shouldCache = !_sawCycleInTraversal || isRoot;
+      return (label, shouldCache);
+    } finally {
+      _resolving.remove(node);
+      if (isRoot) {
+        _sawCycleInTraversal = false;
+      }
+    }
+  }
 
   /// Returns a deterministic 64-bit span label for [name] via `libhegel`.
   static int fromName(String name) {
@@ -153,6 +186,7 @@ final class SpanLabels {
   static final int frequency = fromName('hegeltest.frequency');
   static final int mapped = fromName('hegeltest.mapped');
   static final int pool = fromName('hegeltest.pool');
+  static final int cycle = fromName('hegeltest.cycle');
 }
 
 final class _LabelListKey {

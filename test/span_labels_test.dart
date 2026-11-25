@@ -16,6 +16,16 @@ class _CustomStringGenerator extends Generator<String> {
   String generate(TestCase tc) => 'fixed';
 }
 
+class _LazyGenerator<T> extends Generator<T> {
+  late final Generator<T> target;
+
+  @override
+  int get spanLabel => target.spanLabel;
+
+  @override
+  T generate(TestCase tc) => target.generate(tc);
+}
+
 void main() {
   setUpAll(() {
     ensureHegelLibraryVerified();
@@ -320,6 +330,103 @@ void main() {
         expect(res.status, equals(RunStatus.failed));
         expect(res.errorKind, equals(RunErrorKind.none));
         expect(res.failures, isNotEmpty);
+        final messages = res.failures.map((f) => f.message).toList();
+        expect(messages, anyElement(contains('Expected: null')));
+        expect(
+          messages,
+          everyElement(
+            allOf(
+              isNot(contains('Failed to start span')),
+              isNot(contains('Failed to stop span')),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'mutating caller lists after construction does not alter labels or draws',
+      () async {
+        final oneOfInputs = <Generator<int>>[integers(min: 1, max: 1)];
+        final oneOfGen = oneOf(oneOfInputs);
+        final oneOfLabel = oneOfGen.spanLabel;
+        oneOfInputs[0] = integers(min: 99, max: 99);
+        oneOfInputs.add(integers(min: 50, max: 50));
+        expect(oneOfGen.spanLabel, equals(oneOfLabel));
+
+        final freqInputs = <(int, Generator<int>)>[
+          (1, integers(min: 2, max: 2)),
+        ];
+        final freqGen = frequency(freqInputs);
+        final freqLabel = freqGen.spanLabel;
+        freqInputs[0] = (1, integers(min: 88, max: 88));
+        freqInputs.add((100, integers(min: 77, max: 77)));
+        expect(freqGen.spanLabel, equals(freqLabel));
+
+        final sampledInputs = <String>['only'];
+        final sampledGen = sampled(sampledInputs);
+        final sampledLabel = sampledGen.spanLabel;
+        sampledInputs[0] = 'mutated';
+        sampledInputs.add('extra');
+        expect(sampledGen.spanLabel, equals(sampledLabel));
+
+        final weightedInputs = <(int, String)>[(1, 'kept')];
+        final weightedGen = sampledWeighted(weightedInputs);
+        final weightedLabel = weightedGen.spanLabel;
+        weightedInputs[0] = (1, 'changed');
+        weightedInputs.add((100, 'added'));
+        expect(weightedGen.spanLabel, equals(weightedLabel));
+
+        final runRes = await runHegelTest(
+          (tc) {
+            expect(tc.draw(oneOfGen), equals(1));
+            expect(tc.draw(freqGen), equals(2));
+            expect(tc.draw(sampledGen), equals('only'));
+            expect(tc.draw(weightedGen), equals('kept'));
+          },
+          seed: 42,
+          testCases: 30,
+          database: false,
+        );
+
+        expect(runRes.status, equals(RunStatus.passed));
+      },
+    );
+
+    test(
+      'cyclic self-referential generator graphs resolve spanLabel safely and generate values',
+      () async {
+        final lazyOneOf = _LazyGenerator<Object>();
+        lazyOneOf.target = oneOf<Object>([
+          integers(min: 0, max: 10),
+          lists(lazyOneOf, maxSize: 1),
+        ]);
+
+        final lazyFreq = _LazyGenerator<Object>();
+        lazyFreq.target = frequency<Object>([
+          (4, integers(min: 0, max: 10)),
+          (1, lists(lazyFreq, maxSize: 2)),
+        ]);
+
+        final label1 = lazyOneOf.spanLabel;
+        expect(lazyOneOf.spanLabel, equals(label1));
+        final freqLabel = lazyFreq.spanLabel;
+        expect(lazyFreq.spanLabel, equals(freqLabel));
+        expect(label1, isNot(equals(freqLabel)));
+
+        final res = await runHegelTest(
+          (tc) {
+            final v1 = tc.draw(lazyOneOf, label: 'cyclicOneOf');
+            final v2 = tc.draw(lazyFreq, label: 'cyclicFreq');
+            expect(v1, anyOf(isA<int>(), isA<List<Object>>()));
+            expect(v2, anyOf(isA<int>(), isA<List<Object>>()));
+          },
+          seed: 42,
+          testCases: 50,
+          database: false,
+        );
+
+        expect(res.status, equals(RunStatus.passed));
       },
     );
   });
