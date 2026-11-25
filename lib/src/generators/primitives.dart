@@ -2,6 +2,7 @@ import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
@@ -15,6 +16,9 @@ class IntegerGenerator extends Generator<int> {
       throw ArgumentError('integers: min ($min) must be <= max ($max)');
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.integer;
 
   @override
   int generate(TestCase tc) {
@@ -80,6 +84,9 @@ class DoubleGenerator extends Generator<double> {
       throw ArgumentError('doubles: min ($min) must be <= max ($max)');
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.double_;
 
   @override
   double generate(TestCase tc) {
@@ -149,6 +156,9 @@ class BooleanGenerator extends Generator<bool> {
   }
 
   @override
+  int get spanLabel => SpanLabels.boolean;
+
+  @override
   bool generate(TestCase tc) {
     final outValue = tc.reuseBuffer<ffi.Bool>('bool', () => calloc<ffi.Bool>());
     final result = hegel_generate_boolean(
@@ -195,6 +205,9 @@ class BigIntGenerator extends Generator<BigInt> {
     _minBytes = _toTwosComplementLittleEndian(min, (min.bitLength + 8) ~/ 8);
     _maxBytes = _toTwosComplementLittleEndian(max, (max.bitLength + 8) ~/ 8);
   }
+
+  @override
+  int get spanLabel => SpanLabels.bigInt;
 
   @override
   BigInt generate(TestCase tc) {

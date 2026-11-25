@@ -2,6 +2,7 @@ import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
@@ -20,6 +21,9 @@ class BytesGenerator extends Generator<Uint8List> {
       );
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.bytes;
 
   @override
   Uint8List generate(TestCase tc) {

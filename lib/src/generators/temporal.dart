@@ -1,6 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
@@ -16,6 +17,9 @@ class DateGenerator extends Generator<DateTime> {
       throw ArgumentError('dates: min ($min) must be <= max ($max)');
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.date;
 
   @override
   DateTime generate(TestCase tc) {
@@ -86,6 +90,9 @@ class TimeGenerator extends Generator<TimeRecord> {
       throw ArgumentError('times: min ($min) must be <= max ($max)');
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.time;
 
   static void _validateTimeRecord(TimeRecord t, String name) {
     if (t.hour < 0 || t.hour > 23) {
@@ -186,6 +193,9 @@ class DateTimeGenerator extends Generator<DateTime> {
   }
 
   @override
+  int get spanLabel => SpanLabels.dateTime;
+
+  @override
   DateTime generate(TestCase tc) {
     return using((Arena arena) {
       final outValue = arena<hegel_datetime_t>();
@@ -266,6 +276,9 @@ class DurationGenerator extends Generator<Duration> {
       throw ArgumentError('durations: min ($min) must be <= max ($max)');
     }
   }
+
+  @override
+  int get spanLabel => SpanLabels.duration;
 
   @override
   Duration generate(TestCase tc) {

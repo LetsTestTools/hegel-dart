@@ -8,6 +8,10 @@ import 'generator.dart';
 
 class SampledGenerator<T> extends Generator<T> {
   final List<T> values;
+  late final int _spanLabel = SpanLabels.combine2(
+    SpanLabels.sampled,
+    SpanLabels.fromName(T.toString()),
+  );
 
   SampledGenerator(this.values) {
     if (values.isEmpty) {
@@ -16,6 +20,9 @@ class SampledGenerator<T> extends Generator<T> {
       );
     }
   }
+
+  @override
+  int get spanLabel => _spanLabel;
 
   @override
   T generate(TestCase tc) {
@@ -51,6 +58,10 @@ Generator<T> sampled<T>(List<T> values) => SampledGenerator(values);
 
 class OneOfGenerator<T> extends Generator<T> {
   final List<Generator<T>> gens;
+  late final int _spanLabel = SpanLabels.combine([
+    SpanLabels.oneOf,
+    for (final g in gens) g.spanLabel,
+  ]);
 
   OneOfGenerator(this.gens) {
     if (gens.isEmpty) {
@@ -61,8 +72,11 @@ class OneOfGenerator<T> extends Generator<T> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   T generate(TestCase tc) {
-    tc.startSpan(SpanLabels.oneOf);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final outIndex = tc.reuseBuffer<ffi.Int64>(
@@ -103,6 +117,10 @@ Generator<T> oneOf<T>(List<Generator<T>> gens) => OneOfGenerator(gens);
 class NullableGenerator<T> extends Generator<T?> {
   final Generator<T> gen;
   final double nullProbability;
+  late final int _spanLabel = SpanLabels.combine2(
+    SpanLabels.optional,
+    gen.spanLabel,
+  );
 
   NullableGenerator(this.gen, this.nullProbability) {
     if (nullProbability.isNaN ||
@@ -115,8 +133,11 @@ class NullableGenerator<T> extends Generator<T?> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   T? generate(TestCase tc) {
-    tc.startSpan(SpanLabels.optional);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final outBool = tc.reuseBuffer<ffi.Bool>(
@@ -166,11 +187,19 @@ Generator<T?> nullable<T>(Generator<T> gen, {double nullProbability = 0.5}) =>
 class Tuple2Generator<A, B> extends Generator<(A, B)> {
   final Generator<A> _a;
   final Generator<B> _b;
+  late final int _spanLabel = SpanLabels.combine3(
+    SpanLabels.tuple,
+    _a.spanLabel,
+    _b.spanLabel,
+  );
   Tuple2Generator(this._a, this._b);
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   (A, B) generate(TestCase tc) {
-    tc.startSpan(SpanLabels.tuple);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -187,11 +216,20 @@ class Tuple3Generator<A, B, C> extends Generator<(A, B, C)> {
   final Generator<A> _a;
   final Generator<B> _b;
   final Generator<C> _c;
+  late final int _spanLabel = SpanLabels.combine([
+    SpanLabels.tuple,
+    _a.spanLabel,
+    _b.spanLabel,
+    _c.spanLabel,
+  ]);
   Tuple3Generator(this._a, this._b, this._c);
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   (A, B, C) generate(TestCase tc) {
-    tc.startSpan(SpanLabels.tuple);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -210,11 +248,21 @@ class Tuple4Generator<A, B, C, D> extends Generator<(A, B, C, D)> {
   final Generator<B> _b;
   final Generator<C> _c;
   final Generator<D> _d;
+  late final int _spanLabel = SpanLabels.combine([
+    SpanLabels.tuple,
+    _a.spanLabel,
+    _b.spanLabel,
+    _c.spanLabel,
+    _d.spanLabel,
+  ]);
   Tuple4Generator(this._a, this._b, this._c, this._d);
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   (A, B, C, D) generate(TestCase tc) {
-    tc.startSpan(SpanLabels.tuple);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final a = _a.generate(tc);
@@ -260,6 +308,10 @@ Generator<(A, B, C, D)> tuples4<A, B, C, D>(
 class FrequencyGenerator<T> extends Generator<T> {
   final List<(int, Generator<T>)> weighted;
   final int totalWeight;
+  late final int _spanLabel = SpanLabels.combine([
+    SpanLabels.frequency,
+    for (final item in weighted) item.$2.spanLabel,
+  ]);
 
   FrequencyGenerator(this.weighted)
     : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
@@ -283,8 +335,11 @@ class FrequencyGenerator<T> extends Generator<T> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   T generate(TestCase tc) {
-    tc.startSpan(SpanLabels.oneOf);
+    tc.startSpan(_spanLabel);
     bool success = false;
     try {
       final outIndex = tc.reuseBuffer<ffi.Int64>(
@@ -349,6 +404,10 @@ Generator<T> oneOfWeighted<T>(List<(int, Generator<T>)> weighted) =>
 class SampledWeightedGenerator<T> extends Generator<T> {
   final List<(int, T)> weighted;
   final int totalWeight;
+  late final int _spanLabel = SpanLabels.combine2(
+    SpanLabels.sampledWeighted,
+    SpanLabels.fromName(T.toString()),
+  );
 
   SampledWeightedGenerator(this.weighted)
     : totalWeight = weighted.fold(0, (sum, item) => sum + item.$1) {
@@ -370,6 +429,9 @@ class SampledWeightedGenerator<T> extends Generator<T> {
       );
     }
   }
+
+  @override
+  int get spanLabel => _spanLabel;
 
   @override
   T generate(TestCase tc) {

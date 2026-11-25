@@ -11,6 +11,14 @@ class ListGenerator<T> extends Generator<List<T>> {
   final Generator<T> elements;
   final int minSize;
   final int maxSize;
+  late final int _spanLabel = SpanLabels.combine2(
+    SpanLabels.list,
+    elements.spanLabel,
+  );
+  late final int _elementSpanLabel = SpanLabels.combine2(
+    SpanLabels.listElement,
+    elements.spanLabel,
+  );
 
   ListGenerator(this.elements, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -24,8 +32,11 @@ class ListGenerator<T> extends Generator<List<T>> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   List<T> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.list);
+    tc.startSpan(_spanLabel);
     bool success = false;
 
     try {
@@ -80,7 +91,7 @@ class ListGenerator<T> extends Generator<List<T>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.listElement);
+          tc.startSpan(_elementSpanLabel);
           bool elementAdded = false;
           try {
             list.add(elements.generate(tc));
@@ -104,6 +115,14 @@ class SetGenerator<T> extends Generator<Set<T>> {
   final Generator<T> elements;
   final int minSize;
   final int maxSize;
+  late final int _spanLabel = SpanLabels.combine2(
+    SpanLabels.set,
+    elements.spanLabel,
+  );
+  late final int _elementSpanLabel = SpanLabels.combine2(
+    SpanLabels.setElement,
+    elements.spanLabel,
+  );
 
   SetGenerator(this.elements, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -117,8 +136,11 @@ class SetGenerator<T> extends Generator<Set<T>> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   Set<T> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.set);
+    tc.startSpan(_spanLabel);
     bool success = false;
 
     try {
@@ -174,7 +196,7 @@ class SetGenerator<T> extends Generator<Set<T>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.setElement);
+          tc.startSpan(_elementSpanLabel);
           bool elementAdded = false;
           bool threw = true;
           try {
@@ -222,6 +244,16 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   final Generator<V> values;
   final int minSize;
   final int maxSize;
+  late final int _spanLabel = SpanLabels.combine3(
+    SpanLabels.map,
+    keys.spanLabel,
+    values.spanLabel,
+  );
+  late final int _entrySpanLabel = SpanLabels.combine3(
+    SpanLabels.mapEntry,
+    keys.spanLabel,
+    values.spanLabel,
+  );
 
   MapGenerator(this.keys, this.values, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -235,8 +267,11 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   }
 
   @override
+  int get spanLabel => _spanLabel;
+
+  @override
   Map<K, V> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.map);
+    tc.startSpan(_spanLabel);
     bool success = false;
 
     try {
@@ -292,7 +327,7 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.mapEntry);
+          tc.startSpan(_entrySpanLabel);
           bool elementAdded = false;
           bool threw = true;
           try {
