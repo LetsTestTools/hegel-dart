@@ -11,6 +11,8 @@ class ListGenerator<T> extends Generator<List<T>> {
   final Generator<T> elements;
   final int minSize;
   final int maxSize;
+  int? _cachedSpanLabel;
+  int? _cachedElementSpanLabel;
 
   ListGenerator(this.elements, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -24,8 +26,31 @@ class ListGenerator<T> extends Generator<List<T>> {
   }
 
   @override
+  int get spanLabel {
+    final cached = _cachedSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.list, elements.spanLabel),
+    );
+    if (shouldCache) _cachedSpanLabel = label;
+    return label;
+  }
+
+  int get _elementSpanLabel {
+    final cached = _cachedElementSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.listElement, elements.spanLabel),
+    );
+    if (shouldCache) _cachedElementSpanLabel = label;
+    return label;
+  }
+
+  @override
   List<T> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.list);
+    tc.startSpan(spanLabel);
     bool success = false;
 
     try {
@@ -80,7 +105,7 @@ class ListGenerator<T> extends Generator<List<T>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.listElement);
+          tc.startSpan(_elementSpanLabel);
           bool elementAdded = false;
           try {
             list.add(elements.generate(tc));
@@ -104,6 +129,8 @@ class SetGenerator<T> extends Generator<Set<T>> {
   final Generator<T> elements;
   final int minSize;
   final int maxSize;
+  int? _cachedSpanLabel;
+  int? _cachedElementSpanLabel;
 
   SetGenerator(this.elements, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -117,8 +144,31 @@ class SetGenerator<T> extends Generator<Set<T>> {
   }
 
   @override
+  int get spanLabel {
+    final cached = _cachedSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.set, elements.spanLabel),
+    );
+    if (shouldCache) _cachedSpanLabel = label;
+    return label;
+  }
+
+  int get _elementSpanLabel {
+    final cached = _cachedElementSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.setElement, elements.spanLabel),
+    );
+    if (shouldCache) _cachedElementSpanLabel = label;
+    return label;
+  }
+
+  @override
   Set<T> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.set);
+    tc.startSpan(spanLabel);
     bool success = false;
 
     try {
@@ -174,7 +224,7 @@ class SetGenerator<T> extends Generator<Set<T>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.setElement);
+          tc.startSpan(_elementSpanLabel);
           bool elementAdded = false;
           bool threw = true;
           try {
@@ -222,6 +272,8 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   final Generator<V> values;
   final int minSize;
   final int maxSize;
+  int? _cachedSpanLabel;
+  int? _cachedEntrySpanLabel;
 
   MapGenerator(this.keys, this.values, this.minSize, this.maxSize) {
     if (minSize < 0) {
@@ -235,8 +287,36 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
   }
 
   @override
+  int get spanLabel {
+    final cached = _cachedSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () =>
+          SpanLabels.combine3(SpanLabels.map, keys.spanLabel, values.spanLabel),
+    );
+    if (shouldCache) _cachedSpanLabel = label;
+    return label;
+  }
+
+  int get _entrySpanLabel {
+    final cached = _cachedEntrySpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine3(
+        SpanLabels.mapEntry,
+        keys.spanLabel,
+        values.spanLabel,
+      ),
+    );
+    if (shouldCache) _cachedEntrySpanLabel = label;
+    return label;
+  }
+
+  @override
   Map<K, V> generate(TestCase tc) {
-    tc.startSpan(SpanLabels.map);
+    tc.startSpan(spanLabel);
     bool success = false;
 
     try {
@@ -292,7 +372,7 @@ class MapGenerator<K, V> extends Generator<Map<K, V>> {
           }
           if (!outMore.value) break;
 
-          tc.startSpan(SpanLabels.mapEntry);
+          tc.startSpan(_entrySpanLabel);
           bool elementAdded = false;
           bool threw = true;
           try {

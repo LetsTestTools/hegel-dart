@@ -1,6 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../ffi/string_helpers.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
@@ -87,6 +88,9 @@ class TextGenerator extends _BaseNativeStringGenerator {
   }
 
   @override
+  int get spanLabel => SpanLabels.text;
+
+  @override
   Object get _cacheKey =>
       (TextGenerator, minSize, maxSize, minCodepoint, maxCodepoint);
 
@@ -148,6 +152,9 @@ class RegexGenerator extends _BaseNativeStringGenerator {
   const RegexGenerator(this.pattern, this.fullmatch);
 
   @override
+  int get spanLabel => SpanLabels.regex;
+
+  @override
   Object get _cacheKey => (RegexGenerator, pattern, fullmatch);
 
   @override
@@ -189,6 +196,9 @@ class EmailGenerator extends _BaseNativeStringGenerator {
   const EmailGenerator();
 
   @override
+  int get spanLabel => SpanLabels.email;
+
+  @override
   Object get _cacheKey => EmailGenerator;
 
   @override
@@ -220,6 +230,9 @@ Generator<String> emails() => const EmailGenerator();
 
 class UrlGenerator extends _BaseNativeStringGenerator {
   const UrlGenerator();
+
+  @override
+  int get spanLabel => SpanLabels.url;
 
   @override
   Object get _cacheKey => UrlGenerator;
@@ -256,6 +269,9 @@ class DomainGenerator extends _BaseNativeStringGenerator {
   const DomainGenerator(this.maxLength);
 
   @override
+  int get spanLabel => SpanLabels.domain;
+
+  @override
   Object get _cacheKey => (DomainGenerator, maxLength);
 
   @override
@@ -287,6 +303,9 @@ Generator<String> domains({int maxLength = 255}) => DomainGenerator(maxLength);
 
 class UuidGenerator extends Generator<String> {
   const UuidGenerator();
+
+  @override
+  int get spanLabel => SpanLabels.uuid;
 
   @override
   String generate(TestCase tc) {

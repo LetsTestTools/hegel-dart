@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:meta/meta.dart';
+
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
 import '../ffi/span_labels.dart';
@@ -10,6 +12,10 @@ abstract class Generator<T> {
   /// Cached string representation of this generator's runtime type.
   /// Used by TestCase.draw() to avoid per-draw reflection.
   String get typeName => runtimeType.toString();
+
+  /// Stable 64-bit span label identifying this generator's shape for the shrinker.
+  @internal
+  int get spanLabel => SpanLabels.fromName('hegeltest.custom.$typeName');
 
   T generate(TestCase tc);
 
@@ -43,6 +49,16 @@ class MappedGenerator<T, U> extends Generator<U> {
   const MappedGenerator(this._generator, this._mapper);
 
   @override
+  int get spanLabel => SpanLabels.resolveGuard(
+    this,
+    () => SpanLabels.combine3(
+      SpanLabels.mapped,
+      _generator.spanLabel,
+      SpanLabels.fromName(U.toString()),
+    ),
+  ).$1;
+
+  @override
   U generate(TestCase tc) {
     return _mapper(_generator.generate(tc));
   }
@@ -52,12 +68,25 @@ class FilteredGenerator<T> extends Generator<T> {
   final Generator<T> _generator;
   final bool Function(T value) _predicate;
   final int _maxAttempts;
+  int? _cachedSpanLabel;
 
   FilteredGenerator(this._generator, this._predicate, {int maxAttempts = 100})
     : _maxAttempts = maxAttempts {
     if (maxAttempts <= 0) {
       throw ArgumentError.value(maxAttempts, 'maxAttempts', 'must be > 0');
     }
+  }
+
+  @override
+  int get spanLabel {
+    final cached = _cachedSpanLabel;
+    if (cached != null) return cached;
+    final (label, shouldCache) = SpanLabels.resolveGuard(
+      this,
+      () => SpanLabels.combine2(SpanLabels.filter, _generator.spanLabel),
+    );
+    if (shouldCache) _cachedSpanLabel = label;
+    return label;
   }
 
   @override
@@ -71,7 +100,7 @@ class FilteredGenerator<T> extends Generator<T> {
     // don't shift the fuzzer tape during shrinking. Rejected
     // spans are discarded, keeping tape positions stable.
     for (var attempt = 0; attempt < _maxAttempts; attempt++) {
-      tc.startSpan(SpanLabels.filter);
+      tc.startSpan(spanLabel);
       bool accepted = false;
       bool threw = false;
       try {
@@ -104,8 +133,18 @@ class FlatMappedGenerator<T, U> extends Generator<U> {
   const FlatMappedGenerator(this._generator, this._mapper);
 
   @override
+  int get spanLabel => SpanLabels.resolveGuard(
+    this,
+    () => SpanLabels.combine3(
+      SpanLabels.flatMap,
+      _generator.spanLabel,
+      SpanLabels.fromName(U.toString()),
+    ),
+  ).$1;
+
+  @override
   U generate(TestCase tc) {
-    tc.startSpan(SpanLabels.flatMap);
+    tc.startSpan(spanLabel);
     bool success = false;
     try {
       final value = _generator.generate(tc);
@@ -124,8 +163,14 @@ class CompositeGenerator<T> extends Generator<T> {
   const CompositeGenerator(this._generateFn);
 
   @override
+  int get spanLabel => SpanLabels.combine2(
+    SpanLabels.composite,
+    SpanLabels.fromName(T.toString()),
+  );
+
+  @override
   T generate(TestCase tc) {
-    tc.startSpan(SpanLabels.composite);
+    tc.startSpan(spanLabel);
     bool success = false;
     try {
       final result = _generateFn(tc);

@@ -3,12 +3,16 @@ import 'package:ffi/ffi.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import '../ffi/hegel_bindings.g.dart';
+import '../ffi/span_labels.dart';
 import '../core/test_case.dart';
 import '../core/exceptions.dart';
 import 'generator.dart';
 
 class Ipv4Generator extends Generator<InternetAddress> {
   const Ipv4Generator();
+
+  @override
+  int get spanLabel => SpanLabels.ipv4;
 
   @override
   InternetAddress generate(TestCase tc) {
@@ -41,6 +45,9 @@ Generator<InternetAddress> ipv4Addresses() => const Ipv4Generator();
 
 class Ipv6Generator extends Generator<InternetAddress> {
   const Ipv6Generator();
+
+  @override
+  int get spanLabel => SpanLabels.ipv6;
 
   @override
   InternetAddress generate(TestCase tc) {

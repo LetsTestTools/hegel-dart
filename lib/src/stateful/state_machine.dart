@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 
 import '../core/exceptions.dart';
 import '../core/test_case.dart';
+import '../ffi/span_labels.dart';
 import '../generators/generator.dart';
 
 /// A rule that can be executed during stateful testing.
@@ -114,6 +115,10 @@ class _PoolGenerator<T> extends Generator<T> {
   final bool _consume;
 
   _PoolGenerator(this._pool, this._consume);
+
+  @override
+  int get spanLabel =>
+      SpanLabels.combine2(SpanLabels.pool, SpanLabels.fromName(T.toString()));
 
   @override
   T generate(TestCase tc) {
